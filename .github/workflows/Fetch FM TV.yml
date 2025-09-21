@@ -17,16 +17,24 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download XML file
-        run: wget https://opop.pro/tNDLMbEKLUzN -O playlist.xml
+      - name: Download VOD XML file
+        run: wget https://opop.pro/tNDLMbEKLUzN -O "vod playlist.xml"
 
-      - name: Download M3U file
-        run: wget https://opop.pro/JpHvMzWhr5gNbDT -O playlist.m3u
+      - name: Download VOD M3U file
+        run: wget https://opop.pro/JpHvMzWhr5gNbDT -O "vod playlist.m3u"
+
+      - name: Download Channel M3U file
+        run: wget https://opop.pro/SWR3sgHR6bXeg -O "channel playlist.m3u"
+
+      - name: Download Channel XML file
+        run: wget https://opop.pro/jGoejGCxMyUbBSt -O "channel playlist.xml"
 
       - name: Add files to Git
         run: |
-          git add playlist.xml
-          git add playlist.m3u
+          git add "vod playlist.xml"
+          git add "vod playlist.m3u"
+          git add "channel playlist.m3u"
+          git add "channel playlist.xml"
 
       - name: Check for changes before commit
         id: changes

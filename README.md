@@ -8,7 +8,7 @@
 
 <div align="center">
   <h3>🌍 Multi-Regional IPTV Playlist Collection</h3>
-  <p><strong>Curated playlists featuring international channels</strong></p>
+  <p><strong>Curated playlists featuring international content</strong></p>
 </div>
 
 ---

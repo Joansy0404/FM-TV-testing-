@@ -201,6 +201,8 @@ https://a1xs.vip/2000022
 https://a1xs.vip/2000023
 #EXTINF:0 CUID="237" tvg-chno="null" tvg-name="TNT SPORTS 4" tvg-logo="https://logo.m3uassets.com/tntsports4.png" group-title="UK",TNT SPORTS 4
 https://a1xs.vip/2000024
+#EXTINF:0 CUID="315" tvg-chno="null" tvg-name="NICK JR." group-title="UK",NICK JR.
+https://a1xs.vip/1000052
 #EXTINF:0 CUID="10" tvg-chno="null" tvg-name="ASPIRE" tvg-logo="https://logo.m3uassets.com/aspiretv.png" group-title="US",ASPIRE
 https://fl3.moveonjoy.com/Aspire/index.m3u8
 #EXTINF:0 CUID="11" tvg-chno="null" tvg-name="ACC NETWORK" tvg-logo="https://logo.m3uassets.com/accnetwork.png" group-title="US",ACC NETWORK

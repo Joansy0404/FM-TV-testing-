@@ -1,4 +1,4 @@
-# 📺 FM-TV (Free Media TV)
+# 📺 FM-TV
 
 <div align="center">
   <img src="https://img.shields.io/github/stars/Jehovah-witnesses-here/FM-TV?style=for-the-badge&logo=github&color=gold" alt="GitHub Stars">

@@ -1,29 +1,29 @@
 #EXTM3U
-#EXTINF:0 CUID="1" tvg-name="Vamos por M+ • HD" tvg-id="M+.Vamos.es" tvg-logo="https://raw.githubusercontent.com/pigzillaaa/daddylive/refs/heads/main/logos/vamos.png" group-title="SPAIN",Vamos por M+ • HD
+#EXTINF:0 CUID="1" tvg-name="#Vamos Spain" tvg-id="M+.Vamos.es" tvg-logo="https://raw.githubusercontent.com/pigzillaaa/daddylive/refs/heads/main/logos/vamos.png" group-title="SPAIN",#Vamos Spain
 https://world-proxifier.xyz/ddy/p/XSQhJT0FNygtXl5RW08kNElTLF0gJCQvLygtXl5ROjgvX0hfIl8ABRkyVzZaJDxaBj8L/index.m3u8
-#EXTINF:0 CUID="26" tvg-name="Antena 3 • FHD" tvg-id="Antena.3.es" tvg-logo="https://raw.githubusercontent.com/pigzillaaa/daddylive/refs/heads/main/logos/antena-3.png" group-title="SPAIN",Antena 3 • FHD
+#EXTINF:0 CUID="26" tvg-name="Antena 3 Spain" tvg-id="Antena.3.es" tvg-logo="https://raw.githubusercontent.com/pigzillaaa/daddylive/refs/heads/main/logos/antena-3.png" group-title="SPAIN",Antena 3 Spain
 https://world-proxifier.xyz/ddy/p/XSQhJT0FNyhQJF1YJBlTXz44W1csWD0sNDUjOlQkWEUsCSgkJ1daXj9SDRQFOl8kWzkxVxQjAw==/index.m3u8
 #EXTINF:0 CUID="59" tvg-name="Barca TV Spain" tvg-id="BarcaTV(Catalan).es" tvg-logo="https://raw.githubusercontent.com/pigzillaaa/daddylive/refs/heads/main/logos/barca-tv.png" group-title="SPAIN",Barca TV Spain
 https://world-proxifier.xyz/ddy/p/XSQhJT0FNygtXl5RW08kNElTLF0gJCQvLygtXl5ROjgvX0hfIl8ABRgyVzZaJDxaBj8L/index.m3u8
 #EXTINF:0 CUID="126" tvg-name="Cuatro Spain" tvg-id="Cuatro.es" tvg-logo="https://raw.githubusercontent.com/pigzillaaa/daddylive/refs/heads/main/logos/cuatro-spain.png" group-title="SPAIN",Cuatro Spain
 https://world-proxifier.xyz/ddy/p/XSQhJT0FNyhQJF1YJBlTXz44W1csWD0sNDUjOlQkWEUsCSgkJ1daXj9SDRQBOl8kWzkxVxQjAw==/index.m3u8
-#EXTINF:0 CUID="130" tvg-name="DAZN 1 • HD" tvg-id="DAZN.1.es" tvg-logo="https://raw.githubusercontent.com/pigzillaaa/daddylive/refs/heads/main/logos/dazn-1.png" group-title="SPAIN",DAZN 1 • HD
+#EXTINF:0 CUID="130" tvg-name="DAZN 1 Spain" tvg-id="DAZN.1.es" tvg-logo="https://raw.githubusercontent.com/pigzillaaa/daddylive/refs/heads/main/logos/dazn-1.png" group-title="SPAIN",DAZN 1 Spain
 https://world-proxifier.xyz/ddy/p/XSQhJT0FNygtXl5RW08kNElTLF0gJCQvLygtXl5ROjgvX0hfIl8HBx0yVzZaJDxaBj8L/index.m3u8
-#EXTINF:0 CUID="132" tvg-name="DAZN 2 • HD" tvg-id="DAZN.2.es" tvg-logo="https://raw.githubusercontent.com/pigzillaaa/daddylive/refs/heads/main/logos/dazn-2.png" group-title="SPAIN",DAZN 2 • HD
+#EXTINF:0 CUID="132" tvg-name="DAZN 2 Spain" tvg-id="DAZN.2.es" tvg-logo="https://raw.githubusercontent.com/pigzillaaa/daddylive/refs/heads/main/logos/dazn-2.png" group-title="SPAIN",DAZN 2 Spain
 https://world-proxifier.xyz/ddy/p/XSQhJT0FNyguUl0kW08kNElTLF0gJCQvLyguUl0kOjgvX0hfIl8HBxwyVzZaJDxaBj8L/index.m3u8
-#EXTINF:0 CUID="133" tvg-name="DAZN 3 • HD" tvg-id="DAZN.3.es" tvg-logo="https://raw.githubusercontent.com/pigzillaaa/daddylive/refs/heads/main/logos/dazn-3.png" group-title="SPAIN",DAZN 3 • HD
+#EXTINF:0 CUID="133" tvg-name="DAZN 3 Spain" tvg-id="DAZN.3.es" tvg-logo="https://raw.githubusercontent.com/pigzillaaa/daddylive/refs/heads/main/logos/dazn-3.png" group-title="SPAIN",DAZN 3 Spain
 https://world-proxifier.xyz/ddy/p/XSQhJT0FNyguUl0kW08kNElTLF0gJCQvLyguUl0kOjgvX0hfIl8HBx8yVzZaJDxaBj8L/index.m3u8
 #EXTINF:0 CUID="134" tvg-name="DAZN 4 Spain" tvg-id="DAZN.4.es" tvg-logo="https://raw.githubusercontent.com/pigzillaaa/daddylive/refs/heads/main/logos/dazn-4.png" group-title="SPAIN",DAZN 4 Spain
 https://world-proxifier.xyz/ddy/p/XSQhJT0FNyguUl0kW08kNElTLF0gJCQvLyguUl0kOjgvX0hfIl8HBx4yVzZaJDxaBj8L/index.m3u8
-#EXTINF:0 CUID="135" tvg-name="DAZN F1 • FHD" tvg-id="DAZN.F1.es" tvg-logo="https://raw.githubusercontent.com/pigzillaaa/daddylive/refs/heads/main/logos/dazn-f1.png" group-title="SPAIN",DAZN F1 • FHD
+#EXTINF:0 CUID="135" tvg-name="DAZN F1 ES" tvg-id="DAZN.F1.es" tvg-logo="https://raw.githubusercontent.com/pigzillaaa/daddylive/refs/heads/main/logos/dazn-f1.png" group-title="SPAIN",DAZN F1 ES
 https://world-proxifier.xyz/ddy/p/XSQhJT0FNyhQJF1YJBlTXz44W1csWD0sNDUjOlQkWEUsCSgkJ1daXj9SDRQDOl8kWzkxVxQjAw==/index.m3u8
-#EXTINF:0 CUID="136" tvg-name="DAZN LaLiga • HD" tvg-id="DAZN.LALIGA.es" tvg-logo="https://raw.githubusercontent.com/pigzillaaa/daddylive/refs/heads/main/logos/dazn-laliga.png" group-title="SPAIN",DAZN LaLiga • HD
+#EXTINF:0 CUID="136" tvg-name="DAZN LaLiga" tvg-id="DAZN.LALIGA.es" tvg-logo="https://raw.githubusercontent.com/pigzillaaa/daddylive/refs/heads/main/logos/dazn-laliga.png" group-title="SPAIN",DAZN LaLiga
 https://world-proxifier.xyz/ddy/p/XSQhJT0FNyhQJF1YJBlTXz44W1csWD0sNDUjOlQkWEUsCSgkJ1daXj9SDRQCOl8kWzkxVxQjAw==/index.m3u8
 #EXTINF:0 CUID="137" tvg-name="DAZN LaLiga 2" tvg-id="DAZN.LALIGA.2.es" tvg-logo="https://raw.githubusercontent.com/pigzillaaa/daddylive/refs/heads/main/logos/dazn-laliga-2.png" group-title="SPAIN",DAZN LaLiga 2
 https://world-proxifier.xyz/ddy/p/XSQhJT0FNygtXl5RW08kNElTLF0gJCQvLygtXl5ROjgvX0hfIl8HBidSKUklOV8GIh4=/index.m3u8
-#EXTINF:0 CUID="190" tvg-name="EuroSport 1 • HD" tvg-id="Eurosport.1.es" tvg-logo="https://raw.githubusercontent.com/pigzillaaa/daddylive/refs/heads/main/logos/eurosport-1.png" group-title="SPAIN",EuroSport 1 • HD
+#EXTINF:0 CUID="190" tvg-name="EuroSport 1 Spain" tvg-id="Eurosport.1.es" tvg-logo="https://raw.githubusercontent.com/pigzillaaa/daddylive/refs/heads/main/logos/eurosport-1.png" group-title="SPAIN",EuroSport 1 Spain
 https://world-proxifier.xyz/ddy/p/XSQhJT0FNyguUl0kW08kNElTLF0gJCQvLyguUl0kOjgvX0hfIl8ABRoyVzZaJDxaBj8L/index.m3u8
-#EXTINF:0 CUID="193" tvg-name="EuroSport 2 • HD" tvg-id="Eurosport.2.es" tvg-logo="https://raw.githubusercontent.com/pigzillaaa/daddylive/refs/heads/main/logos/eurosport-2.png" group-title="SPAIN",EuroSport 2 • HD
+#EXTINF:0 CUID="193" tvg-name="EuroSport 2 Spain" tvg-id="Eurosport.2.es" tvg-logo="https://raw.githubusercontent.com/pigzillaaa/daddylive/refs/heads/main/logos/eurosport-2.png" group-title="SPAIN",EuroSport 2 Spain
 https://world-proxifier.xyz/ddy/p/XSQhJT0FNyhQUSsBW08kNElTLF0gJCQvLyhQUSsBOjgvX0hfIl8ABR0yVzZaJDxaBj8L/index.m3u8
 #EXTINF:0 CUID="235" tvg-name="GOL PLAY Spain" tvg-id="GOL.PLAY.es" tvg-logo="https://raw.githubusercontent.com/pigzillaaa/daddylive/refs/heads/main/logos/gol-play-spain.png" group-title="SPAIN",GOL PLAY Spain
 https://world-proxifier.xyz/ddy/p/XSQhJT0FNyhQJF1YJBlTXz44W1csWD0sNDUjOlQkWEUsCSgkJ1daXj9SDRQ6Ol8kWzkxVxQjAw==/index.m3u8
@@ -205,15 +205,15 @@ https://world-proxifier.xyz/ddy/p/XSQhJT0FNyhQJF1YJBlTXz44W1csWD0sNDUjOlQkWEUsCS
 https://world-proxifier.xyz/ddy/p/XSQhJT0FNygtXl5RW08kNElTLF0gJCQvLygtXl5ROjgvX0hfIl8GABoyVzZaJDxaBj8L/index.m3u8
 #EXTINF:0 CUID="107" tvg-name="Channel 5 UK" tvg-id="Channel.5.uk" tvg-logo="https://raw.githubusercontent.com/pigzillaaa/daddylive/refs/heads/main/logos/channel-5-uk.png" group-title="UNITED KINGDOM",Channel 5 UK
 https://world-proxifier.xyz/ddy/p/XSQhJT0FNyguUl0kW08kNElTLF0gJCQvLyguUl0kOjgvX0hfIl8GAB0yVzZaJDxaBj8L/index.m3u8
-#EXTINF:0 CUID="140" tvg-name="U&Dave" tvg-id="Dave(src01).uk" tvg-logo="https://logo.m3uassets.com/uanddave.png" group-title="UNITED KINGDOM",U&Dave
+#EXTINF:0 CUID="140" tvg-name="Dave" tvg-id="Dave(src01).uk" tvg-logo="https://raw.githubusercontent.com/pigzillaaa/daddylive/refs/heads/main/logos/dave.png" group-title="UNITED KINGDOM",Dave
 https://world-proxifier.xyz/ddy/p/XSQhJT0FNyhQJF1YJBlTXz44W1csWD0sNDUjOlQkWEUsCSgkJ1daXj9SCxUCOl8kWzkxVxQjAw==/index.m3u8
-#EXTINF:0 CUID="163" tvg-name="E4" tvg-id="E4.HD.uk" tvg-logo="https://logo.m3uassets.com/e4.png" group-title="UNITED KINGDOM",E4
+#EXTINF:0 CUID="163" tvg-name="E4 Channel" tvg-id="E4.HD.uk" tvg-logo="https://raw.githubusercontent.com/pigzillaaa/daddylive/refs/heads/main/logos/e4-channel.png" group-title="UNITED KINGDOM",E4 Channel
 https://world-proxifier.xyz/ddy/p/XSQhJT0FNyhQUSsBW08kNElTLF0gJCQvLyhQUSsBOjgvX0hfIl8GARsyVzZaJDxaBj8L/index.m3u8
 #EXTINF:0 CUID="220" tvg-name="Fashion TV" tvg-id="FashionTV(src01).uk" tvg-logo="https://raw.githubusercontent.com/pigzillaaa/daddylive/refs/heads/main/logos/fashion-tv.png" group-title="UNITED KINGDOM",Fashion TV
 https://world-proxifier.xyz/ddy/p/XSQhJT0FNyhQUSsBW08kNElTLF0gJCQvLyhQUSsBOjgvX0hfIl8CBxoyVzZaJDxaBj8L/index.m3u8
 #EXTINF:0 CUID="222" tvg-name="Film4 UK" tvg-id="Film4.HD.uk" tvg-logo="https://raw.githubusercontent.com/pigzillaaa/daddylive/refs/heads/main/logos/film-4-uk.png" group-title="UNITED KINGDOM",Film4 UK
 https://world-proxifier.xyz/ddy/p/XSQhJT0FNygtXl5RW08kNElTLF0gJCQvLygtXl5ROjgvX0hfIl8BAx4yVzZaJDxaBj8L/index.m3u8
-#EXTINF:0 CUID="243" tvg-name="U&Gold" tvg-id="GOLD(src01).uk" tvg-logo="https://logo.m3uassets.com/uandgold.png" group-title="UNITED KINGDOM",U&Gold
+#EXTINF:0 CUID="243" tvg-name="Gold UK" tvg-id="GOLD(src01).uk" tvg-logo="https://raw.githubusercontent.com/pigzillaaa/daddylive/refs/heads/main/logos/gold-uk.png" group-title="UNITED KINGDOM",Gold UK
 https://world-proxifier.xyz/ddy/p/XSQhJT0FNyhQUSsBW08kNElTLF0gJCQvLyhQUSsBOjgvX0hfIl8BAx8yVzZaJDxaBj8L/index.m3u8
 #EXTINF:0 CUID="262" tvg-name="ITV 1 UK" tvg-id="ITV1.HD.uk" tvg-logo="https://raw.githubusercontent.com/pigzillaaa/daddylive/refs/heads/main/logos/itv-1-uk.png" group-title="UNITED KINGDOM",ITV 1 UK
 https://world-proxifier.xyz/ddy/p/XSQhJT0FNyhQJF1YJBlTXz44W1csWD0sNDUjOlQkWEUsCSgkJ1daXj9SCxI6Ol8kWzkxVxQjAw==/index.m3u8
@@ -231,9 +231,9 @@ https://world-proxifier.xyz/ddy/p/XSQhJT0FNyhQUSsBW08kNElTLF0gJCQvLyhQUSsBOjgvX0
 https://world-proxifier.xyz/ddy/p/XSQhJT0FNyguUl0kW08kNElTLF0gJCQvLyguUl0kOjgvX0hfIl8GAR8yVzZaJDxaBj8L/index.m3u8
 #EXTINF:0 CUID="294" tvg-name="MUTV UK" tvg-id="MUTV.HD.uk" tvg-logo="https://raw.githubusercontent.com/pigzillaaa/daddylive/refs/heads/main/logos/mutv-uk.png" group-title="UNITED KINGDOM",MUTV UK
 https://world-proxifier.xyz/ddy/p/XSQhJT0FNygtXl5RW08kNElTLF0gJCQvLygtXl5ROjgvX0hfIl8GAh8yVzZaJDxaBj8L/index.m3u8
-#EXTINF:0 CUID="390" tvg-name="RTÈ ONE" tvg-id="RTE1Network.uk" tvg-logo="https://logo.m3uassets.com/rteone.png" group-title="UNITED KINGDOM",RTÈ ONE
+#EXTINF:0 CUID="390" tvg-name="RTE 1" tvg-id="RTE1Network.uk" tvg-logo="https://raw.githubusercontent.com/pigzillaaa/daddylive/refs/heads/main/logos/ert-1.png" group-title="UNITED KINGDOM",RTE 1
 https://world-proxifier.xyz/ddy/p/XSQhJT0FNyguUl0kW08kNElTLF0gJCQvLyguUl0kOjgvX0hfIl8GARoyVzZaJDxaBj8L/index.m3u8
-#EXTINF:0 CUID="391" tvg-name="RTÈ 2" tvg-id="RTE2.uk" tvg-logo="https://raw.githubusercontent.com/pigzillaaa/daddylive/refs/heads/main/logos/rte-2-uk.png" group-title="UNITED KINGDOM",RTÈ 2
+#EXTINF:0 CUID="391" tvg-name="RTE 2" tvg-id="RTE2.uk" tvg-logo="https://raw.githubusercontent.com/pigzillaaa/daddylive/refs/heads/main/logos/rte-2-uk.png" group-title="UNITED KINGDOM",RTE 2
 https://world-proxifier.xyz/ddy/p/XSQhJT0FNyguUl0kW08kNElTLF0gJCQvLyguUl0kOjgvX0hfIl8GAR0yVzZaJDxaBj8L/index.m3u8
 #EXTINF:0 CUID="397" tvg-name="Racing Tv UK" tvg-id="Racing.TV.uk" tvg-logo="https://raw.githubusercontent.com/pigzillaaa/daddylive/refs/heads/main/logos/racing-tv-uk.png" group-title="UNITED KINGDOM",Racing Tv UK
 https://world-proxifier.xyz/ddy/p/XSQhJT0FNyguUl0kW08kNElTLF0gJCQvLyguUl0kOjgvX0hfIl8AAB0yVzZaJDxaBj8L/index.m3u8
@@ -307,9 +307,9 @@ https://world-proxifier.xyz/ddy/p/XSQhJT0FNyhaUyVbUjExVkAtWCUkOToqN0lSID8lJ09SUz
 https://world-proxifier.xyz/ddy/p/XSQhJT0FNyhaUyVbUjExVkAtWCUkOToqN0lSID8lJ09SUzBbBgM6WjlTKStbBicD/index.m3u8
 #EXTINF:0 CUID="574" tvg-name="TNT Sports 4 UK" tvg-id="TNT.Sports.4.HD.uk" tvg-logo="https://raw.githubusercontent.com/pigzillaaa/daddylive/refs/heads/main/logos/tnt-sports-4-uk.png" group-title="UNITED KINGDOM",TNT Sports 4 UK
 https://world-proxifier.xyz/ddy/p/XSQhJT0FNyhaUyVbUjExVkAtWCUkOToqN0lSID8lJ09SUzBbBgI6WjlTKStbBicD/index.m3u8
-#EXTINF:0 CUID="639" tvg-name="Premier Sports 1" tvg-id="Viaplay1(src01).uk" tvg-logo="https://logo.m3uassets.com/premiersports1.png" group-title="UNITED KINGDOM",Premier Sports 1
+#EXTINF:0 CUID="639" tvg-name="Viaplay Sports 1 UK" tvg-id="Viaplay1(src01).uk" tvg-logo="https://raw.githubusercontent.com/pigzillaaa/daddylive/refs/heads/main/logos/viaplay-sports-1-uk.png" group-title="UNITED KINGDOM",Viaplay Sports 1 UK
 https://world-proxifier.xyz/ddy/p/XSQhJT0FNygtXl5RW08kNElTLF0gJCQvLygtXl5ROjgvX0hfIl8HABkyVzZaJDxaBj8L/index.m3u8
-#EXTINF:0 CUID="640" tvg-name="Premier Sports 2" tvg-id="Viaplay2(src01).uk" tvg-logo="https://logo.m3uassets.com/premiersports2.png" group-title="UNITED KINGDOM",Premier Sports 2
+#EXTINF:0 CUID="640" tvg-name="Viaplay Sports 2 UK" tvg-id="Viaplay2(src01).uk" tvg-logo="https://raw.githubusercontent.com/pigzillaaa/daddylive/refs/heads/main/logos/viaplay-sports-2-uk.png" group-title="UNITED KINGDOM",Viaplay Sports 2 UK
 https://world-proxifier.xyz/ddy/p/XSQhJT0FNygtXl5RW08kNElTLF0gJCQvLygtXl5ROjgvX0hfIl8AACYyVzZaJDxaBj8L/index.m3u8
 #EXTINF:0 CUID="641" tvg-name="Viaplay Xtra UK" tvg-id="ViaplayXtra.uk" tvg-logo="https://raw.githubusercontent.com/pigzillaaa/daddylive/refs/heads/main/logos/viaplay-xtra-uk.png" group-title="UNITED KINGDOM",Viaplay Xtra UK
 https://world-proxifier.xyz/ddy/p/XSQhJT0FNyguUl0kW08kNElTLF0gJCQvLyguUl0kOjgvX0hfIl8ADB8yVzZaJDxaBj8L/index.m3u8
@@ -1381,8 +1381,6 @@ https://world-proxifier.xyz/ddy/p/XSQhJT0FNyguUl0kW08kNElTLF0gJCQvLyguUl0kOjgvX0
 https://world-proxifier.xyz/ddy/p/XSQhJT0FNyhQJF1YJBlTXz44W1csWD0sNDUjOlQkWEUsCSgkJ1daXj9SDBUEOl8kWzkxVxQjAw==/index.m3u8
 #EXTINF:0 CUID="637" tvg-name="VTV+ Uruguay" tvg-id="VTV.+.HD.uy" tvg-logo="https://raw.githubusercontent.com/pigzillaaa/daddylive/refs/heads/main/logos/vtvplus-uruguay.png" group-title="URUGUAY",VTV+ Uruguay
 https://world-proxifier.xyz/ddy/p/XSQhJT0FNyhaUyVbUjExVkAtWCUkOToqN0lSID8lJ09SUzBbBgkEOkcsVjY4WgMiAw==/index.m3u8
-#EXTINF:0 CUID="647" tvg-name="Win Sports+ Columbia" tvg-id="test" tvg-logo="https://raw.githubusercontent.com/pigzillaaa/daddylive/refs/heads/main/logos/win-sportsplus-columbia.png" group-title="COLOMBIA",Win Sports+ Columbia
-https://world-proxifier.xyz/ddy/p/XSQhJT0FNyhQJF1YJBlTXz44W1csWD0sNDUjOlQkWEUsCSgkJ1daXj9SCx4EOl8kWzkxVxQjAw==/index.m3u8
 #EXTINF:0 CUID="662" tvg-name="beIN SPORTS 1 Turkey" tvg-id="Beinsports.tr" tvg-logo="https://raw.githubusercontent.com/pigzillaaa/daddylive/refs/heads/main/logos/bein-sports-1.png" group-title="TURKEY",beIN SPORTS 1 Turkey
 https://world-proxifier.xyz/ddy/p/XSQhJT0FNyguUl0kW08kNElTLF0gJCQvLyguUl0kOjgvX0hfIl8BBSdSKUklOV8GIh4=/index.m3u8
 #EXTINF:0 CUID="664" tvg-name="beIN SPORTS 2 Turkey" tvg-id="Beinsports.2.tr" tvg-logo="https://raw.githubusercontent.com/pigzillaaa/daddylive/refs/heads/main/logos/bein-sports-2.png" group-title="TURKEY",beIN SPORTS 2 Turkey
@@ -1391,6 +1389,8 @@ https://world-proxifier.xyz/ddy/p/XSQhJT0FNyguUl0kW08kNElTLF0gJCQvLyguUl0kOjgvX0
 https://world-proxifier.xyz/ddy/p/XSQhJT0FNyguUl0kW08kNElTLF0gJCQvLyguUl0kOjgvX0hfIl8BBydSKUklOV8GIh4=/index.m3u8
 #EXTINF:0 CUID="667" tvg-name="beIN SPORTS 4 Turkey" tvg-id="Beinsports.4.tr" tvg-logo="https://raw.githubusercontent.com/pigzillaaa/daddylive/refs/heads/main/logos/bein-sports-4.png" group-title="TURKEY",beIN SPORTS 4 Turkey
 https://world-proxifier.xyz/ddy/p/XSQhJT0FNyguUl0kW08kNElTLF0gJCQvLyguUl0kOjgvX0hfIl8BAidSKUklOV8GIh4=/index.m3u8
+#EXTINF:0 CUID="647" tvg-name="Win Sports+ Columbia" tvg-id="test" tvg-logo="https://raw.githubusercontent.com/pigzillaaa/daddylive/refs/heads/main/logos/win-sportsplus-columbia.png" group-title="COLOMBIA",Win Sports+ Columbia
+https://world-proxifier.xyz/ddy/p/XSQhJT0FNyhQJF1YJBlTXz44W1csWD0sNDUjOlQkWEUsCSgkJ1daXj9SCx4EOl8kWzkxVxQjAw==/index.m3u8
 #EXTINF:0 CUID="1" tvg-name="Swiped" tvg-logo="https://image.tmdb.org/t/p/w780/znxBfe14cefxx5Lu1tgNzggJagt.jpg" group-title="Disney+",Swiped
 https://9dd.aster-volt.site/p5eo/c4/bJzO9NZz0d6kvjsNmMULMzhiou_t-RrWoRRJUobhaOEEHqp0-2eals7FpqsSEco1wz4GzH0yZ79JXazZidumjfiAx/4/aGxzLzEwODAvMTA4MA,Z3r-aM6peKE-ic4lJkPfnljqs9Q0UQ.m3u8
 #EXTINF:0 CUID="12" tvg-name="Fight Club" tvg-logo="https://image.tmdb.org/t/p/w780/jSziioSwPVrOy9Yow3XhWIBDjq1.jpg" group-title="Disney+",Fight Club

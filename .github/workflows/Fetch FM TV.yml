@@ -41,8 +41,8 @@ jobs:
       - name: Commit changes if any
         if: env.changes_detected == 'true'
         run: |
-          git config --local user.email "martinorourke452018@gmail.com"
-          git config --local user.name "Jehovah-witnesses-here"
+          git config --local user.email "action@github.com"
+          git config --local user.name "github-actions[bot]"
           git commit -m "Updated playlist files (XML and M3U)"
 
       - name: Force push changes if commit happened

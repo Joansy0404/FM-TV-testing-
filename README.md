@@ -81,7 +81,7 @@ https://github.com/Jehovah-witnesses-here/FM-TV/raw/refs/heads/main/playlist.xml
 
 <div align="center">
   <h3>⭐ If this repository helped you, please consider giving it a star!</h3>
-  <p><em>Last Updated: September 2024</em></p>
+  <p><em>Last Updated: September 2025</em></p>
 </div>
 
 ---

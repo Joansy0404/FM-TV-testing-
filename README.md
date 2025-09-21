@@ -15,12 +15,12 @@
 
 ## 📥 **Playlist URLs**
 
-### 📋 **M3U Playlist** (Channel List)
+### 📋 **M3U Playlist**
 ```bash
 https://github.com/Jehovah-witnesses-here/FM-TV/raw/refs/heads/main/playlist.m3u
 ```
 
-### 📅 **XML TV Guide** (Electronic Program Guide)
+### 📅 **EPG** 
 ```bash
 https://github.com/Jehovah-witnesses-here/FM-TV/raw/refs/heads/main/playlist.xml
 ```

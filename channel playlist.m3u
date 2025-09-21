@@ -173,6 +173,34 @@ https://a-cdn.klowdtv.com/live3/euronews_720p/playlist.m3u8
 https://a-cdn.klowdtv.com/live2/france24_720p/playlist.m3u8
 #EXTINF:0 CUID="288" tvg-chno="null" tvg-name="CARTOON NETWORK" tvg-logo="https://logo.m3uassets.com/cartoonnetwork.png" group-title="UK",CARTOON NETWORK
 https://a1xs.vip/1000050
+#EXTINF:0 CUID="285" tvg-chno="null" tvg-name="SKY SPORTS MAIN EVENT UHD" tvg-logo="https://logo.m3uassets.com/skysportsmaineventhz.png" group-title="UK",SKY SPORTS MAIN EVENT UHD
+https://a1xs.vip/2000015
+#EXTINF:0 CUID="228" tvg-chno="null" tvg-name="SKY SPORTS MAIN EVENT" tvg-logo="https://logo.m3uassets.com/skysportsmaineventhz.png" group-title="UK",SKY SPORTS MAIN EVENT
+https://a1xs.vip/2000001
+#EXTINF:0 CUID="230" tvg-chno="null" tvg-name="SKY SPORTS PREMIER LEAGUE" tvg-logo="https://logo.m3uassets.com/skysportspremierleaguehz.png" group-title="UK",SKY SPORTS PREMIER LEAGUE
+https://a1xs.vip/2000002
+#EXTINF:0 CUID="224" tvg-chno="null" tvg-name="SKY SPORTS F1" tvg-logo="https://logo.m3uassets.com/skysportsf1hz.png" group-title="UK",SKY SPORTS F1
+https://a1xs.vip/2000004
+#EXTINF:0 CUID="223" tvg-chno="null" tvg-name="SKY SPORTS CRICKET" tvg-logo="https://logo.m3uassets.com/skysportscrickethz.png" group-title="UK",SKY SPORTS CRICKET
+https://a1xs.vip/2000006
+#EXTINF:0 CUID="226" tvg-chno="null" tvg-name="SKY SPORTS GOLF" tvg-logo="https://logo.m3uassets.com/skysportsgolfhz.png" group-title="UK",SKY SPORTS GOLF
+https://a1xs.vip/2000009
+#EXTINF:0 CUID="231" tvg-chno="null" tvg-name="SKY SPORTS RACING" tvg-logo="https://logo.m3uassets.com/skysportsracinghz.png" group-title="UK",SKY SPORTS RACING
+https://a1xs.vip/2000010
+#EXTINF:0 CUID="221" tvg-chno="null" tvg-name="SKY SPORTS NFL" tvg-logo="https://logo.m3uassets.com/skysportsnflhz.png" group-title="UK",SKY SPORTS NFL
+https://a1xs.vip/2000011
+#EXTINF:0 CUID="222" tvg-chno="null" tvg-name="SKY SPORTS+" tvg-logo="https://static.skyassets.com/contentstack/assets/blt143e20b03d72047e/blt3b8488da02f05f25/66b2010b0d26b22d93e45755/Sky_Sports_Logo.png" group-title="UK",SKY SPORTS+
+https://a1xs.vip/2000012
+#EXTINF:0 CUID="232" tvg-chno="null" tvg-name="SKY SPORTS TENNIS" tvg-logo="https://logo.m3uassets.com/skysportstennis.png" group-title="UK",SKY SPORTS TENNIS
+https://a1xs.vip/2000013
+#EXTINF:0 CUID="234" tvg-chno="null" tvg-name="TNT SPORTS 1" tvg-logo="https://logo.m3uassets.com/tntsports1.png" group-title="UK",TNT SPORTS 1
+https://a1xs.vip/2000021
+#EXTINF:0 CUID="235" tvg-chno="null" tvg-name="TNT SPORTS 2" tvg-logo="https://logo.m3uassets.com/tntsports2.png" group-title="UK",TNT SPORTS 2
+https://a1xs.vip/2000022
+#EXTINF:0 CUID="236" tvg-chno="null" tvg-name="TNT SPORTS 3" tvg-logo="https://logo.m3uassets.com/tntsports3.png" group-title="UK",TNT SPORTS 3
+https://a1xs.vip/2000023
+#EXTINF:0 CUID="237" tvg-chno="null" tvg-name="TNT SPORTS 4" tvg-logo="https://logo.m3uassets.com/tntsports4.png" group-title="UK",TNT SPORTS 4
+https://a1xs.vip/2000024
 #EXTINF:0 CUID="10" tvg-chno="null" tvg-name="ASPIRE" tvg-logo="https://logo.m3uassets.com/aspiretv.png" group-title="US",ASPIRE
 https://fl3.moveonjoy.com/Aspire/index.m3u8
 #EXTINF:0 CUID="11" tvg-chno="null" tvg-name="ACC NETWORK" tvg-logo="https://logo.m3uassets.com/accnetwork.png" group-title="US",ACC NETWORK

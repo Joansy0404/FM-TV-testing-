@@ -1,0 +1,50 @@
+# This is a basic workflow to help you get started with Actions
+name: Download Files
+
+on:
+  schedule:
+    - cron: '30 * * * *'
+  workflow_dispatch: {} # Enables manual triggering
+
+jobs:
+  download_and_commit:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download XML file
+        run: wget https://opop.pro/tNDLMbEKLUzN -O playlist.xml
+
+      - name: Download M3U file
+        run: wget https://opop.pro/JpHvMzWhr5gNbDT -O playlist.m3u
+
+      - name: Add files to Git
+        run: |
+          git add playlist.xml
+          git add playlist.m3u
+
+      - name: Check for changes before commit
+        id: changes
+        run: |
+          if git diff --cached --quiet; then
+            echo "no changes"
+            echo "changes_detected=false" >> $GITHUB_ENV
+          else
+            echo "changes_detected=true" >> $GITHUB_ENV
+          fi
+
+      - name: Commit changes if any
+        if: env.changes_detected == 'true'
+        run: |
+          git config --local user.email "xxmartinxx1990@gmai.com"
+          git config --local user.name "Joansy0404"
+          git commit -m "Updated playlist files (XML and M3U)"
+
+      - name: Push changes if commit happened
+        if: env.changes_detected == 'true'
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: main

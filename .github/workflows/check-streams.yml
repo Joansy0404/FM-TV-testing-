@@ -1,0 +1,122 @@
+name: Check M3U Streams
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 */6 * * *'  # Runs every 6 hours
+
+jobs:
+  check-streams:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests m3u8
+
+      - name: Check Streams
+        run: |
+          python - << EOF
+          import requests
+          import m3u8
+          from datetime import datetime
+          import re
+          
+          def check_stream(url):
+              try:
+                  response = requests.get(url, timeout=10, stream=True)
+                  return response.status_code == 200
+              except:
+                  return False
+          
+          def parse_m3u(file_path):
+              streams = []
+              current_group = ""
+              
+              with open(file_path, 'r', encoding='utf-8') as f:
+                  lines = f.readlines()
+                  
+              for i in range(len(lines)):
+                  line = lines[i].strip()
+                  if line.startswith('#EXTINF'):
+                      # Extract group-title if present
+                      group_match = re.search('group-title="([^"]*)"', line)
+                      group = group_match.group(1) if group_match else "No Group"
+                      
+                      # Extract channel name
+                      name = line.split(',')[-1].strip()
+                      
+                      # Get URL from next line
+                      if i + 1 < len(lines):
+                          url = lines[i + 1].strip()
+                          if url and not url.startswith('#'):
+                              streams.append({
+                                  'name': name,
+                                  'url': url,
+                                  'group': group
+                              })
+              return streams
+          
+          # Initialize counters and lists
+          total_streams = 0
+          working_streams = 0
+          non_working = []
+          
+          # Process each M3U file
+          m3u_files = ['file1.m3u', 'file2.m3u']  # Replace with your actual file names
+          
+          for m3u_file in m3u_files:
+              try:
+                  streams = parse_m3u(m3u_file)
+                  total_streams += len(streams)
+                  
+                  for stream in streams:
+                      if not check_stream(stream['url']):
+                          non_working.append({
+                              'name': stream['name'],
+                              'group': stream['group']
+                          })
+                      else:
+                          working_streams += 1
+              except Exception as e:
+                  print(f"Error processing {m3u_file}: {str(e)}")
+          
+          # Generate report
+          report = f"""# M3U Stream Status Report
+          
+          Generated on: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC
+          
+          ## Summary
+          - Total Streams: {total_streams}
+          - Working Streams: {working_streams}
+          - Non-working Streams: {len(non_working)}
+          
+          ## Non-working Streams
+          
+          | Channel Name | Group |
+          |-------------|-------|
+          """
+          
+          for stream in non_working:
+              report += f"| {stream['name']} | {stream['group']} |\n"
+          
+          with open('report.md', 'w', encoding='utf-8') as f:
+              f.write(report)
+          EOF
+        
+      - name: Commit and push report
+        run: |
+          git config --global user.name 'GitHub Actions'
+          git config --global user.email 'actions@github.com'
+          git add report.md
+          git commit -m "Update stream status report" || exit 0
+          git push

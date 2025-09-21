@@ -15,14 +15,28 @@
 
 ## 📥 **Playlist URLs**
 
-### 📋 **M3U Playlist**
+### 📺 **LIVE TV**
+
+#### 📋 **M3U Playlist**
 ```bash
-https://github.com/Jehovah-witnesses-here/FM-TV/raw/refs/heads/main/playlist.m3u
+https://tinyurl.com/FMTV-L1VE
 ```
 
-### 📅 **EPG** 
+#### 📅 **EPG XML** 
 ```bash
-https://github.com/Jehovah-witnesses-here/FM-TV/raw/refs/heads/main/playlist.xml
+https://tinyurl.com/FMTV-L1VE-EPG-XML
+```
+
+### 🎬 **VOD (Video on Demand)**
+
+#### 📋 **M3U Playlist**
+```bash
+https://tinyurl.com/FMTV-V0D
+```
+
+#### 📅 **EPG XML (NOT NEEDED)** 
+```bash
+https://tinyurl.com/FMTV-V0D-EPG-XML
 ```
 
 ---

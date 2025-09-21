@@ -95,22 +95,6 @@ https://tv.ddns.vn/tv/bbcearth/index.m3u8
 https://tv.ddns.vn/tv/bbclifestyle/index.m3u8
 #EXTINF:0 CUID="112" tvg-chno="null" tvg-name="TRACE URBAN" tvg-logo="https://logo.m3uassets.com/traceurban.png" group-title="INTERNATIONAL",TRACE URBAN
 https://amg01131-tracetv-traceurban-klowdtv-utiqd.amagi.tv/playlist/amg01131-tracetv-traceurban-klowdtv/playlist.m3u8
-#EXTINF:0 CUID="243" tvg-chno="null" tvg-name="SKY SPORT 1 NZ" tvg-logo="https://logo.m3uassets.com/skysport1.png" group-title="INTERNATIONAL",SKY SPORT 1 NZ
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNyhQJF1YJBlTXz44W1csWD0sNDUjOlQkWEUsCSgkJ1daXj9SDRECOl8kWzkxVxQjAw==.m3u8
-#EXTINF:0 CUID="244" tvg-chno="null" tvg-name="FOX SPORTS 502 AU" tvg-logo="https://logo.m3uassets.com/foxsports502.png" group-title="INTERNATIONAL",FOX SPORTS 502 AU
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNyguUl0kW08kNElTLF0gJCQvLyguUl0kOjgvX0hfIl8DBSYyVzZaJDxaBj8L.m3u8
-#EXTINF:0 CUID="245" tvg-chno="null" tvg-name="FOX SPORTS 503 AU" tvg-logo="https://logo.m3uassets.com/foxsports503.png" group-title="INTERNATIONAL",FOX SPORTS 503 AU
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNyguUl0kW08kNElTLF0gJCQvLyguUl0kOjgvX0hfIl8DBRkyVzZaJDxaBj8L.m3u8
-#EXTINF:0 CUID="246" tvg-chno="null" tvg-name="FOX SPORTS 504 AU" tvg-logo="https://logo.m3uassets.com/foxsports504.png" group-title="INTERNATIONAL",FOX SPORTS 504 AU
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNyguUl0kW08kNElTLF0gJCQvLyguUl0kOjgvX0hfIl8DBRgyVzZaJDxaBj8L.m3u8
-#EXTINF:0 CUID="247" tvg-chno="null" tvg-name="FOX SPORTS 505 AU" tvg-logo="https://logo.m3uassets.com/foxsports505.png" group-title="INTERNATIONAL",FOX SPORTS 505 AU
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNygtXl5RW08kNElTLF0gJCQvLygtXl5ROjgvX0hfIl8DBRsyVzZaJDxaBj8L.m3u8
-#EXTINF:0 CUID="248" tvg-chno="null" tvg-name="FOX SPORTS 506 AU" tvg-logo="https://logo.m3uassets.com/foxsports506.png" group-title="INTERNATIONAL",FOX SPORTS 506 AU
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNygtXl5RW08kNElTLF0gJCQvLygtXl5ROjgvX0hfIl8DBRoyVzZaJDxaBj8L.m3u8
-#EXTINF:0 CUID="249" tvg-chno="null" tvg-name="FOX SPORTS 507 AU" tvg-logo="https://logo.m3uassets.com/foxsports507.png" group-title="INTERNATIONAL",FOX SPORTS 507 AU
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNygtXl5RW08kNElTLF0gJCQvLygtXl5ROjgvX0hfIl8DBR0yVzZaJDxaBj8L.m3u8
-#EXTINF:0 CUID="250" tvg-chno="null" tvg-name="FOX CRICKET AU" tvg-logo="https://logo.m3uassets.com/foxcricket.png" group-title="INTERNATIONAL",FOX CRICKET AU
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNyhQUSsBW08kNElTLF0gJCQvLyhQUSsBOjgvX0hfIl8GAREyVzZaJDxaBj8L.m3u8
 #EXTINF:0 CUID="1" tvg-chno="null" tvg-name="BLAZE" tvg-id="blaze.uk" tvg-logo="https://logo.m3uassets.com/blaze.png" group-title="UK",BLAZE
 https://live-blaze-ssai.simplestreamcdn.com/v1/master/774d979dd66704abea7c5b62cb34c6815fda0d35/blaze-live-broadcast-scte/index.m3u8
 #EXTINF:0 CUID="2" tvg-chno="null" tvg-name="SKY NEWS" tvg-logo="https://logo.m3uassets.com/skynews.png" group-title="UK",SKY NEWS
@@ -187,114 +171,8 @@ https://lightning-now90s-rakuten.amagi.tv/playlist.m3u8
 https://a-cdn.klowdtv.com/live3/euronews_720p/playlist.m3u8
 #EXTINF:0 CUID="111" tvg-chno="null" tvg-name="FRANCE 24 ENGLISH" tvg-logo="https://logo.m3uassets.com/24englishint.png" group-title="UK",FRANCE 24 ENGLISH
 https://a-cdn.klowdtv.com/live2/france24_720p/playlist.m3u8
-#EXTINF:0 CUID="190" tvg-chno="null" tvg-name="5 USA" tvg-logo="https://logo.m3uassets.com/5usa.png" group-title="UK",5 USA
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNygtXl5RW08kNElTLF0gJCQvLygtXl5ROjgvX0hfIl8GASYyVzZaJDxaBj8L.m3u8
-#EXTINF:0 CUID="191" tvg-chno="null" tvg-name="U&DAVE" tvg-logo="https://logo.m3uassets.com/uanddave.png" group-title="UK",U&DAVE
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNyhQJF1YJBlTXz44W1csWD0sNDUjOlQkWEUsCSgkJ1daXj9SCxUCOl8kWzkxVxQjAw==.m3u8
-#EXTINF:0 CUID="192" tvg-chno="null" tvg-name="E4" tvg-logo="https://logo.m3uassets.com/e4.png" group-title="UK",E4
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNyhQUSsBW08kNElTLF0gJCQvLyhQUSsBOjgvX0hfIl8GARsyVzZaJDxaBj8L.m3u8
-#EXTINF:0 CUID="193" tvg-chno="null" tvg-name="U&GOLD" tvg-logo="https://logo.m3uassets.com/uandgold.png" group-title="UK",U&GOLD
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNyhQUSsBW08kNElTLF0gJCQvLyhQUSsBOjgvX0hfIl8BAx8yVzZaJDxaBj8L.m3u8
-#EXTINF:0 CUID="194" tvg-chno="null" tvg-name="ITV 1" tvg-logo="https://logo.m3uassets.com/itv1.png" group-title="UK",ITV 1
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNyhQJF1YJBlTXz44W1csWD0sNDUjOlQkWEUsCSgkJ1daXj9SCxI6Ol8kWzkxVxQjAw==.m3u8
-#EXTINF:0 CUID="195" tvg-chno="null" tvg-name="ITV 4" tvg-logo="https://logo.m3uassets.com/itv4.png" group-title="UK",ITV 4
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNyhQUSsBW08kNElTLF0gJCQvLyhQUSsBOjgvX0hfIl8GABsyVzZaJDxaBj8L.m3u8
-#EXTINF:0 CUID="196" tvg-chno="null" tvg-name="LALIGA TV" group-title="UK",LALIGA TV
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNygtXl5RW08kNElTLF0gJCQvLygtXl5ROjgvX0hfIl8FAhwyVzZaJDxaBj8L.m3u8
-#EXTINF:0 CUID="197" tvg-chno="null" tvg-name="LFCTV" tvg-logo="https://logo.m3uassets.com/lfctv.png" group-title="UK",LFCTV
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNyhQUSsBW08kNElTLF0gJCQvLyhQUSsBOjgvX0hfIl8DBRwyVzZaJDxaBj8L.m3u8
-#EXTINF:0 CUID="198" tvg-chno="null" tvg-name="MTV" tvg-logo="https://logo.m3uassets.com/mtv.png" group-title="UK",MTV
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNyguUl0kW08kNElTLF0gJCQvLyguUl0kOjgvX0hfIl8GAR8yVzZaJDxaBj8L.m3u8
-#EXTINF:0 CUID="199" tvg-chno="null" tvg-name="MUTV" tvg-logo="https://logo.m3uassets.com/mutv.png" group-title="UK",MUTV
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNygtXl5RW08kNElTLF0gJCQvLygtXl5ROjgvX0hfIl8GAh8yVzZaJDxaBj8L.m3u8
-#EXTINF:0 CUID="200" tvg-chno="null" tvg-name="RTE ONE" tvg-logo="https://logo.m3uassets.com/rteone.png" group-title="UK",RTE ONE
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNyguUl0kW08kNElTLF0gJCQvLyguUl0kOjgvX0hfIl8GARoyVzZaJDxaBj8L.m3u8
-#EXTINF:0 CUID="201" tvg-chno="null" tvg-name="RTE 2" tvg-logo="https://logo.m3uassets.com/rte2.png" group-title="UK",RTE 2
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNyguUl0kW08kNElTLF0gJCQvLyguUl0kOjgvX0hfIl8GAR0yVzZaJDxaBj8L.m3u8
-#EXTINF:0 CUID="202" tvg-chno="null" tvg-name="RACTING TV" tvg-logo="https://logo.m3uassets.com/racingtv.png" group-title="UK",RACTING TV
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNyguUl0kW08kNElTLF0gJCQvLyguUl0kOjgvX0hfIl8AAB0yVzZaJDxaBj8L.m3u8
-#EXTINF:0 CUID="203" tvg-chno="null" tvg-name="S4C" tvg-logo="https://logo.m3uassets.com/s4c.png" group-title="UK",S4C
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNyhQJF1YJBlTXz44W1csWD0sNDUjOlQkWEUsCSgkJ1daXj9SDBA6Ol8kWzkxVxQjAw==.m3u8
-#EXTINF:0 CUID="204" tvg-chno="null" tvg-name="SKY ARTS" tvg-logo="https://logo.m3uassets.com/skyarts.png" group-title="UK",SKY ARTS
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNygtXl5RW08kNElTLF0gJCQvLygtXl5ROjgvX0hfIl8BAxsyVzZaJDxaBj8L.m3u8
-#EXTINF:0 CUID="205" tvg-chno="null" tvg-name="SKY ATLANTIC" tvg-logo="https://logo.m3uassets.com/skyatlantic.png" group-title="UK",SKY ATLANTIC
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNyhQUSsBW08kNElTLF0gJCQvLyhQUSsBOjgvX0hfIl8GARgyVzZaJDxaBj8L.m3u8
-#EXTINF:0 CUID="206" tvg-chno="null" tvg-name="SKY CINEMA ACTION" tvg-logo="https://logo.m3uassets.com/skycinemaactionhz.png" group-title="UK",SKY CINEMA ACTION
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNygtXl5RW08kNElTLF0gJCQvLygtXl5ROjgvX0hfIl8BAh8yVzZaJDxaBj8L.m3u8
-#EXTINF:0 CUID="207" tvg-chno="null" tvg-name="SKY CINEMA ANIMATION" tvg-logo="https://logo.m3uassets.com/skycinemaanimationhz.png" group-title="UK",SKY CINEMA ANIMATION
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNygtXl5RW08kNElTLF0gJCQvLygtXl5ROjgvX0hfIl8BAh0yVzZaJDxaBj8L.m3u8
-#EXTINF:0 CUID="208" tvg-chno="null" tvg-name="SKY CINEMA COMEDY" tvg-logo="https://logo.m3uassets.com/skycinemacomedyhz.png" group-title="UK",SKY CINEMA COMEDY
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNygtXl5RW08kNElTLF0gJCQvLygtXl5ROjgvX0hfIl8BAh4yVzZaJDxaBj8L.m3u8
-#EXTINF:0 CUID="209" tvg-chno="null" tvg-name="SKY CINEMA DRAMA" tvg-logo="https://logo.m3uassets.com/skycinemadramahz.png" group-title="UK",SKY CINEMA DRAMA
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNygtXl5RW08kNElTLF0gJCQvLygtXl5ROjgvX0hfIl8BAyYyVzZaJDxaBj8L.m3u8
-#EXTINF:0 CUID="210" tvg-chno="null" tvg-name="SKY CINEMA FAMILY" tvg-logo="https://logo.m3uassets.com/skycinemafamilyhz.png" group-title="UK",SKY CINEMA FAMILY
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNygtXl5RW08kNElTLF0gJCQvLygtXl5ROjgvX0hfIl8BAhwyVzZaJDxaBj8L.m3u8
-#EXTINF:0 CUID="211" tvg-chno="null" tvg-name="SKY CINEMA GREATS" tvg-logo="https://logo.m3uassets.com/skycinemagreatshz.png" group-title="UK",SKY CINEMA GREATS
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNygtXl5RW08kNElTLF0gJCQvLygtXl5ROjgvX0hfIl8BAhoyVzZaJDxaBj8L.m3u8
-#EXTINF:0 CUID="212" tvg-chno="null" tvg-name="SKY CINEMA HITS" tvg-logo="https://logo.m3uassets.com/skycinemahitshz.png" group-title="UK",SKY CINEMA HITS
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNygtXl5RW08kNElTLF0gJCQvLygtXl5ROjgvX0hfIl8BAhsyVzZaJDxaBj8L.m3u8
-#EXTINF:0 CUID="213" tvg-chno="null" tvg-name="SKY CINEMA PREMIERE" tvg-logo="https://logo.m3uassets.com/skycinemapremierehz.png" group-title="UK",SKY CINEMA PREMIERE
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNygtXl5RW08kNElTLF0gJCQvLygtXl5ROjgvX0hfIl8BAhkyVzZaJDxaBj8L.m3u8
-#EXTINF:0 CUID="214" tvg-chno="null" tvg-name="SKY CINEMA SC-FI HORROR" tvg-logo="https://logo.m3uassets.com/skycinemasciandhorrorhz.png" group-title="UK",SKY CINEMA SC-FI HORROR
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNyhQUSsBW08kNElTLF0gJCQvLyhQUSsBOjgvX0hfIl8BAxkyVzZaJDxaBj8L.m3u8
-#EXTINF:0 CUID="215" tvg-chno="null" tvg-name="SKY CINEMA SELECT" tvg-logo="https://logo.m3uassets.com/skycinemaselecthz.png" group-title="UK",SKY CINEMA SELECT
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNygtXl5RW08kNElTLF0gJCQvLygtXl5ROjgvX0hfIl8BAhgyVzZaJDxaBj8L.m3u8
-#EXTINF:0 CUID="216" tvg-chno="null" tvg-name="SKY CINEMA THRILLER" tvg-logo="https://logo.m3uassets.com/skycinemathrillerhz.png" group-title="UK",SKY CINEMA THRILLER
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNygtXl5RW08kNElTLF0gJCQvLygtXl5ROjgvX0hfIl8BAhEyVzZaJDxaBj8L.m3u8
-#EXTINF:0 CUID="217" tvg-chno="null" tvg-name="SKY COMEDY" tvg-logo="https://logo.m3uassets.com/skycomedy.png" group-title="UK",SKY COMEDY
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNygtXl5RW08kNElTLF0gJCQvLygtXl5ROjgvX0hfIl8BAxoyVzZaJDxaBj8L.m3u8
-#EXTINF:0 CUID="218" tvg-chno="null" tvg-name="SKY CRIME" tvg-logo="https://logo.m3uassets.com/skycrime.png" group-title="UK",SKY CRIME
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNygtXl5RW08kNElTLF0gJCQvLygtXl5ROjgvX0hfIl8BAx0yVzZaJDxaBj8L.m3u8
-#EXTINF:0 CUID="219" tvg-chno="null" tvg-name="SKY HISTORY" tvg-logo="https://logo.m3uassets.com/skyhistory.png" group-title="UK",SKY HISTORY
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNygtXl5RW08kNElTLF0gJCQvLygtXl5ROjgvX0hfIl8BAxwyVzZaJDxaBj8L.m3u8
-#EXTINF:0 CUID="220" tvg-chno="null" tvg-name="SKY SHOWCASE" tvg-logo="https://logo.m3uassets.com/skyshowcase.png" group-title="UK",SKY SHOWCASE
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNygtXl5RW08kNElTLF0gJCQvLygtXl5ROjgvX0hfIl8BAxgyVzZaJDxaBj8L.m3u8
-#EXTINF:0 CUID="221" tvg-chno="null" tvg-name="SKY SPORTS NFL" tvg-logo="https://logo.m3uassets.com/skysportsnflhz.png" group-title="UK",SKY SPORTS NFL
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNyhaUyVbUjExVkAtWCUkOToqN0lSID8lJ09SUzBbBgc6WjlTKStbBicD.m3u8
-#EXTINF:0 CUID="222" tvg-chno="null" tvg-name="SKY SPORTS+" tvg-logo="https://static.skyassets.com/contentstack/assets/blt143e20b03d72047e/blt3b8488da02f05f25/66b2010b0d26b22d93e45755/Sky_Sports_Logo.png" group-title="UK",SKY SPORTS+
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNyguUl0kW08kNElTLF0gJCQvLyguUl0kOjgvX0hfIl8GASdSKUklOV8GIh4=.m3u8
-#EXTINF:0 CUID="223" tvg-chno="null" tvg-name="SKY SPORTS CRICKET" tvg-logo="https://logo.m3uassets.com/skysportscrickethz.png" group-title="UK",SKY SPORTS CRICKET
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNyhQJF1YJBlTXz44W1csWD0sNDUjOlQkWEUsCSgkJ1daXj9SDBI7WiFbJCRSCzAC.m3u8
-#EXTINF:0 CUID="224" tvg-chno="null" tvg-name="SKY SPORTS F1" tvg-logo="https://logo.m3uassets.com/skysportsf1hz.png" group-title="UK",SKY SPORTS F1
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNygtXl5RW08kNElTLF0gJCQvLygtXl5ROjgvX0hfIl8BOydSKUklOV8GIh4=.m3u8
-#EXTINF:0 CUID="225" tvg-chno="null" tvg-name="SKY SPORTS FOOTBALL" tvg-logo="https://logo.m3uassets.com/skysportsfootballhz.png" group-title="UK",SKY SPORTS FOOTBALL
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNyguUl0kW08kNElTLF0gJCQvLyguUl0kOjgvX0hfIl8GACdSKUklOV8GIh4=.m3u8
-#EXTINF:0 CUID="226" tvg-chno="null" tvg-name="SKY SPORTS GOLF" tvg-logo="https://logo.m3uassets.com/skysportsgolfhz.png" group-title="UK",SKY SPORTS GOLF
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNygtXl5RW08kNElTLF0gJCQvLygtXl5ROjgvX0hfIl8COydSKUklOV8GIh4=.m3u8
-#EXTINF:0 CUID="227" tvg-chno="null" tvg-name="SKY SPORTS MIX" tvg-logo="https://logo.m3uassets.com/skysportsmixhz.png" group-title="UK",SKY SPORTS MIX
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNyhQUSsBW08kNElTLF0gJCQvLyhQUSsBOjgvX0hfIl8HBxEyVzZaJDxaBj8L.m3u8
-#EXTINF:0 CUID="228" tvg-chno="null" tvg-name="SKY SPORTS MAIN EVENT" tvg-logo="https://logo.m3uassets.com/skysportsmaineventhz.png" group-title="UK",SKY SPORTS MAIN EVENT
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNyguUl0kW08kNElTLF0gJCQvLyguUl0kOjgvX0hfIl8GAydSKUklOV8GIh4=.m3u8
-#EXTINF:0 CUID="229" tvg-chno="null" tvg-name="SKY SPORTS NEWS" tvg-logo="https://logo.m3uassets.com/skysportsnewshz.png" group-title="UK",SKY SPORTS NEWS
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNygtXl5RW08kNElTLF0gJCQvLygtXl5ROjgvX0hfIl8GARwyVzZaJDxaBj8L.m3u8
-#EXTINF:0 CUID="230" tvg-chno="null" tvg-name="SKY SPORTS PREMIER LEAGUE" tvg-logo="https://logo.m3uassets.com/skysportspremierleaguehz.png" group-title="UK",SKY SPORTS PREMIER LEAGUE
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNyhQJF1YJBlTXz44W1csWD0sNDUjOlQkWEUsCSgkJ1daXj9SCRQ6Ol8kWzkxVxQjAw==.m3u8
-#EXTINF:0 CUID="231" tvg-chno="null" tvg-name="SKY SPORTS RACING" tvg-logo="https://logo.m3uassets.com/skysportsracinghz.png" group-title="UK",SKY SPORTS RACING
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNygtXl5RW08kNElTLF0gJCQvLygtXl5ROjgvX0hfIl8AABoyVzZaJDxaBj8L.m3u8
-#EXTINF:0 CUID="232" tvg-chno="null" tvg-name="SKY SPORTS TENNIS" tvg-logo="https://logo.m3uassets.com/skysportstennis.png" group-title="UK",SKY SPORTS TENNIS
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNygtXl5RW08kNElTLF0gJCQvLygtXl5ROjgvX0hfIl8HASdSKUklOV8GIh4=.m3u8
-#EXTINF:0 CUID="233" tvg-chno="null" tvg-name="SKY WITNESS" tvg-logo="https://logo.m3uassets.com/skywitness.png" group-title="UK",SKY WITNESS
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNyhQUSsBW08kNElTLF0gJCQvLyhQUSsBOjgvX0hfIl8GARkyVzZaJDxaBj8L.m3u8
-#EXTINF:0 CUID="234" tvg-chno="null" tvg-name="TNT SPORTS 1" tvg-logo="https://logo.m3uassets.com/tntsports1.png" group-title="UK",TNT SPORTS 1
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNyhaUyVbUjExVkAtWCUkOToqN0lSID8lJ09SUzBbBgE6WjlTKStbBicD.m3u8
-#EXTINF:0 CUID="235" tvg-chno="null" tvg-name="TNT SPORTS 2" tvg-logo="https://logo.m3uassets.com/tntsports2.png" group-title="UK",TNT SPORTS 2
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNyhaUyVbUjExVkAtWCUkOToqN0lSID8lJ09SUzBbBgA6WjlTKStbBicD.m3u8
-#EXTINF:0 CUID="236" tvg-chno="null" tvg-name="TNT SPORTS 3" tvg-logo="https://logo.m3uassets.com/tntsports3.png" group-title="UK",TNT SPORTS 3
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNyhaUyVbUjExVkAtWCUkOToqN0lSID8lJ09SUzBbBgM6WjlTKStbBicD.m3u8
-#EXTINF:0 CUID="237" tvg-chno="null" tvg-name="TNT SPORTS 4" tvg-logo="https://logo.m3uassets.com/tntsports4.png" group-title="UK",TNT SPORTS 4
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNyhaUyVbUjExVkAtWCUkOToqN0lSID8lJ09SUzBbBgI6WjlTKStbBicD.m3u8
-#EXTINF:0 CUID="238" tvg-chno="null" tvg-name="PREMIER SPORTS 1" tvg-logo="https://logo.m3uassets.com/premiersports1.png" group-title="UK",PREMIER SPORTS 1
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNygtXl5RW08kNElTLF0gJCQvLygtXl5ROjgvX0hfIl8HABkyVzZaJDxaBj8L.m3u8
-#EXTINF:0 CUID="239" tvg-chno="null" tvg-name="PREMIER SPORTS 2" tvg-logo="https://logo.m3uassets.com/premiersports2.png" group-title="UK",PREMIER SPORTS 2
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNygtXl5RW08kNElTLF0gJCQvLygtXl5ROjgvX0hfIl8AACYyVzZaJDxaBj8L.m3u8
 #EXTINF:0 CUID="288" tvg-chno="null" tvg-name="CARTOON NETWORK" tvg-logo="https://logo.m3uassets.com/cartoonnetwork.png" group-title="UK",CARTOON NETWORK
 https://a1xs.vip/1000050
-#EXTINF:0 CUID="293" tvg-chno="null" tvg-name="PREMIER SPORTS 1 IRELAND" tvg-logo="https://logo.m3uassets.com/premiersports1.png" group-title="UK",PREMIER SPORTS 1 IRELAND
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNyhQUSsBW08kNElTLF0gJCQvLyhQUSsBOjgvX0hfIl8CAhkyVzZaJDxaBj8L.m3u8
-#EXTINF:0 CUID="294" tvg-chno="null" tvg-name="PREMIER SPORTS 2 IRELAND" tvg-logo="https://logo.m3uassets.com/premiersports2.png" group-title="UK",PREMIER SPORTS 2 IRELAND
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNyguUl0kW08kNElTLF0gJCQvLyguUl0kOjgvX0hfIl8CDBEyVzZaJDxaBj8L.m3u8
-#EXTINF:0 CUID="314" tvg-chno="null" tvg-name="PBS" group-title="UK",PBS
-https://2-fss-2.streamhoster.com/pl_138/amlst:201814-1291584/playlist.m3u8
 #EXTINF:0 CUID="10" tvg-chno="null" tvg-name="ASPIRE" tvg-logo="https://logo.m3uassets.com/aspiretv.png" group-title="US",ASPIRE
 https://fl3.moveonjoy.com/Aspire/index.m3u8
 #EXTINF:0 CUID="11" tvg-chno="null" tvg-name="ACC NETWORK" tvg-logo="https://logo.m3uassets.com/accnetwork.png" group-title="US",ACC NETWORK
@@ -495,50 +373,6 @@ https://fl3.moveonjoy.com/TENNIS_CHANNEL/index.m3u8
 https://fl3.moveonjoy.com/Up_Tv/index.m3u8
 #EXTINF:0 CUID="189" tvg-chno="null" tvg-name="VH1 (EAST)" tvg-logo="https://logo.m3uassets.com/vh1.png" group-title="US",VH1 (EAST)
 https://fl3.moveonjoy.com/VH1/index.m3u8
-#EXTINF:0 CUID="240" tvg-chno="null" tvg-name="A&E" tvg-logo="https://logo.m3uassets.com/aande.png" group-title="US",A&E
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNyguUl0kW08kNElTLF0gJCQvLyguUl0kOjgvX0hfIl8GOxgyVzZaJDxaBj8L.m3u8
-#EXTINF:0 CUID="241" tvg-chno="null" tvg-name="ADULT SWIM" tvg-logo="https://logo.m3uassets.com/adultswim.png" group-title="US",ADULT SWIM
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNyhQUSsBW08kNElTLF0gJCQvLyhQUSsBOjgvX0hfIl8FDB0yVzZaJDxaBj8L.m3u8
-#EXTINF:0 CUID="242" tvg-chno="null" tvg-name="CNN" tvg-logo="https://logo.m3uassets.com/cnn.png" group-title="US",CNN
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNyhaUyVbUjExVkAtWCUkOToqN0lSID8lJ09SUzBbBgIAOkcsVjY4WgMiAw==.m3u8
-#EXTINF:0 CUID="251" tvg-chno="null" tvg-name="YES NETWORK" tvg-logo="https://logo.m3uassets.com/yesnetwork.png" group-title="US",YES NETWORK
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNyguUl0kW08kNElTLF0gJCQvLyguUl0kOjgvX0hfIl8CARsyVzZaJDxaBj8L.m3u8
-#EXTINF:0 CUID="252" tvg-chno="null" tvg-name="WILLOW XTRA" tvg-logo="https://logo.m3uassets.com/willowxtra.png" group-title="US",WILLOW XTRA
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNyguUl0kW08kNElTLF0gJCQvLyguUl0kOjgvX0hfIl8ADB4yVzZaJDxaBj8L.m3u8
-#EXTINF:0 CUID="253" tvg-chno="null" tvg-name="WILLOW CRICKET" tvg-logo="https://logo.m3uassets.com/willow.png" group-title="US",WILLOW CRICKET
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNyguUl0kW08kNElTLF0gJCQvLyguUl0kOjgvX0hfIl8GBxwyVzZaJDxaBj8L.m3u8
-#EXTINF:0 CUID="254" tvg-chno="null" tvg-name="VICE" tvg-logo="https://logo.m3uassets.com/vice.png" group-title="US",VICE
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNyhQJF1YJBlTXz44W1csWD0sNDUjOlQkWEUsCSgkJ1daXj9SDBINOl8kWzkxVxQjAw==.m3u8
-#EXTINF:0 CUID="255" tvg-chno="null" tvg-name="UNIVISION" tvg-logo="https://logo.m3uassets.com/univision.png" group-title="US",UNIVISION
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNyhaUyVbUjExVkAtWCUkOToqN0lSID8lJ09SUzBbBAMFOkcsVjY4WgMiAw==.m3u8
-#EXTINF:0 CUID="256" tvg-chno="null" tvg-name="UNIMAS" tvg-logo="https://logo.m3uassets.com/unimas.png" group-title="US",UNIMAS
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNyhaUyVbUjExVkAtWCUkOToqN0lSID8lJ09SUzBbBAMGOkcsVjY4WgMiAw==.m3u8
-#EXTINF:0 CUID="257" tvg-chno="null" tvg-name="TRU TV" tvg-logo="https://logo.m3uassets.com/trutv.png" group-title="US",TRU TV
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNyhQJF1YJBlTXz44W1csWD0sNDUjOlQkWEUsCSgkJ1daXj9SCxUFOl8kWzkxVxQjAw==.m3u8
-#EXTINF:0 CUID="258" tvg-chno="null" tvg-name="TRAVEL CHANNEL" tvg-logo="https://logo.m3uassets.com/travelchannel.png" group-title="US",TRAVEL CHANNEL
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNygtXl5RW08kNElTLF0gJCQvLygtXl5ROjgvX0hfIl8GByYyVzZaJDxaBj8L.m3u8
-#EXTINF:0 CUID="259" tvg-chno="null" tvg-name="THE WEATHER CHANNEL" tvg-logo="https://logo.m3uassets.com/theweatherchannel.png" group-title="US",THE WEATHER CHANNEL
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNyguUl0kW08kNElTLF0gJCQvLyguUl0kOjgvX0hfIl8GDBoyVzZaJDxaBj8L.m3u8
-#EXTINF:0 CUID="260" tvg-chno="null" tvg-name="FOOD NETWORK" tvg-logo="https://logo.m3uassets.com/foodnetwork.png" group-title="US",FOOD NETWORK
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNyguUl0kW08kNElTLF0gJCQvLyguUl0kOjgvX0hfIl8GAxoyVzZaJDxaBj8L.m3u8
-#EXTINF:0 CUID="261" tvg-chno="null" tvg-name="TELEMUNDO" tvg-logo="https://logo.m3uassets.com/telemundo.png" group-title="US",TELEMUNDO
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNygtXl5RW08kNElTLF0gJCQvLygtXl5ROjgvX0hfIl8EBhkyVzZaJDxaBj8L.m3u8
-#EXTINF:0 CUID="262" tvg-chno="null" tvg-name="TEEN NICK" tvg-logo="https://logo.m3uassets.com/teennick.png" group-title="US",TEEN NICK
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNyhQJF1YJBlTXz44W1csWD0sNDUjOlQkWEUsCSgkJ1daXj9SDBI6Ol8kWzkxVxQjAw==.m3u8
-#EXTINF:0 CUID="263" tvg-chno="null" tvg-name="TV ONE" tvg-logo="https://logo.m3uassets.com/tvone.png" group-title="US",TV ONE
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNyhQJF1YJBlTXz44W1csWD0sNDUjOlQkWEUsCSgkJ1daXj9SDBM6Ol8kWzkxVxQjAw==.m3u8
-#EXTINF:0 CUID="264" tvg-chno="null" tvg-name="TUDN" tvg-logo="https://logo.m3uassets.com/tudn.png" group-title="US",TUDN
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNygtXl5RW08kNElTLF0gJCQvLygtXl5ROjgvX0hfIl8BASdSKUklOV8GIh4=.m3u8
-#EXTINF:0 CUID="265" tvg-chno="null" tvg-name="TNT" tvg-logo="https://logo.m3uassets.com/tnt.png" group-title="US",TNT
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNyguUl0kW08kNElTLF0gJCQvLyguUl0kOjgvX0hfIl8GBh4yVzZaJDxaBj8L.m3u8
-#EXTINF:0 CUID="266" tvg-chno="null" tvg-name="TLC" tvg-logo="https://logo.m3uassets.com/tlc.png" group-title="US",TLC
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNygtXl5RW08kNElTLF0gJCQvLygtXl5ROjgvX0hfIl8GBh8yVzZaJDxaBj8L.m3u8
-#EXTINF:0 CUID="267" tvg-chno="null" tvg-name="TCM" tvg-logo="https://logo.m3uassets.com/tcm.png" group-title="US",TCM
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNyhaUyVbUjExVkAtWCUkOToqN0lSID8lJ09SUzBbAQIHOkcsVjY4WgMiAw==.m3u8
-#EXTINF:0 CUID="268" tvg-chno="null" tvg-name="TBS" tvg-logo="https://logo.m3uassets.com/tbs.png" group-title="US",TBS
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNyguUl0kW08kNElTLF0gJCQvLyguUl0kOjgvX0hfIl8GBhwyVzZaJDxaBj8L.m3u8
-#EXTINF:0 CUID="269" tvg-chno="null" tvg-name="OWN" tvg-logo="https://logo.m3uassets.com/own.png" group-title="US",OWN
-https://world-proxifier.xyz/ddy/proxy?url=XSQhJT0FNygtXl5RW08kNElTLF0gJCQvLygtXl5ROjgvX0hfIl8GBhkyVzZaJDxaBj8L.m3u8
 #EXTINF:0 CUID="289" tvg-chno="null" tvg-name="ESPN" tvg-logo="https://logo.m3uassets.com/espn.png" group-title="US",ESPN
 https://a1xs.vip/40000011
 #EXTINF:0 CUID="290" tvg-chno="null" tvg-name="ESPN 2" tvg-logo="https://logo.m3uassets.com/espn2.png" group-title="US",ESPN 2
@@ -585,5 +419,7 @@ https://cvtv.cvalley.net/hls/KOMUCW/KOMUCW.m3u8
 https://cvtv.cvalley.net/hls/KYOUFOX/KYOUFOX.m3u8
 #EXTINF:0 CUID="313" tvg-chno="null" tvg-name="NBC" group-title="US",NBC
 https://cvtv.cvalley.net/hls/KOMUNBC/KOMUNBC.m3u8
+#EXTINF:0 CUID="314" tvg-chno="null" tvg-name="PBS" group-title="US",PBS
+https://2-fss-2.streamhoster.com/pl_138/amlst:201814-1291584/playlist.m3u8
 #EXTINF:0 CUID="1" tvg-name="TEST" group-title="TEST",TEST
 https://9dd.arrow-pulse.site/pd86/c4/bJzO9NZz0d6kvjsNmMUTMzhiou_t-RrWoFxJKtbgbYwFBvZ8-2eals7FpqsSEco0hktizH02f5ddXbSxicaL-ZD0gJw/4/aGxzLzEwODAvMTA4MA,Z3r-aM6peKE-ic4lJkPfnljqs9Q0UQ.m3u8

@@ -1,22 +1,22 @@
 # 📺 M3U Stream Status Report
 
-**Generated on:** 2025-09-21 21:43:42 UTC
+**Generated on:** 2025-09-22 01:09:39 UTC
 **GitHub Actions Runner Location:** GitHub's infrastructure (global)
 
 ## 📊 Summary
 
 | Metric | Count | Percentage |
 |--------|-------|------------|
-| **Total Streams** | 693 | 100% |
-| **✅ Working Streams** | 603 | 87.0% |
-| **❌ Failed Streams** | 90 | 13.0% |
+| **Total Streams** | 721 | 100% |
+| **✅ Working Streams** | 633 | 87.8% |
+| **❌ Failed Streams** | 88 | 12.2% |
 
 ## 📁 Files Processed
 
-- `vod playlist.m3u`: 466 streams
-- `channel playlist.m3u`: 227 streams
+- `vod playlist.m3u`: 495 streams
+- `channel playlist.m3u`: 226 streams
 
-## 📋 Failure Analysis (90 total failures)
+## 📋 Failure Analysis (88 total failures)
 
 ### 🚫 Access Denied (3 streams)
 *Likely geo-blocked or requires authentication*
@@ -27,13 +27,11 @@
 | TV WAREHOUSE | UK | channel playlist.m3u | Access denied (possibly geo-blocked) | 403 |
 | CARTOON NETWORK | UK | channel playlist.m3u | Access denied (possibly geo-blocked) | 403 |
 
-### 🌐 DNS Resolution Failures (84 streams)
+### 🌐 DNS Resolution Failures (82 streams)
 *Domain name cannot be resolved*
 
 | Channel Name | Group | File | Error Details | Code |
 |-------------|-------|------|---------------|------|
-| ASPIRE | US | channel playlist.m3u | DNS resolution failed | N/A |
-| ACC NETWORK | US | channel playlist.m3u | DNS resolution failed | N/A |
 | USA NETWORK | US | channel playlist.m3u | DNS resolution failed | N/A |
 | TV LAND | US | channel playlist.m3u | DNS resolution failed | N/A |
 | GOLF CHANNEL | US | channel playlist.m3u | DNS resolution failed | N/A |
@@ -150,5 +148,5 @@
 - **Headers:** Include Accept-Language and Referer for better success rates
 
 ---
-*Last updated: 2025-09-21 21:43:42 UTC*
+*Last updated: 2025-09-22 01:09:39 UTC*
 *Report generated automatically by GitHub Actions*

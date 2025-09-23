@@ -1,30 +1,31 @@
 # 📺 M3U Stream Status Report
 
-**Generated on:** 2025-09-22 18:22:53 UTC
+**Generated on:** 2025-09-23 01:06:05 UTC
 **GitHub Actions Runner Location:** GitHub's infrastructure (global)
 
 ## 📊 Summary
 
 | Metric | Count | Percentage |
 |--------|-------|------------|
-| **Total Streams** | 774 | 100% |
-| **✅ Working Streams** | 763 | 98.6% |
-| **❌ Failed Streams** | 11 | 1.4% |
+| **Total Streams** | 880 | 100% |
+| **✅ Working Streams** | 867 | 98.5% |
+| **❌ Failed Streams** | 13 | 1.5% |
 
 ## 📁 Files Processed
 
 - `vod playlist.m3u`: 495 streams
-- `channel playlist.m3u`: 279 streams
+- `channel playlist.m3u`: 385 streams
 
-## 📋 Failure Analysis (11 total failures)
+## 📋 Failure Analysis (13 total failures)
 
-### 🚫 Access Denied (11 streams)
+### 🚫 Access Denied (12 streams)
 *Likely geo-blocked or requires authentication*
 
 | Channel Name | Group | File | Error Details | Code |
 |-------------|-------|------|---------------|------|
 | BLAZE | UK | channel playlist.m3u | Access denied (possibly geo-blocked) | 403 |
 | TV WAREHOUSE | UK | channel playlist.m3u | Access denied (possibly geo-blocked) | 403 |
+| TG 4 | UK | channel playlist.m3u | Access denied (possibly geo-blocked) | 403 |
 | ALARABIYA | AE | channel playlist.m3u | Access denied (possibly geo-blocked) | 403 |
 | MBC 1 | AE | channel playlist.m3u | Access denied (possibly geo-blocked) | 403 |
 | MBC 4 | AE | channel playlist.m3u | Access denied (possibly geo-blocked) | 403 |
@@ -34,6 +35,13 @@
 | MBC PERSIA | AE | channel playlist.m3u | Access denied (possibly geo-blocked) | 403 |
 | SPACETOON ARABIC | AE | channel playlist.m3u | Access denied (possibly geo-blocked) | 403 |
 | WANASAH | AE | channel playlist.m3u | Access denied (possibly geo-blocked) | 403 |
+
+### ❓ Not Found (404) (1 streams)
+*Stream URL no longer exists*
+
+| Channel Name | Group | File | Error Details | Code |
+|-------------|-------|------|---------------|------|
+| WILLOW 2 | US | channel playlist.m3u | Stream not found | 404 |
 
 
 ## 📈 Geographic Notes
@@ -53,5 +61,5 @@
 - **Headers:** Include Accept-Language and Referer for better success rates
 
 ---
-*Last updated: 2025-09-22 18:22:53 UTC*
+*Last updated: 2025-09-23 01:06:05 UTC*
 *Report generated automatically by GitHub Actions*

@@ -1,31 +1,32 @@
-# 📺 M3U Stream Status Report
+# 📺 M3U Stream Status Report with Hot-Swap
 
-**Generated on:** 2025-09-24 12:35:03 UTC
+**Generated on:** 2025-09-24 17:37:26 UTC
 **GitHub Actions Runner Location:** GitHub's infrastructure (global)
 
 ## 📊 Summary
 
 | Metric | Count | Percentage |
 |--------|-------|------------|
-| **Total Streams** | 1083 | 100% |
-| **✅ Working Streams** | 1064 | 98.2% |
-| **❌ Failed Streams** | 19 | 1.8% |
+| **Total Streams** | 1194 | 100% |
+| **✅ Working Streams** | 1180 | 98.8% |
+| **🔄 Hot-Swapped Streams** | 0 | 0.0% |
+| **❌ Failed Streams** | 14 | 1.2% |
 
 ## 📁 Files Processed
 
 - `vod playlist.m3u`: 495 streams
-- `channel playlist.m3u`: 588 streams
+- `channel playlist.m3u`: 699 streams **(Hot-swap enabled)**
 
-## 📋 Failure Analysis (19 total failures)
+## 📋 Remaining Failures (14 streams)
 
-### 🚫 Access Denied (12 streams)
+*These streams failed and no working backup was found.*
+
+### 🚫 Access Denied (13 streams)
 *Likely geo-blocked or requires authentication*
 
 | Channel Name | Group | File | Error Details | Code |
 |-------------|-------|------|---------------|------|
-| BLAZE | UK | channel playlist.m3u | Access denied (possibly geo-blocked) | 403 |
-| TV WAREHOUSE | UK | channel playlist.m3u | Access denied (possibly geo-blocked) | 403 |
-| TG 4 | UK | channel playlist.m3u | Access denied (possibly geo-blocked) | 403 |
+| AL MASHHAD | AE | channel playlist.m3u | Access denied (possibly geo-blocked) | 403 |
 | ALARABIYA | AE | channel playlist.m3u | Access denied (possibly geo-blocked) | 403 |
 | MBC 1 | AE | channel playlist.m3u | Access denied (possibly geo-blocked) | 403 |
 | MBC 4 | AE | channel playlist.m3u | Access denied (possibly geo-blocked) | 403 |
@@ -35,43 +36,45 @@
 | MBC PERSIA | AE | channel playlist.m3u | Access denied (possibly geo-blocked) | 403 |
 | SPACETOON ARABIC | AE | channel playlist.m3u | Access denied (possibly geo-blocked) | 403 |
 | WANASAH | AE | channel playlist.m3u | Access denied (possibly geo-blocked) | 403 |
+| BLAZE | UK | channel playlist.m3u | Access denied (possibly geo-blocked) | 403 |
+| TG 4 | UK | channel playlist.m3u | Access denied (possibly geo-blocked) | 403 |
+| TV WAREHOUSE | UK | channel playlist.m3u | Access denied (possibly geo-blocked) | 403 |
 
-### ⏱️ Connection Timeouts (2 streams)
+### ⏱️ Connection Timeouts (1 streams)
 *Server too slow to respond or overloaded*
 
 | Channel Name | Group | File | Error Details | Code |
 |-------------|-------|------|---------------|------|
 | TG 4+1 | UK | channel playlist.m3u | Connection timeout | N/A |
-| REELZ | US | channel playlist.m3u | Connection timeout | N/A |
 
-### ❓ Not Found (404) (5 streams)
-*Stream URL no longer exists*
 
-| Channel Name | Group | File | Error Details | Code |
-|-------------|-------|------|---------------|------|
-| FS2 | US | channel playlist.m3u | Stream not found | 404 |
-| FOX NEWS CHANNEL | US | channel playlist.m3u | Stream not found | 404 |
-| HBO SIGNATURE | US | channel playlist.m3u | Stream not found | 404 |
-| NICK JR. | US | channel playlist.m3u | Stream not found | 404 |
-| MTV LIVE | US | channel playlist.m3u | Stream not found | 404 |
+## 📈 Hot-Swap Technology
 
+- **Priority Order:** Original `channel playlist.m3u` → moj → dlive
+- **Target File:** `channel playlist.m3u` (only this file gets modified)
+- **Backup Sources:** 2 external M3U files with priority system
+- **Testing Strategy:** Backup streams are only tested when needed (during swap attempts)
+- **Matching Strategy:** Exact name match first, then fuzzy matching
+- **Verification:** Each backup URL is tested in priority order before replacement
+- **Prevention:** Same backup URL won't be used twice
 
 ## 📈 Geographic Notes
 
 - Tests run from **GitHub Actions infrastructure** (multiple global locations)
 - "Access Denied" errors may indicate geo-restrictions
-- Some streams may work from different geographic locations
+- Hot-swap uses alternative sources that may have different geographic availability
 - DNS errors suggest the streaming service may be down entirely
 - Timeout errors often indicate server overload or slow response
 
 ## 📝 Technical Details
 
 - **User-Agent:** Modern browser simulation for better compatibility
-- **Timeout:** 15 seconds per stream
+- **Timeout:** 15 seconds per stream, 10 seconds for backup verification
 - **Method:** HEAD request first, then GET with stream verification
-- **Retry Logic:** Single attempt per stream to avoid rate limiting
-- **Headers:** Include Accept-Language and Referer for better success rates
+- **Hot-Swap Logic:** Download backup sources → Match channel names → Test alternatives → Replace URLs
+- **File Modification:** Only `channel playlist.m3u` is modified with working alternatives
 
 ---
-*Last updated: 2025-09-24 12:35:03 UTC*
+*Last updated: 2025-09-24 17:37:26 UTC*
 *Report generated automatically by GitHub Actions*
+*Hot-swap technology: Automatically maintaining stream availability*

@@ -158,18 +158,41 @@ jobs:
           
           def find_backup_stream(channel_name, backup_streams, used_urls=set()):
               """Find a working backup stream for a given channel name with priority order"""
+              attempt_log = {
+                  'channel_name': channel_name,
+                  'exact_matches_found': 0,
+                  'fuzzy_matches_found': 0,
+                  'candidates_tested': [],
+                  'success': False,
+                  'final_source': None
+              }
               
-              def test_backup_candidates(candidates):
+              def test_backup_candidates(candidates, match_type):
                   """Test backup candidates in priority order"""
                   # Sort candidates by priority (lower number = higher priority)
                   sorted_candidates = sorted(candidates, key=lambda x: x['priority'])
                   
                   for backup in sorted_candidates:
                       if backup['url'] not in used_urls:
+                          candidate_info = {
+                              'source': backup['source'],
+                              'priority': backup['priority'],
+                              'url': backup['url'][:80] + '...' if len(backup['url']) > 80 else backup['url'],
+                              'match_type': match_type,
+                              'matched_name': backup.get('matched_name', channel_name)
+                          }
+                          
                           print(f"    Testing {backup['source']} (priority {backup['priority']}): {backup['url'][:60]}...")
                           result = check_stream(backup['url'], timeout=10)
+                          
+                          candidate_info['test_result'] = result['status']
+                          candidate_info['error'] = result['error']
+                          attempt_log['candidates_tested'].append(candidate_info)
+                          
                           if result['status'] == 'working':
                               used_urls.add(backup['url'])
+                              attempt_log['success'] = True
+                              attempt_log['final_source'] = backup['source']
                               return backup['url'], backup['source']
                           else:
                               print(f"    ❌ Failed: {result['error']}")
@@ -177,10 +200,11 @@ jobs:
               
               # Try exact match first
               if channel_name in backup_streams:
-                  print(f"  Found exact match candidates for '{channel_name}'")
-                  backup_url, backup_source = test_backup_candidates(backup_streams[channel_name])
+                  attempt_log['exact_matches_found'] = len(backup_streams[channel_name])
+                  print(f"  Found {attempt_log['exact_matches_found']} exact match candidates for '{channel_name}'")
+                  backup_url, backup_source = test_backup_candidates(backup_streams[channel_name], 'exact')
                   if backup_url:
-                      return backup_url, backup_source
+                      return backup_url, backup_source, attempt_log
               
               # Try partial matches (case-insensitive)
               channel_lower = channel_name.lower()
@@ -202,12 +226,13 @@ jobs:
                           })
               
               if potential_matches:
+                  attempt_log['fuzzy_matches_found'] = len(potential_matches)
                   print(f"  Found {len(potential_matches)} fuzzy match candidates")
-                  backup_url, backup_source = test_backup_candidates(potential_matches)
+                  backup_url, backup_source = test_backup_candidates(potential_matches, 'fuzzy')
                   if backup_url:
-                      return backup_url, backup_source
+                      return backup_url, backup_source, attempt_log
               
-              return None, None
+              return None, None, attempt_log
           
           def parse_m3u(file_path):
               """Parse M3U file and extract stream information with line numbers"""
@@ -281,6 +306,7 @@ jobs:
           }
           checked_streams = 0
           swap_log = []
+          swap_attempts_log = []  # Track all swap attempts, not just successful ones
           
           # Download backup streams
           print("Downloading backup stream sources...")
@@ -321,33 +347,53 @@ jobs:
                           # Try to find a backup stream (only for channel playlist)
                           if m3u_file == target_file and backup_streams:
                               print(f"  Stream failed, searching for backup: {stream['name']}")
-                              backup_url, backup_source = find_backup_stream(stream['name'], backup_streams, used_backup_urls)
+                              backup_result = find_backup_stream(stream['name'], backup_streams, used_backup_urls)
                               
-                              if backup_url:
-                                  # Replace the URL in the file lines
-                                  old_url = stream['url']
-                                  file_lines[stream['url_line']] = backup_url + '\n'
+                              if len(backup_result) == 3:  # Successful call with attempt log
+                                  backup_url, backup_source, attempt_log = backup_result
+                                  swap_attempts_log.append(attempt_log)
                                   
-                                  # Log the swap
-                                  swap_info = {
-                                      'name': stream['name'],
-                                      'group': stream['group'],
-                                      'old_url': old_url[:100] + '...' if len(old_url) > 100 else old_url,
-                                      'new_url': backup_url[:100] + '...' if len(backup_url) > 100 else backup_url,
-                                      'backup_source': backup_source,
-                                      'original_error': result['error']
-                                  }
-                                  swap_log.append(swap_info)
-                                  
-                                  swapped_streams += 1
-                                  file_swapped += 1
-                                  working_streams += 1
-                                  file_working += 1
-                                  
-                                  print(f"  ✅ Swapped to backup from {backup_source}")
+                                  if backup_url:
+                                      # Replace the URL in the file lines
+                                      old_url = stream['url']
+                                      file_lines[stream['url_line']] = backup_url + '\n'
+                                      
+                                      # Log the swap
+                                      swap_info = {
+                                          'name': stream['name'],
+                                          'group': stream['group'],
+                                          'old_url': old_url[:100] + '...' if len(old_url) > 100 else old_url,
+                                          'new_url': backup_url[:100] + '...' if len(backup_url) > 100 else backup_url,
+                                          'backup_source': backup_source,
+                                          'original_error': result['error']
+                                      }
+                                      swap_log.append(swap_info)
+                                      
+                                      swapped_streams += 1
+                                      file_swapped += 1
+                                      working_streams += 1
+                                      file_working += 1
+                                      
+                                      print(f"  ✅ Swapped to backup from {backup_source}")
+                                  else:
+                                      print(f"  ❌ No working backup found")
+                                      # Still categorize the failure
+                                      failure_info = {
+                                          'name': stream['name'],
+                                          'group': stream['group'],
+                                          'url': stream['url'][:100] + '...' if len(stream['url']) > 100 else stream['url'],
+                                          'file': m3u_file,
+                                          'error': result['error'],
+                                          'code': result['code']
+                                      }
+                                      
+                                      if result['status'] in categorized_failures:
+                                          categorized_failures[result['status']].append(failure_info)
+                                      else:
+                                          categorized_failures['unknown_error'].append(failure_info)
                               else:
-                                  print(f"  ❌ No working backup found")
-                                  # Still categorize the failure
+                                  print(f"  ❌ Error in backup search")
+                                  # Handle the case where find_backup_stream failed
                                   failure_info = {
                                       'name': stream['name'],
                                       'group': stream['group'],
@@ -450,6 +496,53 @@ jobs:
           """
               for source in sorted(BACKUP_SOURCES, key=lambda x: x['priority']):
                   report += f"- **{source['name']}** (Priority {source['priority']}): {source['url']}\n"
+          
+          # Hot-swap attempts details (for failed channels)
+          failed_channel_attempts = [attempt for attempt in swap_attempts_log if not attempt['success']]
+          if failed_channel_attempts:
+              report += f"""
+          ## 🔍 Hot-Swap Attempt Details ({len(failed_channel_attempts)} channels)
+          
+          *Detailed breakdown of what was tried for channels that couldn't be fixed:*
+          
+          """
+              
+              for attempt in failed_channel_attempts:
+                  report += f"""### {attempt['channel_name']}
+          
+          - **Exact matches found:** {attempt['exact_matches_found']}
+          - **Fuzzy matches found:** {attempt['fuzzy_matches_found']}
+          - **Total candidates tested:** {len(attempt['candidates_tested'])}
+          
+          """
+                  
+                  if attempt['candidates_tested']:
+                      report += """| Source | Priority | Match Type | Result | Error |
+          |--------|----------|------------|--------|-------|
+          """
+                      for candidate in attempt['candidates_tested']:
+                          source = candidate['source'].replace('|', '\\|')
+                          match_type = candidate['match_type']
+                          result = candidate['test_result']
+                          error = candidate.get('error', 'N/A') or 'N/A'
+                          error = error.replace('|', '\\|')
+                          
+                          if candidate['match_type'] == 'fuzzy':
+                              matched_name = candidate.get('matched_name', 'Unknown')
+                              source += f" → {matched_name}"
+                          
+                          report += f"| {source} | {candidate['priority']} | {match_type} | {result} | {error} |\n"
+                  else:
+                      report += "*No backup streams found for this channel name.*\n"
+                  
+                  report += "\n"
+          elif len(swap_attempts_log) > 0:
+              # All attempts were successful
+              report += f"""
+          ## ✅ All Hot-Swap Attempts Successful
+          
+          {len(swap_attempts_log)} channels were successfully replaced with backup streams on the first suitable match found.
+          """
           
           # Failure categories with explanations
           failure_categories = {

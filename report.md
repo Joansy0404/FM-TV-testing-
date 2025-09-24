@@ -1,25 +1,66 @@
 # 📺 M3U Stream Status Report with Hot-Swap
 
-**Generated on:** 2025-09-24 18:27:01 UTC
+**Generated on:** 2025-09-24 21:50:01 UTC
 **GitHub Actions Runner Location:** GitHub's infrastructure (global)
 
 ## 📊 Summary
 
 | Metric | Count | Percentage |
 |--------|-------|------------|
-| **Total Streams** | 1232 | 100% |
-| **✅ Working Streams** | 1218 | 98.9% |
-| **🔄 Hot-Swapped Streams** | 0 | 0.0% |
-| **❌ Failed Streams** | 14 | 1.1% |
+| **Total Streams** | 1290 | 100% |
+| **✅ Working Streams** | 1278 | 99.1% |
+| **🔄 Hot-Swapped Streams** | 3 | 0.2% |
+| **❌ Failed Streams** | 12 | 0.9% |
 
 ## 📁 Files Processed
 
 - `vod playlist.m3u`: 495 streams
-- `channel playlist.m3u`: 737 streams **(Hot-swap enabled)**
+- `channel playlist.m3u`: 795 streams **(Hot-swap enabled)**
 
-## 🔍 Hot-Swap Attempt Details (14 channels)
+## 🔄 Hot-Swap Summary (3 streams replaced)
+
+The following failing streams were automatically replaced with working alternatives:
+
+| Channel Name | Group | Backup Source | Original Error |
+|-------------|-------|---------------|----------------|
+| ABC | USA | moj (matched: ABC (WABC)) | Stream not found |
+| CTV 2 | CA | dlive (matched: CTV 2 Canada) | Server error |
+| MBC DRAMA | AE | dlive (matched: Sky Cinema Drama Italy) | Access denied (possibly geo-blocked) |
+
+### 📋 Backup Sources Used (Priority Order)
+
+**Priority System:** Original playlist → moj → dlive
+
+- **moj** (Priority 1): https://github.com/Jehovah-witnesses-here/Stream-collection-/raw/refs/heads/main/moj.m3u
+- **dlive** (Priority 2): https://github.com/Jehovah-witnesses-here/Stream-collection-/raw/refs/heads/main/dlive.m3u
+
+## 🔍 Hot-Swap Attempt Details (12 channels)
 
 *Detailed breakdown of what was tried for channels that couldn't be fixed:*
+
+### BLAZE
+
+- **Exact matches found:** 0
+- **Fuzzy matches found:** 0
+- **Total candidates tested:** 0
+
+*No backup streams found for this channel name.*
+
+### TG 4
+
+- **Exact matches found:** 0
+- **Fuzzy matches found:** 0
+- **Total candidates tested:** 0
+
+*No backup streams found for this channel name.*
+
+### TV WAREHOUSE
+
+- **Exact matches found:** 0
+- **Fuzzy matches found:** 0
+- **Total candidates tested:** 0
+
+*No backup streams found for this channel name.*
 
 ### AL MASHHAD
 
@@ -69,14 +110,6 @@
 
 *No backup streams found for this channel name.*
 
-### MBC DRAMA
-
-- **Exact matches found:** 0
-- **Fuzzy matches found:** 0
-- **Total candidates tested:** 0
-
-*No backup streams found for this channel name.*
-
 ### MBC PERSIA
 
 - **Exact matches found:** 0
@@ -101,68 +134,28 @@
 
 *No backup streams found for this channel name.*
 
-### BLAZE
 
-- **Exact matches found:** 0
-- **Fuzzy matches found:** 0
-- **Total candidates tested:** 0
-
-*No backup streams found for this channel name.*
-
-### TG 4
-
-- **Exact matches found:** 0
-- **Fuzzy matches found:** 0
-- **Total candidates tested:** 0
-
-*No backup streams found for this channel name.*
-
-### TG 4+1
-
-- **Exact matches found:** 0
-- **Fuzzy matches found:** 0
-- **Total candidates tested:** 0
-
-*No backup streams found for this channel name.*
-
-### TV WAREHOUSE
-
-- **Exact matches found:** 0
-- **Fuzzy matches found:** 0
-- **Total candidates tested:** 0
-
-*No backup streams found for this channel name.*
-
-
-## 📋 Remaining Failures (14 streams)
+## 📋 Remaining Failures (12 streams)
 
 *These streams failed and no working backup was found.*
 
-### 🚫 Access Denied (13 streams)
+### 🚫 Access Denied (12 streams)
 *Likely geo-blocked or requires authentication*
 
 | Channel Name | Group | File | Error Details | Code |
 |-------------|-------|------|---------------|------|
+| BLAZE | UNITED KINGDOM | channel playlist.m3u | Access denied (possibly geo-blocked) | 403 |
+| TG 4 | UNITED KINGDOM | channel playlist.m3u | Access denied (possibly geo-blocked) | 403 |
+| TV WAREHOUSE | UNITED KINGDOM | channel playlist.m3u | Access denied (possibly geo-blocked) | 403 |
 | AL MASHHAD | AE | channel playlist.m3u | Access denied (possibly geo-blocked) | 403 |
 | ALARABIYA | AE | channel playlist.m3u | Access denied (possibly geo-blocked) | 403 |
 | MBC 1 | AE | channel playlist.m3u | Access denied (possibly geo-blocked) | 403 |
 | MBC 4 | AE | channel playlist.m3u | Access denied (possibly geo-blocked) | 403 |
 | MBC 5 | AE | channel playlist.m3u | Access denied (possibly geo-blocked) | 403 |
 | MBC BOLLYWOOD | AE | channel playlist.m3u | Access denied (possibly geo-blocked) | 403 |
-| MBC DRAMA | AE | channel playlist.m3u | Access denied (possibly geo-blocked) | 403 |
 | MBC PERSIA | AE | channel playlist.m3u | Access denied (possibly geo-blocked) | 403 |
 | SPACETOON ARABIC | AE | channel playlist.m3u | Access denied (possibly geo-blocked) | 403 |
 | WANASAH | AE | channel playlist.m3u | Access denied (possibly geo-blocked) | 403 |
-| BLAZE | UK | channel playlist.m3u | Access denied (possibly geo-blocked) | 403 |
-| TG 4 | UK | channel playlist.m3u | Access denied (possibly geo-blocked) | 403 |
-| TV WAREHOUSE | UK | channel playlist.m3u | Access denied (possibly geo-blocked) | 403 |
-
-### ⏱️ Connection Timeouts (1 streams)
-*Server too slow to respond or overloaded*
-
-| Channel Name | Group | File | Error Details | Code |
-|-------------|-------|------|---------------|------|
-| TG 4+1 | UK | channel playlist.m3u | Connection timeout | N/A |
 
 
 ## 📈 Hot-Swap Technology
@@ -192,6 +185,6 @@
 - **File Modification:** Only `channel playlist.m3u` is modified with working alternatives
 
 ---
-*Last updated: 2025-09-24 18:27:01 UTC*
+*Last updated: 2025-09-24 21:50:01 UTC*
 *Report generated automatically by GitHub Actions*
 *Hot-swap technology: Automatically maintaining stream availability*

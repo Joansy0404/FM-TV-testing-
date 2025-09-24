@@ -362,7 +362,7 @@ https://a-cdn.klowdtv.com/live1/awe_720p/playlist.m3u8
 #EXTINF:0 CUID="557" tvg-chno="null" tvg-name="A&E" group-title="USA",A&E
 https://e1.thetvapp.to/hls/AEEast/tracks-v1a1/mono.m3u8?token=dVWBaq_zeZ3vro4POwZ6Eg&expires=1758755515&user_id=YjdVU2dsRGs0am1YdkJkb1RDbGVKd0RhelFvc1lNNDI1OU1PVnE3OA==
 #EXTINF:0 CUID="103" tvg-chno="null" tvg-name="ABC" tvg-id="ABC.(WABC).New.York,.NY.us" tvg-logo="https://logo.m3uassets.com/abc.png" group-title="USA",ABC
-http://41.205.93.154/ABC/index.m3u8
+https://fl7.moveonjoy.com/ABC_EAST/index.m3u8
 #EXTINF:0 CUID="104" tvg-chno="null" tvg-name="ABC NEWS LIVE" tvg-id="ABC.NEWS.us" tvg-logo="https://logo.m3uassets.com/abcnewslive.png" group-title="USA",ABC NEWS LIVE
 https://content.uplynk.com/channel/3324f2467c414329b3b0cc5cd987b6be.m3u8
 #EXTINF:0 CUID="11" tvg-chno="null" tvg-name="ACC NETWORK" tvg-id="I612.111905.schedulesdirect.org" tvg-logo="https://logo.m3uassets.com/accnetwork.png" group-title="USA",ACC NETWORK
@@ -800,7 +800,7 @@ http://38.143.48.212:9981/stream/channelid/41831820?profile=pass
 #EXTINF:0 CUID="317" tvg-chno="null" tvg-name="CTV" tvg-id="CTV.(CKY).Winnipeg,.MB.ca" tvg-logo="https://cdn.tvpassport.com/image/station/240x135/v2/s10108_h15_ab.png" group-title="CA",CTV
 http://38.143.48.212:9981/stream/channelid/741174107?profile=pass
 #EXTINF:0 CUID="639" tvg-chno="null" tvg-name="CTV 2" tvg-id="CTV2.Barrie,.ON.ca" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/main/countries/canada/ctv-2-ca.png" group-title="CA",CTV 2
-http://user.scalecdn.co:8080/live/26725074/92867131/93008.m3u8
+https://world-proxifier.xyz/daddylive/p/FkRDRBhMG0RaVlRWRCA1SREHAw==/index.m3u8
 #EXTINF:0 CUID="318" tvg-chno="null" tvg-name="Citytv" tvg-id="CITY.Toronto.ON.ca" tvg-logo="https://media.starlite.best/city.montreal.qc.ca.png" group-title="CA",Citytv
 http://38.143.48.212:9981/stream/channelid/2009202451?profile=pass
 #EXTINF:0 CUID="555" tvg-chno="null" tvg-name="Sportsnet 360" tvg-id="https://epg.pw/api/epg.xml?lang=en&date=20250924&channel_id=404765" tvg-logo="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT4qwl9vK69Lscmc07-zGKwhJKBcycFRk2_rV-5--v9oQ&s=10" group-title="CA",Sportsnet 360
@@ -876,7 +876,7 @@ http://213.57.91.138:8000/play/a05l
 #EXTINF:0 CUID="376" tvg-chno="null" tvg-name="MBC BOLLYWOOD" tvg-logo="https://logo.m3uassets.com/mbcbollywood.png" group-title="AE",MBC BOLLYWOOD
 https://shd-gcp-live.edgenextcdn.net/live/bitmovin-mbc-bollywood/546eb40d7dcf9a209255dd2496903764/index.m3u8
 #EXTINF:0 CUID="377" tvg-chno="null" tvg-name="MBC DRAMA" tvg-logo="https://logo.m3uassets.com/mbcdrama.png" group-title="AE",MBC DRAMA
-https://mbc1-enc.edgenextcdn.net/out/v1/b0b3a0e6750d4408bb86d703d5feffd1/index.m3u8
+https://world-proxifier.xyz/daddylive/p/QF0uRAtWVkBbVkEXJ0tSW1YdIVNZLlk1MFYCAQc=/index.m3u8
 #EXTINF:0 CUID="378" tvg-chno="null" tvg-name="MBC FM" tvg-logo="https://logo.m3uassets.com/mbcfm.png" group-title="AE",MBC FM
 https://dbbv9umqcd7cs.cloudfront.net/out/v1/db15b75c3cc0400c91961468d6a232ac/index.m3u8
 #EXTINF:0 CUID="379" tvg-chno="null" tvg-name="MBC PERSIA" tvg-logo="https://logo.m3uassets.com/mbcpersia.png" group-title="AE",MBC PERSIA

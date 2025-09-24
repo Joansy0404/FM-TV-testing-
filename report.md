@@ -1,21 +1,138 @@
 # 📺 M3U Stream Status Report with Hot-Swap
 
-**Generated on:** 2025-09-24 17:37:26 UTC
+**Generated on:** 2025-09-24 18:02:27 UTC
 **GitHub Actions Runner Location:** GitHub's infrastructure (global)
 
 ## 📊 Summary
 
 | Metric | Count | Percentage |
 |--------|-------|------------|
-| **Total Streams** | 1194 | 100% |
-| **✅ Working Streams** | 1180 | 98.8% |
+| **Total Streams** | 1232 | 100% |
+| **✅ Working Streams** | 1218 | 98.9% |
 | **🔄 Hot-Swapped Streams** | 0 | 0.0% |
-| **❌ Failed Streams** | 14 | 1.2% |
+| **❌ Failed Streams** | 14 | 1.1% |
 
 ## 📁 Files Processed
 
 - `vod playlist.m3u`: 495 streams
-- `channel playlist.m3u`: 699 streams **(Hot-swap enabled)**
+- `channel playlist.m3u`: 737 streams **(Hot-swap enabled)**
+
+## 🔍 Hot-Swap Attempt Details (14 channels)
+
+*Detailed breakdown of what was tried for channels that couldn't be fixed:*
+
+### AL MASHHAD
+
+- **Exact matches found:** 0
+- **Fuzzy matches found:** 0
+- **Total candidates tested:** 0
+
+*No backup streams found for this channel name.*
+
+### ALARABIYA
+
+- **Exact matches found:** 0
+- **Fuzzy matches found:** 0
+- **Total candidates tested:** 0
+
+*No backup streams found for this channel name.*
+
+### MBC 1
+
+- **Exact matches found:** 0
+- **Fuzzy matches found:** 0
+- **Total candidates tested:** 0
+
+*No backup streams found for this channel name.*
+
+### MBC 4
+
+- **Exact matches found:** 0
+- **Fuzzy matches found:** 0
+- **Total candidates tested:** 0
+
+*No backup streams found for this channel name.*
+
+### MBC 5
+
+- **Exact matches found:** 0
+- **Fuzzy matches found:** 0
+- **Total candidates tested:** 0
+
+*No backup streams found for this channel name.*
+
+### MBC BOLLYWOOD
+
+- **Exact matches found:** 0
+- **Fuzzy matches found:** 0
+- **Total candidates tested:** 0
+
+*No backup streams found for this channel name.*
+
+### MBC DRAMA
+
+- **Exact matches found:** 0
+- **Fuzzy matches found:** 0
+- **Total candidates tested:** 0
+
+*No backup streams found for this channel name.*
+
+### MBC PERSIA
+
+- **Exact matches found:** 0
+- **Fuzzy matches found:** 0
+- **Total candidates tested:** 0
+
+*No backup streams found for this channel name.*
+
+### SPACETOON ARABIC
+
+- **Exact matches found:** 0
+- **Fuzzy matches found:** 0
+- **Total candidates tested:** 0
+
+*No backup streams found for this channel name.*
+
+### WANASAH
+
+- **Exact matches found:** 0
+- **Fuzzy matches found:** 0
+- **Total candidates tested:** 0
+
+*No backup streams found for this channel name.*
+
+### BLAZE
+
+- **Exact matches found:** 0
+- **Fuzzy matches found:** 0
+- **Total candidates tested:** 0
+
+*No backup streams found for this channel name.*
+
+### TG 4
+
+- **Exact matches found:** 0
+- **Fuzzy matches found:** 0
+- **Total candidates tested:** 0
+
+*No backup streams found for this channel name.*
+
+### TG 4+1
+
+- **Exact matches found:** 0
+- **Fuzzy matches found:** 0
+- **Total candidates tested:** 0
+
+*No backup streams found for this channel name.*
+
+### TV WAREHOUSE
+
+- **Exact matches found:** 0
+- **Fuzzy matches found:** 0
+- **Total candidates tested:** 0
+
+*No backup streams found for this channel name.*
+
 
 ## 📋 Remaining Failures (14 streams)
 
@@ -75,6 +192,6 @@
 - **File Modification:** Only `channel playlist.m3u` is modified with working alternatives
 
 ---
-*Last updated: 2025-09-24 17:37:26 UTC*
+*Last updated: 2025-09-24 18:02:27 UTC*
 *Report generated automatically by GitHub Actions*
 *Hot-swap technology: Automatically maintaining stream availability*

@@ -18,7 +18,7 @@ https://viamotionhsi.netplus.ch/live/eds/bbc3cbbc/browser-HLS8/bbc3cbbc.m3u8
 #EXTINF:0 CUID="31" tvg-chno="null" tvg-name="BBC TWO" tvg-id="BBC.Two.HD.uk" tvg-logo="https://logo.m3uassets.com/bbctwo.png" group-title="UNITED KINGDOM",BBC TWO
 https://viamotionhsi.netplus.ch/live/eds/bbc2/browser-HLS8/bbc2.m3u8
 #EXTINF:0 CUID="1" tvg-chno="null" tvg-name="BLAZE" tvg-id="BLAZE.uk" tvg-logo="https://logo.m3uassets.com/blaze.png" group-title="UNITED KINGDOM",BLAZE
-https://fl7.moveonjoy.com/American_Heroes_Channel/index.m3u8
+https://live-blaze-ssai.simplestreamcdn.com/v1/master/774d979dd66704abea7c5b62cb34c6815fda0d35/blaze-live-broadcast-scte/index.m3u8
 #EXTINF:0 CUID="519" tvg-chno="null" tvg-name="CHALLENGE" tvg-id="Challenge.uk" tvg-logo="https://logo.m3uassets.com/challenge.png" group-title="UNITED KINGDOM",CHALLENGE
 http://185.99.136.50:9981/stream/channelid/1884126385?profile=pass
 #EXTINF:0 CUID="30" tvg-chno="null" tvg-name="CHANNEL 4" tvg-id="Channel.4.HD.uk" tvg-logo="https://logo.m3uassets.com/channel4.png" group-title="UNITED KINGDOM",CHANNEL 4
@@ -128,7 +128,7 @@ https://live-talktv-ssai.simplestreamcdn.com/v1/master/774d979dd66704abea7c5b62c
 #EXTINF:0 CUID="54" tvg-chno="null" tvg-name="TBN UK" tvg-id="TBN.UK.uk" tvg-logo="https://logo.m3uassets.com/tbn.png" group-title="UNITED KINGDOM",TBN UK
 https://live-tbn-ssai.simplestreamcdn.com/v1/master/774d979dd66704abea7c5b62cb34c6815fda0d35/tbn-live/manifest.m3u8
 #EXTINF:0 CUID="487" tvg-chno="null" tvg-name="TG 4" tvg-id="I1195.30454.schedulesdirect.org" tvg-logo="https://logo.m3uassets.com/tg4.png" group-title="UNITED KINGDOM",TG 4
-https://fl7.moveonjoy.com/Ovation/index.m3u8
+https://dx4452e0qv6r9.cloudfront.net/tg4_vod_national.m3u8
 #EXTINF:0 CUID="494" tvg-chno="null" tvg-name="TG 4+1" tvg-id="I1195.30454.schedulesdirect.org.plus1" tvg-logo="https://images.weserv.nl/?url=https://static.wikia.nocookie.net/logopedia/images/b/bd/TG4_%2B1.svg/revision/latest?cb=20230904232525&output=png" group-title="UNITED KINGDOM",TG 4+1
 http://185.99.136.50:9981/stream/channelid/2057498856?profile=pass
 #EXTINF:0 CUID="7" tvg-chno="null" tvg-name="TINY POP" tvg-id="tinypop.uk" tvg-logo="https://logo.m3uassets.com/tinypop.png" group-title="UNITED KINGDOM",TINY POP
@@ -148,7 +148,7 @@ http://185.99.136.50:9981/stream/channelid/944647027?profile=pass
 #EXTINF:0 CUID="514" tvg-chno="null" tvg-name="TRT WORLD" tvg-id="TRT.World.uk" tvg-logo="https://logo.m3uassets.com/trtworld.png" group-title="UNITED KINGDOM",TRT WORLD
 http://185.99.136.50:9981/stream/channelid/1031041867?profile=pass
 #EXTINF:0 CUID="57" tvg-chno="null" tvg-name="TV WAREHOUSE" tvg-id="TV.Warehouse.uk" tvg-logo="https://logo.m3uassets.com/tvwarehouse.png" group-title="UNITED KINGDOM",TV WAREHOUSE
-https://fl7.moveonjoy.com/Animal_Planet/index.m3u8
+https://tvwarehouse.r.worldssl.net/mystream.m3u8
 #EXTINF:0 CUID="505" tvg-chno="null" tvg-name="U&DAVE" tvg-id="U.and.Dave.HD.uk" tvg-logo="https://logo.m3uassets.com/uanddave.png" group-title="UNITED KINGDOM",U&DAVE
 http://185.99.136.50:9981/stream/channelid/1127047218?profile=pass
 #EXTINF:0 CUID="507" tvg-chno="null" tvg-name="U&DRAMA" tvg-id="U.and.Drama.uk" tvg-logo="https://logo.m3uassets.com/uanddrama.png" group-title="UNITED KINGDOM",U&DRAMA
@@ -362,7 +362,7 @@ https://a-cdn.klowdtv.com/live1/awe_720p/playlist.m3u8
 #EXTINF:0 CUID="557" tvg-chno="null" tvg-name="A&E" group-title="USA",A&E
 https://e1.thetvapp.to/hls/AEEast/tracks-v1a1/mono.m3u8?token=dVWBaq_zeZ3vro4POwZ6Eg&expires=1758755515&user_id=YjdVU2dsRGs0am1YdkJkb1RDbGVKd0RhelFvc1lNNDI1OU1PVnE3OA==
 #EXTINF:0 CUID="103" tvg-chno="null" tvg-name="ABC" tvg-id="ABC.(WABC).New.York,.NY.us" tvg-logo="https://logo.m3uassets.com/abc.png" group-title="USA",ABC
-https://fl7.moveonjoy.com/ABC_EAST/index.m3u8
+http://41.205.93.154/ABC/index.m3u8
 #EXTINF:0 CUID="104" tvg-chno="null" tvg-name="ABC NEWS LIVE" tvg-id="ABC.NEWS.us" tvg-logo="https://logo.m3uassets.com/abcnewslive.png" group-title="USA",ABC NEWS LIVE
 https://content.uplynk.com/channel/3324f2467c414329b3b0cc5cd987b6be.m3u8
 #EXTINF:0 CUID="11" tvg-chno="null" tvg-name="ACC NETWORK" tvg-id="I612.111905.schedulesdirect.org" tvg-logo="https://logo.m3uassets.com/accnetwork.png" group-title="USA",ACC NETWORK
@@ -804,9 +804,9 @@ http://user.scalecdn.co:8080/live/26725074/92867131/93008.m3u8
 #EXTINF:0 CUID="318" tvg-chno="null" tvg-name="Citytv" tvg-id="CITY.Toronto.ON.ca" tvg-logo="https://media.starlite.best/city.montreal.qc.ca.png" group-title="CA",Citytv
 http://38.143.48.212:9981/stream/channelid/2009202451?profile=pass
 #EXTINF:0 CUID="555" tvg-chno="null" tvg-name="Sportsnet 360" tvg-id="https://epg.pw/api/epg.xml?lang=en&date=20250924&channel_id=404765" tvg-logo="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT4qwl9vK69Lscmc07-zGKwhJKBcycFRk2_rV-5--v9oQ&s=10" group-title="CA",Sportsnet 360
-https://fl7.moveonjoy.com/CBS_SPORTS_NETWORK/index.m3u8
+http://shpcafgj.mexamo.xyz/G36YB21A/FKVUQE5L/175777
 #EXTINF:0 CUID="556" tvg-chno="null" tvg-name="Fubo sports 1" tvg-logo="https://logo.m3uassets.com/fubosportsnetwork.png" group-title="CA",Fubo sports 1
-https://fl7.moveonjoy.com/NBA_10/index.m3u8
+http://shpcafgj.mexamo.xyz/G36YB21A/FKVUQE5L/473384
 #EXTINF:0 CUID="613" tvg-chno="null" tvg-name="Sportsnet Ontario HD" tvg-logo="https://github.com/tv-logo/tv-logos/blob/main/countries/canada/sportsnet-360-hd-ca.png" group-title="CA",Sportsnet Ontario HD
 http://shpcafgj.mexamo.xyz:80/G36YB21A/FKVUQE5L/175774
 #EXTINF:0 CUID="640" tvg-chno="null" tvg-name="USA Network" tvg-id="USA.Network.(CAN).ca" tvg-logo="https://raw.githubusercontent.com/tv-logo/tv-logos/refs/heads/main/countries/canada/usa-network-ca.png" group-title="CA",USA Network

@@ -1,9 +1,25 @@
-name: Check M3U Streams (Smart & Fast)
+name: Check M3U Streams
 
 on:
   workflow_dispatch:
+    inputs:
+      check_vods:
+        description: 'Check VOD files (.mkv, .mp4, .avi)'
+        required: false
+        default: false
+        type: boolean
+      check_ppv:
+        description: 'Check PPV channels (may be offline)'
+        required: false
+        default: false
+        type: boolean
+      timeout_seconds:
+        description: 'Timeout per stream (seconds)'
+        required: false
+        default: '10'
+        type: string
   schedule:
-    - cron: '0 */6 * * *'
+    - cron: '0 */6 * * *'  # Runs every 6 hours (without VODs/PPV by default)
 
 permissions:
   contents: write
@@ -11,13 +27,10 @@ permissions:
 jobs:
   check-streams:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -27,313 +40,481 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install requests m3u8 concurrent.futures
+          pip install requests m3u8
 
       - name: Check Streams
+        env:
+          CHECK_VODS: ${{ github.event.inputs.check_vods || 'false' }}
+          CHECK_PPV: ${{ github.event.inputs.check_ppv || 'false' }}
+          TIMEOUT_SECONDS: ${{ github.event.inputs.timeout_seconds || '10' }}
         run: |
           python - << 'EOF'
           import requests
           import os
-          from datetime import datetime
+          from datetime import datetime, timezone
           import re
           import time
-          from concurrent.futures import ThreadPoolExecutor, as_completed
-          from requests.adapters import HTTPAdapter
-          from urllib3.util.retry import Retry
+          import urllib.parse
           
-          # Create a session with connection pooling and retries
-          session = requests.Session()
-          retry_strategy = Retry(
-              total=1,
-              backoff_factor=0.1,
-              status_forcelist=[429, 500, 502, 503, 504],
-          )
-          adapter = HTTPAdapter(pool_connections=20, pool_maxsize=20, max_retries=retry_strategy)
-          session.mount("http://", adapter)
-          session.mount("https://", adapter)
+          # Configuration from environment
+          CHECK_VODS = os.getenv('CHECK_VODS', 'false').lower() == 'true'
+          CHECK_PPV = os.getenv('CHECK_PPV', 'false').lower() == 'true'
+          TIMEOUT_SECONDS = int(os.getenv('TIMEOUT_SECONDS', '10'))
           
-          def get_runner_location():
+          print(f"Configuration: VODs={CHECK_VODS}, PPV={CHECK_PPV}, Timeout={TIMEOUT_SECONDS}s")
+          
+          def is_vod_url(url):
+              """Check if URL points to a VOD file"""
+              vod_extensions = ['.mkv', '.mp4', '.avi', '.mov', '.wmv', '.flv', '.webm', '.m4v']
+              parsed_url = urllib.parse.urlparse(url)
+              path = parsed_url.path.lower()
+              return any(path.endswith(ext) for ext in vod_extensions)
+          
+          def is_ppv_channel(name, group):
+              """Check if channel is PPV (Pay-Per-View)"""
+              ppv_indicators = ['ppv', 'pay per view', 'boxing', 'ufc', 'wwe', 'event']
+              name_lower = name.lower()
+              group_lower = group.lower()
+              
+              return (any(indicator in name_lower for indicator in ppv_indicators) or 
+                      any(indicator in group_lower for indicator in ppv_indicators) or
+                      'ppv' in group_lower or 'events' in group_lower)
+          
+          def should_skip_stream(stream):
+              """Determine if stream should be skipped based on configuration"""
+              if is_vod_url(stream['url']) and not CHECK_VODS:
+                  return True, "VOD file (skipped)"
+              
+              if is_ppv_channel(stream['name'], stream['group']) and not CHECK_PPV:
+                  return True, "PPV channel (skipped)"
+              
+              return False, None
+          
+          def check_stream(url, timeout=10, is_ppv=False):
+              """Check if a stream URL is accessible and categorize failures"""
               try:
-                  ip_info = requests.get('https://ipinfo.io/json', timeout=3).json()
-                  return {
-                      "country": ip_info.get('country', 'US'),
-                      "city": ip_info.get('city', 'Unknown'),
-                  }
-              except:
-                  return {"country": "US", "city": "Unknown"}
-          
-          # Pre-computed geo mapping for speed
-          GEO_MAPPING = {
-              'UK': ['United Kingdom', 'Ireland'],
-              'US': ['United States', 'Canada'],
-              'USA': ['United States', 'Canada'], 
-              'CA': ['Canada', 'United States'],
-              'AU': ['Australia', 'New Zealand'],
-              'AUS': ['Australia', 'New Zealand'],
-              'AE': ['UAE', 'Saudi Arabia', 'Qatar'],
-              'UAE': ['UAE', 'Saudi Arabia', 'Qatar'],
-              'AR': ['Argentina', 'Chile', 'Uruguay'],
-              'IE': ['Ireland', 'United Kingdom'],
-              'ZA': ['South Africa'],
-              'YE': ['Yemen', 'Saudi Arabia'],
-              'NZ': ['New Zealand', 'Australia']
-          }
-          
-          def extract_country_fast(group_name):
-              """Fast country extraction using pre-computed mapping"""
-              group_upper = group_name.upper()
-              
-              # Check exact matches first (fastest)
-              if group_upper in GEO_MAPPING:
-                  return group_upper
-              
-              # Check if it's a 2-letter country code
-              if len(group_name) == 2 and group_name.isalpha():
-                  return group_name.upper()
-              
-              # Quick substring check for common patterns
-              for country in ['UK', 'USA', 'CANADA', 'AUSTRALIA', 'UAE']:
-                  if country in group_upper:
-                      return country if country in GEO_MAPPING else country[:2]
-              
-              return 'UNKNOWN'
-          
-          def check_stream_fast(stream_data):
-              """Fast stream check with minimal processing"""
-              name, url, group = stream_data
-              
-              try:
+                  # Enhanced headers for better compatibility
                   headers = {
-                      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                      'Accept': '*/*'
+                      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                      'Accept': '*/*',
+                      'Accept-Language': 'en-US,en;q=0.9',
+                      'Accept-Encoding': 'gzip, deflate, br',
+                      'Connection': 'keep-alive',
+                      'Referer': 'https://github.com/',
+                      'Sec-Fetch-Dest': 'video',
+                      'Sec-Fetch-Mode': 'no-cors',
+                      'Sec-Fetch-Site': 'cross-site'
                   }
                   
-                  # Single HEAD request with short timeout
-                  response = session.head(url, timeout=2, headers=headers, allow_redirects=True)
+                  # Adjust timeout for PPV channels (they might be slower)
+                  if is_ppv:
+                      timeout = min(timeout * 2, 30)
+                  
+                  # For VOD files, try HEAD first as they're usually static
+                  if is_vod_url(url):
+                      try:
+                          response = requests.head(url, timeout=timeout, headers=headers, allow_redirects=True)
+                          if response.status_code < 400:
+                              return {"status": "working", "code": response.status_code, "error": None, "type": "VOD"}
+                      except:
+                          pass
+                  
+                  # Try GET request with streaming
+                  response = requests.get(url, timeout=timeout, headers=headers, stream=True, allow_redirects=True)
                   
                   if response.status_code < 400:
-                      return {
-                          'name': name, 'group': group, 'url': url,
-                          'status': 'working', 'code': response.status_code, 'error': None
-                      }
-                  
-                  # Fast error categorization
-                  if response.status_code == 403:
-                      country = extract_country_fast(group)
-                      regions = GEO_MAPPING.get(country, [country])
-                      return {
-                          'name': name, 'group': group, 'url': url,
-                          'status': 'access_denied', 'code': 403, 
-                          'error': 'Geo-blocked', 'regions': regions, 'country': country
-                      }
-                  elif response.status_code == 404:
-                      return {
-                          'name': name, 'group': group, 'url': url,
-                          'status': 'not_found', 'code': 404, 'error': 'Not found'
-                      }
+                      # For live streams, try to read a small chunk
+                      if not is_vod_url(url):
+                          try:
+                              chunk = next(response.iter_content(chunk_size=1024), None)
+                              if chunk:
+                                  stream_type = "PPV" if is_ppv else "Live Stream"
+                                  return {"status": "working", "code": response.status_code, "error": None, "type": stream_type}
+                              else:
+                                  return {"status": "stream_error", "code": response.status_code, "error": "Empty stream response"}
+                          except:
+                              return {"status": "stream_error", "code": response.status_code, "error": "Stream not readable"}
+                      else:
+                          return {"status": "working", "code": response.status_code, "error": None, "type": "VOD"}
                   else:
-                      return {
-                          'name': name, 'group': group, 'url': url,
-                          'status': 'http_error', 'code': response.status_code, 
-                          'error': f'HTTP {response.status_code}'
-                      }
-                      
+                      # Enhanced error categorization
+                      if response.status_code == 403:
+                          return {"status": "access_denied", "code": 403, "error": "Access denied (geo-blocked/auth required)"}
+                      elif response.status_code == 404:
+                          error_msg = "Stream not found"
+                          if is_ppv:
+                              error_msg += " (PPV may be offline)"
+                          return {"status": "not_found", "code": 404, "error": error_msg}
+                      elif response.status_code in [500, 502, 503, 504]:
+                          return {"status": "server_error", "code": response.status_code, "error": f"Server error ({response.status_code})"}
+                      elif response.status_code == 429:
+                          return {"status": "rate_limited", "code": 429, "error": "Rate limited"}
+                      else:
+                          return {"status": "http_error", "code": response.status_code, "error": f"HTTP {response.status_code}"}
+                          
               except requests.exceptions.Timeout:
-                  return {
-                      'name': name, 'group': group, 'url': url,
-                      'status': 'timeout', 'code': None, 'error': 'Timeout'
-                  }
-              except Exception as e:
+                  error_msg = f"Timeout after {timeout}s"
+                  if is_ppv:
+                      error_msg += " (PPV may be preparing)"
+                  return {"status": "timeout", "code": None, "error": error_msg}
+              except requests.exceptions.ConnectionError as e:
                   error_str = str(e)
-                  if "resolve" in error_str.lower():
-                      status = 'dns_error'
-                      error = 'DNS failed'
+                  if "Name or service not known" in error_str or "Failed to resolve" in error_str:
+                      return {"status": "dns_error", "code": None, "error": "DNS resolution failed"}
+                  elif "Connection refused" in error_str:
+                      return {"status": "connection_refused", "code": None, "error": "Connection refused"}
                   else:
-                      status = 'connection_error' 
-                      error = 'Connection failed'
-                  
-                  return {
-                      'name': name, 'group': group, 'url': url,
-                      'status': status, 'code': None, 'error': error
-                  }
+                      return {"status": "connection_error", "code": None, "error": "Network error"}
+              except Exception as e:
+                  return {"status": "unknown_error", "code": None, "error": str(e)[:100]}
           
-          def parse_m3u_fast(file_path):
-              """Fast M3U parsing with efficient filtering"""
+          def parse_m3u(file_path):
+              """Parse M3U file and extract stream information"""
               if not os.path.exists(file_path):
+                  print(f"File not found: {file_path}")
                   return []
                   
+              streams = []
+              
               try:
                   with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                      content = f.read()
-              except:
+                      lines = f.readlines()
+              except Exception as e:
+                  print(f"Error reading {file_path}: {str(e)}")
                   return []
-              
-              streams = []
-              lines = content.split('\n')
-              
-              # Pre-compile regex for speed
-              extinf_pattern = re.compile(r'#EXTINF:.*?group-title="([^"]*)".*?,(.+)')
-              
-              for i, line in enumerate(lines):
+                  
+              for i in range(len(lines)):
+                  line = lines[i].strip()
                   if line.startswith('#EXTINF'):
-                      match = extinf_pattern.search(line)
-                      if match and i + 1 < len(lines):
-                          group = match.group(1) or "No Group"
-                          name = match.group(2).strip() or "Unknown"
-                          url = lines[i + 1].strip()
+                      try:
+                          # Extract group-title if present
+                          group_match = re.search(r'group-title="([^"]*)"', line)
+                          group = group_match.group(1) if group_match else "No Group"
                           
-                          if url and not url.startswith('#') and 'http' in url:
-                              # Fast filtering - skip obvious movies/series
-                              name_lower = name.lower()
-                              group_lower = group.lower()
-                              
-                              # Quick exclusion check
-                              if not any(x in name_lower or x in group_lower 
-                                       for x in ['movie', 'film', 'serie', '(20', '(19']):
-                                  # Skip video file extensions
-                                  if not url.endswith(('.mkv', '.mp4', '.avi')):
-                                      streams.append((name, url, group))
+                          # Extract channel name (after last comma)
+                          name_part = line.split(',')[-1].strip()
+                          name = name_part if name_part else "Unknown Channel"
+                          
+                          # Get URL from next line
+                          if i + 1 < len(lines):
+                              url = lines[i + 1].strip()
+                              if url and not url.startswith('#') and ('http' in url or 'rtmp' in url):
+                                  streams.append({
+                                      'name': name,
+                                      'url': url,
+                                      'group': group
+                                  })
+                      except Exception as e:
+                          print(f"Error parsing line {i}: {str(e)}")
+                          continue
               
               return streams
           
-          # Main execution
-          runner_loc = get_runner_location()
-          
-          streams = parse_m3u_fast('channel playlist.m3u')
-          total_streams = len(streams)
-          print(f"Found {total_streams} channel streams to check")
-          
-          # Process streams in parallel batches
-          results = []
-          batch_size = 50  # Process in batches to avoid overwhelming servers
-          
-          for i in range(0, len(streams), batch_size):
-              batch = streams[i:i+batch_size]
-              print(f"Processing batch {i//batch_size + 1}/{(len(streams)-1)//batch_size + 1} ({len(batch)} streams)")
-              
-              with ThreadPoolExecutor(max_workers=10) as executor:
-                  batch_results = list(executor.map(check_stream_fast, batch))
-                  results.extend(batch_results)
-              
-              # Small delay between batches
-              time.sleep(0.5)
-          
-          # Categorize results
+          # Initialize counters
+          total_streams = 0
+          checked_streams = 0
           working_streams = 0
-          failures = {
-              'access_denied': [], 'timeout': [], 'dns_error': [], 'not_found': [],
-              'server_error': [], 'connection_error': [], 'http_error': []
+          skipped_streams = 0
+          
+          # Enhanced failure categorization
+          categorized_failures = {
+              'access_denied': [],
+              'timeout': [],
+              'dns_error': [],
+              'not_found': [],
+              'server_error': [],
+              'connection_error': [],
+              'stream_error': [],
+              'http_error': [],
+              'rate_limited': [],
+              'unknown_error': []
           }
           
-          for result in results:
-              if result['status'] == 'working':
-                  working_streams += 1
-              else:
-                  category = result['status']
-                  if category in failures:
-                      failures[category].append(result)
+          skipped_categories = {
+              'vods': [],
+              'ppv': []
+          }
           
-          total_failures = sum(len(f) for f in failures.values())
-          working_percentage = (working_streams / total_streams * 100) if total_streams > 0 else 0
+          # M3U files to process
+          m3u_files = [
+              'channel playlist.m3u'
+          ]
           
-          # Generate optimized report
-          report = f"""# 📺 M3U Stream Status Report
-
-**Generated on:** {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC  
-**GitHub Actions Runner Location:** {runner_loc['country']} ({runner_loc['city']})
-
-## 📊 Summary
-
-| Metric | Count | Percentage |
-|--------|-------|------------|
-| **Total Streams** | {total_streams} | 100% |
-| **✅ Working Streams** | {working_streams} | {working_percentage:.1f}% |
-| **❌ Failed Streams** | {total_failures} | {100-working_percentage:.1f}% |
-
-## 📁 Files Processed
-- `channel playlist.m3u`: {total_streams} streams (movies/series filtered out)
-
-"""
+          print("🚀 Starting enhanced stream check...")
+          start_time = datetime.now(timezone.utc)
           
-          if total_failures > 0:
-              report += "## 📋 Failure Analysis\n\n"
+          for m3u_file in m3u_files:
+              print(f"📁 Processing {m3u_file}...")
               
-              failure_titles = {
-                  'access_denied': '🚫 Geo-Blocked Streams',
-                  'timeout': '⏱️ Connection Timeouts', 
-                  'dns_error': '🌐 DNS Failures',
-                  'not_found': '❓ Not Found (404)',
-                  'connection_error': '🔗 Connection Errors',
-                  'http_error': '🌍 Other HTTP Errors'
+              try:
+                  streams = parse_m3u(m3u_file)
+                  file_total = len(streams)
+                  total_streams += file_total
+                  file_working = 0
+                  file_skipped = 0
+                  
+                  print(f"Found {file_total} streams in {m3u_file}")
+                  
+                  for i, stream in enumerate(streams):
+                      # Check if stream should be skipped
+                      should_skip, skip_reason = should_skip_stream(stream)
+                      
+                      if should_skip:
+                          skipped_streams += 1
+                          file_skipped += 1
+                          
+                          # Categorize skipped streams
+                          if "VOD" in skip_reason:
+                              skipped_categories['vods'].append({
+                                  'name': stream['name'],
+                                  'group': stream['group'],
+                                  'file': m3u_file
+                              })
+                          elif "PPV" in skip_reason:
+                              skipped_categories['ppv'].append({
+                                  'name': stream['name'],
+                                  'group': stream['group'],
+                                  'file': m3u_file
+                              })
+                          
+                          if i % 50 == 0:  # Progress update
+                              print(f"Progress: {i+1}/{file_total} - Skipped: {stream['name'][:40]}...")
+                          continue
+                      
+                      checked_streams += 1
+                      print(f"🔍 Checking {checked_streams}/{total_streams-skipped_streams}: {stream['name'][:40]}...")
+                      
+                      # Determine if this is a PPV channel for special handling
+                      is_ppv = is_ppv_channel(stream['name'], stream['group'])
+                      
+                      result = check_stream(stream['url'], TIMEOUT_SECONDS, is_ppv)
+                      
+                      if result['status'] == 'working':
+                          working_streams += 1
+                          file_working += 1
+                          print(f"  ✅ Working ({result.get('type', 'Stream')})")
+                      else:
+                          print(f"  ❌ Failed: {result['error']}")
+                          
+                          # Categorize the failure
+                          failure_info = {
+                              'name': stream['name'],
+                              'group': stream['group'],
+                              'url': stream['url'][:80] + '...' if len(stream['url']) > 80 else stream['url'],
+                              'file': m3u_file,
+                              'error': result['error'],
+                              'code': result['code'],
+                              'type': 'PPV' if is_ppv else ('VOD' if is_vod_url(stream['url']) else 'Live')
+                          }
+                          
+                          if result['status'] in categorized_failures:
+                              categorized_failures[result['status']].append(failure_info)
+                          else:
+                              categorized_failures['unknown_error'].append(failure_info)
+                      
+                      # Dynamic delay based on success rate
+                      if checked_streams % 10 == 0:
+                          success_rate = working_streams / checked_streams
+                          delay = 0.1 if success_rate > 0.8 else 0.2
+                          time.sleep(delay)
+                      else:
+                          time.sleep(0.05)
+                  
+                  print(f"📊 File {m3u_file}: {file_working}/{file_total-file_skipped} working, {file_skipped} skipped")
+                  
+              except Exception as e:
+                  print(f"❌ Error processing {m3u_file}: {str(e)}")
+          
+          # Calculate final statistics
+          total_checked = checked_streams
+          total_failures = sum(len(failures) for failures in categorized_failures.values())
+          working_percentage = (working_streams / total_checked * 100) if total_checked > 0 else 0
+          end_time = datetime.now(timezone.utc)
+          duration = end_time - start_time
+          
+          print(f"⏱️ Check completed in {duration.total_seconds():.1f} seconds")
+          
+          # Generate enhanced report
+          report = f"""# 📺 Enhanced M3U Stream Status Report
+          
+          **Generated on:** {end_time.strftime('%Y-%m-%d %H:%M:%S')} UTC  
+          **Duration:** {duration.total_seconds():.1f} seconds  
+          **Runner Location:** GitHub Actions (global infrastructure)  
+          **Configuration:** VODs: {'✅' if CHECK_VODS else '❌'}, PPV: {'✅' if CHECK_PPV else '❌'}, Timeout: {TIMEOUT_SECONDS}s
+          
+          ## 📊 Summary
+          
+          | Metric | Count | Percentage |
+          |--------|-------|------------|
+          | **Total Streams Found** | {total_streams} | 100% |
+          | **🔍 Checked Streams** | {total_checked} | {(total_checked/total_streams*100):.1f}% |
+          | **✅ Working Streams** | {working_streams} | {working_percentage:.1f}% |
+          | **❌ Failed Streams** | {total_failures} | {(total_failures/total_checked*100):.1f if total_checked > 0 else 0:.1f}% |
+          | **⏭️ Skipped Streams** | {skipped_streams} | {(skipped_streams/total_streams*100):.1f}% |
+          
+          ## 📁 Files Processed
+          
+          """
+          
+          for m3u_file in m3u_files:
+              if os.path.exists(m3u_file):
+                  file_streams = parse_m3u(m3u_file)
+                  report += f"- `{m3u_file}`: {len(file_streams)} streams\n"
+          
+          # Skipped streams section
+          if skipped_streams > 0:
+              report += f"""
+          ## ⏭️ Skipped Streams ({skipped_streams} total)
+          
+          """
+              
+              if skipped_categories['vods'] and not CHECK_VODS:
+                  report += f"""### 🎬 VOD Files ({len(skipped_categories['vods'])} skipped)
+          *Enable "Check VODs" in workflow dispatch to test these*
+          
+          | Channel Name | Group | File |
+          |-------------|-------|------|
+          """
+                  for item in skipped_categories['vods'][:20]:  # Limit to first 20
+                      name = item['name'].replace('|', '\\|')
+                      group = item['group'].replace('|', '\\|')
+                      report += f"| {name} | {group} | {item['file']} |\n"
+                  
+                  if len(skipped_categories['vods']) > 20:
+                      report += f"*... and {len(skipped_categories['vods']) - 20} more*\n"
+                  report += "\n"
+              
+              if skipped_categories['ppv'] and not CHECK_PPV:
+                  report += f"""### 🥊 PPV Channels ({len(skipped_categories['ppv'])} skipped)
+          *Enable "Check PPV" in workflow dispatch to test these*
+          
+          | Channel Name | Group | File |
+          |-------------|-------|------|
+          """
+                  for item in skipped_categories['ppv'][:10]:  # Limit to first 10
+                      name = item['name'].replace('|', '\\|')
+                      group = item['group'].replace('|', '\\|')
+                      report += f"| {name} | {group} | {item['file']} |\n"
+                  
+                  if len(skipped_categories['ppv']) > 10:
+                      report += f"*... and {len(skipped_categories['ppv']) - 10} more*\n"
+                  report += "\n"
+          
+          # Enhanced failure analysis
+          if total_failures > 0:
+              failure_categories = {
+                  'access_denied': ('🚫 Access Denied', 'Geo-blocked or authentication required'),
+                  'timeout': ('⏱️ Connection Timeouts', 'Server slow/overloaded or PPV preparing'),
+                  'dns_error': ('🌐 DNS Failures', 'Domain name resolution failed'),
+                  'not_found': ('❓ Not Found (404)', 'Stream URL no longer exists'),
+                  'server_error': ('💥 Server Errors (5xx)', 'Server-side technical issues'),
+                  'connection_error': ('🔗 Connection Errors', 'Network connectivity problems'),
+                  'stream_error': ('📺 Stream Errors', 'Stream exists but unreadable'),
+                  'rate_limited': ('🚫 Rate Limited', 'Too many requests'),
+                  'http_error': ('🌍 HTTP Errors', 'Other HTTP status codes'),
+                  'unknown_error': ('❓ Unknown Errors', 'Unexpected errors')
               }
               
-              for category, streams_list in failures.items():
-                  if streams_list:
-                      title = failure_titles.get(category, category.replace('_', ' ').title())
-                      report += f"### {title} ({len(streams_list)} streams)\n\n"
+              report += f"""
+          ## 📋 Failure Analysis ({total_failures} total failures)
+          
+          """
+              
+              for category, failures in categorized_failures.items():
+                  if failures:
+                      title, description = failure_categories[category]
+                      report += f"""### {title} ({len(failures)} streams)
+          *{description}*
+          
+          | Channel | Group | Type | Error | Code | File |
+          |---------|-------|------|-------|------|------|
+          """
                       
-                      if category == 'access_denied':
-                          report += "| Channel | Group | Likely Working Regions | Code |\n"
-                          report += "|---------|-------|----------------------|------|\n"
-                          for stream in streams_list[:20]:  # Limit to first 20 for readability
-                              regions = ', '.join(stream.get('regions', ['Unknown']))
-                              name = stream['name'].replace('|', '\\|')[:30]
-                              group = stream['group'].replace('|', '\\|')[:15]
-                              report += f"| {name} | {group} | {regions} | {stream['code']} |\n"
-                      else:
-                          report += "| Channel | Group | Error | Code |\n"
-                          report += "|---------|-------|-------|------|\n"
-                          for stream in streams_list[:15]:  # Limit for readability
-                              name = stream['name'].replace('|', '\\|')[:30]
-                              group = stream['group'].replace('|', '\\|')[:15] 
-                              error = stream['error']
-                              code = stream['code'] or 'N/A'
-                              report += f"| {name} | {group} | {error} | {code} |\n"
+                      for stream in failures:
+                          name = stream['name'].replace('|', '\\|')[:30]
+                          group = stream['group'].replace('|', '\\|')[:20]
+                          stream_type = stream.get('type', 'Live')[:8]
+                          error = (stream['error'] or 'Unknown').replace('|', '\\|')[:40]
+                          code = stream['code'] if stream['code'] else 'N/A'
+                          file_name = stream['file'].replace('|', '\\|')
+                          
+                          report += f"| {name} | {group} | {stream_type} | {error} | {code} | {file_name} |\n"
                       
                       report += "\n"
           
-          report += f"""## 📈 Geographic Notes
-
-- Tests run from GitHub Actions ({runner_loc['country']})
-- Geo-blocked streams show likely working regions
-- {len(failures.get('access_denied', []))} streams appear geo-restricted
-- DNS/timeout errors may indicate server issues
-
----
-*Last updated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC*
-"""
+          else:
+              report += """
+          ## 🎉 All Checked Streams Working!
           
-          with open('report.md', 'w', encoding='utf-8') as f:
-              f.write(report)
+          All tested streams are currently accessible from GitHub's infrastructure.
+          """
           
-          print(f"Complete! {working_streams}/{total_streams} working ({working_percentage:.1f}%)")
+          report += f"""
+          ## 📋 Configuration Notes
+          
+          - **VOD Checking:** {'Enabled' if CHECK_VODS else 'Disabled'} - VOD files (.mkv, .mp4, etc.) {'were' if CHECK_VODS else 'were not'} tested
+          - **PPV Checking:** {'Enabled' if CHECK_PPV else 'Disabled'} - PPV/Event channels {'were' if CHECK_PPV else 'were not'} tested
+          - **Timeout:** {TIMEOUT_SECONDS} seconds per stream (PPV channels get double timeout)
+          
+          ## 📈 Geographic & Technical Notes
+          
+          - Tests run from **GitHub Actions** global infrastructure
+          - "Access Denied" (403) errors typically indicate geo-restrictions
+          - PPV channels may be offline between events (normal behavior)
+          - VOD files are static content and should be consistently available
+          - Timeout errors may indicate server overload or preparation time
+          - DNS errors suggest the streaming service domain is down
+          
+          ## 🔧 Technical Details
+          
+          - **User-Agent:** Chrome 120 simulation for maximum compatibility
+          - **Method:** HEAD for VODs, GET with stream verification for live content
+          - **Headers:** Enhanced with security headers and proper content type
+          - **Rate Limiting:** Dynamic delays based on success rate
+          - **Retry Logic:** Single attempt per stream to avoid overwhelming servers
+          
+          ## 🎛️ Manual Testing Options
+          
+          To test specific content types:
+          1. Go to **Actions** → **Check M3U Streams** → **Run workflow**
+          2. Toggle **Check VODs** to test .mkv/.mp4 files
+          3. Toggle **Check PPV** to test Pay-Per-View channels
+          4. Adjust **Timeout** for slower connections
+          
+          ---
+          *Last updated: {end_time.strftime('%Y-%m-%d %H:%M:%S')} UTC*  
+          *Report generated automatically by Enhanced GitHub Actions*
+          """
+          
+          # Write report
+          try:
+              with open('report.md', 'w', encoding='utf-8') as f:
+                  f.write(report)
+              print("📊 Enhanced report generated successfully!")
+              print(f"📈 Final Summary: {working_streams}/{total_checked} streams working ({working_percentage:.1f}%), {skipped_streams} skipped")
+          except Exception as e:
+              print(f"❌ Error writing report: {str(e)}")
+          
           EOF
-
+        
       - name: Commit and push report
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "github-actions[bot]"
-          
           git add report.md
           if git diff --staged --quiet; then
             echo "No changes to commit"
-            exit 0
-          fi
-          
-          git stash push -m "temp stash for rebase"
-          git pull --rebase origin main
-          git stash pop
-          
-          git add report.md
-          git commit -m "📺 Stream check: $(date -u '+%Y-%m-%d %H:%M UTC')"
-          
-          for i in {1..3}; do
-            if git push; then
-              echo "Successfully pushed"
-              break
-            else
-              echo "Push failed, retrying..."
-              git pull --rebase origin main
-              sleep 2
+          else
+            # Enhanced commit message with configuration info
+            COMMIT_MSG="📊 Stream report"
+            if [[ "$CHECK_VODS" == "true" ]]; then
+              COMMIT_MSG="$COMMIT_MSG +VODs"
             fi
-          done
+            if [[ "$CHECK_PPV" == "true" ]]; then
+              COMMIT_MSG="$COMMIT_MSG +PPV"
+            fi
+            COMMIT_MSG="$COMMIT_MSG - $(date -u '+%Y-%m-%d %H:%M UTC')"
+            
+            git commit -m "$COMMIT_MSG"
+            git push
+          fi

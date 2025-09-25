@@ -1,9 +1,9 @@
-name: Check M3U Streams
+name: Check M3U Streams (Geo-aware)
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 */6 * * *'  # Runs every 6 hours
+    - cron: '0 */6 * * *'
 
 permissions:
   contents: write
@@ -28,17 +28,37 @@ jobs:
 
       - name: Check Streams
         run: |
-          python - << 'EOF'
+          python - <<'EOF'
           import requests
           import os
           from datetime import datetime
           import re
           import time
-          
-          def check_stream(url, timeout=15):
-              """Check if a stream URL is accessible and categorize failures"""
+
+          def get_runner_location():
               try:
-                  # Handle different types of URLs
+                  ip_info = requests.get('https://ipinfo.io/json', timeout=5).json()
+                  return {
+                      "ip": ip_info.get('ip', 'Unknown'),
+                      "country": ip_info.get('country', 'Unknown'),
+                      "region": ip_info.get('region', 'Unknown'),
+                      "city": ip_info.get('city', 'Unknown'),
+                      "org": ip_info.get('org', ''),
+                  }
+              except Exception:
+                  return {
+                      "ip": "Unknown",
+                      "country": "Unknown",
+                      "region": "Unknown",
+                      "city": "Unknown",
+                      "org": "",
+                  }
+
+          runner_loc = get_runner_location()
+
+          def check_stream(url, timeout=15):
+              """Check if a stream URL is accessible and categorize failures, with geo-block hint."""
+              try:
                   headers = {
                       'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
                       'Accept': '*/*',
@@ -47,7 +67,6 @@ jobs:
                       'Connection': 'keep-alive',
                       'Referer': 'https://github.com/'
                   }
-                  
                   # First try HEAD request
                   try:
                       response = requests.head(url, timeout=timeout, headers=headers, allow_redirects=True)
@@ -55,28 +74,39 @@ jobs:
                           return {"status": "working", "code": response.status_code, "error": None}
                   except:
                       pass
-                  
+
                   # If HEAD fails, try GET with stream
                   response = requests.get(url, timeout=timeout, headers=headers, stream=True, allow_redirects=True)
-                  
+                  geo_hint = ""
                   if response.status_code < 400:
-                      # Try to read a small chunk to verify it's actually streaming
                       try:
                           next(response.iter_content(chunk_size=1024), None)
                           return {"status": "working", "code": response.status_code, "error": None}
                       except:
                           return {"status": "stream_error", "code": response.status_code, "error": "Stream not readable"}
                   else:
-                      # Categorize HTTP errors
                       if response.status_code == 403:
-                          return {"status": "access_denied", "code": 403, "error": "Access denied (possibly geo-blocked)"}
+                          # Try to detect geo-block from the response body
+                          try:
+                              text = response.text.lower()
+                              if any(s in text for s in ["not available in your country", "geo", "region", "not available in your location", "outside your region", "not available in your territory"]):
+                                  geo_hint = "geo-blocked"
+                              else:
+                                  geo_hint = "403 forbidden"
+                          except:
+                              geo_hint = "403 forbidden"
+                          return {
+                              "status": "access_denied",
+                              "code": 403,
+                              "error": "Access denied (possibly geo-blocked)",
+                              "geo_hint": geo_hint
+                          }
                       elif response.status_code == 404:
                           return {"status": "not_found", "code": 404, "error": "Stream not found"}
                       elif response.status_code in [500, 502, 503, 504]:
                           return {"status": "server_error", "code": response.status_code, "error": "Server error"}
                       else:
                           return {"status": "http_error", "code": response.status_code, "error": f"HTTP {response.status_code}"}
-                          
               except requests.exceptions.Timeout:
                   return {"status": "timeout", "code": None, "error": "Connection timeout"}
               except requests.exceptions.ConnectionError as e:
@@ -89,35 +119,29 @@ jobs:
                       return {"status": "connection_error", "code": None, "error": "Connection error"}
               except Exception as e:
                   return {"status": "unknown_error", "code": None, "error": str(e)[:100]}
-          
+
           def parse_m3u(file_path):
               """Parse M3U file and extract stream information"""
               if not os.path.exists(file_path):
                   print(f"File not found: {file_path}")
                   return []
-                  
+
               streams = []
-              
               try:
                   with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
                       lines = f.readlines()
               except Exception as e:
                   print(f"Error reading {file_path}: {str(e)}")
                   return []
-                  
+
               for i in range(len(lines)):
                   line = lines[i].strip()
                   if line.startswith('#EXTINF'):
                       try:
-                          # Extract group-title if present
                           group_match = re.search(r'group-title="([^"]*)"', line)
                           group = group_match.group(1) if group_match else "No Group"
-                          
-                          # Extract channel name (after last comma)
                           name_part = line.split(',')[-1].strip()
                           name = name_part if name_part else "Unknown Channel"
-                          
-                          # Get URL from next line
                           if i + 1 < len(lines):
                               url = lines[i + 1].strip()
                               if url and not url.startswith('#') and ('http' in url or 'rtmp' in url):
@@ -129,10 +153,8 @@ jobs:
                       except Exception as e:
                           print(f"Error parsing line {i}: {str(e)}")
                           continue
-              
               return streams
-          
-          # Initialize counters and lists
+
           total_streams = 0
           working_streams = 0
           categorized_failures = {
@@ -147,89 +169,87 @@ jobs:
               'unknown_error': []
           }
           checked_streams = 0
-          
-          # Your M3U files (update these to match your actual file names)
+
           m3u_files = [
               'vod playlist.m3u',
               'channel playlist.m3u'
           ]
-          
+
           print("Starting stream check...")
-          
+
           for m3u_file in m3u_files:
               print(f"Processing {m3u_file}...")
-              
               try:
                   streams = parse_m3u(m3u_file)
                   file_total = len(streams)
                   total_streams += file_total
                   file_working = 0
-                  
+
                   print(f"Found {file_total} streams in {m3u_file}")
-                  
+
                   for i, stream in enumerate(streams):
                       checked_streams += 1
                       print(f"Checking stream {checked_streams}/{total_streams}: {stream['name'][:50]}...")
-                      
+
                       result = check_stream(stream['url'])
-                      
+
                       if result['status'] == 'working':
                           working_streams += 1
                           file_working += 1
                       else:
-                          # Categorize the failure
                           failure_info = {
                               'name': stream['name'],
                               'group': stream['group'],
                               'url': stream['url'][:100] + '...' if len(stream['url']) > 100 else stream['url'],
                               'file': m3u_file,
                               'error': result['error'],
-                              'code': result['code']
+                              'code': result['code'],
+                              'geo_hint': result.get('geo_hint', ''),
+                              'runner_country': runner_loc['country'],
+                              'runner_ip': runner_loc['ip'],
+                              'runner_city': runner_loc['city'],
+                              'runner_org': runner_loc['org'],
                           }
-                          
                           if result['status'] in categorized_failures:
                               categorized_failures[result['status']].append(failure_info)
                           else:
                               categorized_failures['unknown_error'].append(failure_info)
-                      
-                      # Small delay to avoid overwhelming servers
+
                       time.sleep(0.1)
-                  
+
                   print(f"File {m3u_file}: {file_working}/{file_total} working streams")
-                  
+
               except Exception as e:
                   print(f"Error processing {m3u_file}: {str(e)}")
-          
-          # Calculate totals
+
           total_failures = sum(len(failures) for failures in categorized_failures.values())
           working_percentage = (working_streams / total_streams * 100) if total_streams > 0 else 0
-          
+
           # Generate report
           report = f"""# 📺 M3U Stream Status Report
-          
-          **Generated on:** {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC
-          **GitHub Actions Runner Location:** GitHub's infrastructure (global)
-          
+
+          **Generated on:** {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC  
+          **GitHub Actions Runner Location:** {runner_loc['country']} ({runner_loc['city']})  
+          **Runner public IP:** {runner_loc['ip']}  
+          **Runner network:** {runner_loc['org']}
+
           ## 📊 Summary
-          
+
           | Metric | Count | Percentage |
           |--------|-------|------------|
           | **Total Streams** | {total_streams} | 100% |
           | **✅ Working Streams** | {working_streams} | {working_percentage:.1f}% |
           | **❌ Failed Streams** | {total_failures} | {100-working_percentage:.1f}% |
-          
+
           ## 📁 Files Processed
-          
           """
-          
           for m3u_file in m3u_files:
               if os.path.exists(m3u_file):
                   file_streams = parse_m3u(m3u_file)
                   report += f"- `{m3u_file}`: {len(file_streams)} streams\n"
               else:
                   report += f"- `{m3u_file}`: **File not found**\n"
-          
-          # Failure categories with explanations
+
           failure_categories = {
               'access_denied': ('🚫 Access Denied', 'Likely geo-blocked or requires authentication'),
               'timeout': ('⏱️ Connection Timeouts', 'Server too slow to respond or overloaded'),
@@ -241,74 +261,71 @@ jobs:
               'http_error': ('🌍 Other HTTP Errors', 'Various HTTP status codes'),
               'unknown_error': ('❓ Unknown Errors', 'Unexpected errors')
           }
-          
+
           if total_failures > 0:
               report += f"""
           ## 📋 Failure Analysis ({total_failures} total failures)
-          
           """
-              
               for category, failures in categorized_failures.items():
                   if failures:
                       title, description = failure_categories[category]
                       report += f"""### {title} ({len(failures)} streams)
           *{description}*
-          
-          | Channel Name | Group | File | Error Details | Code |
-          |-------------|-------|------|---------------|------|
+
+          | Channel Name | Group | File | Error Details | Geo Block Hint | Runner Country | Runner IP | Runner Org | Code |
+          |--------------|-------|------|--------------|---------------|---------------|-----------|------------|------|
           """
-                      
                       for stream in failures:
-                          # Escape special characters for markdown
                           name = stream['name'].replace('|', '\\|').replace('\n', ' ').strip()
                           group = stream['group'].replace('|', '\\|').replace('\n', ' ').strip()
                           file_name = stream['file'].replace('|', '\\|')
                           error = stream['error'].replace('|', '\\|') if stream['error'] else 'Unknown'
                           code = stream['code'] if stream['code'] else 'N/A'
-                          
-                          report += f"| {name} | {group} | {file_name} | {error} | {code} |\n"
-                      
+                          geo_hint = stream.get('geo_hint', '')
+                          runner_country = stream.get('runner_country', '')
+                          runner_ip = stream.get('runner_ip', '')
+                          runner_org = stream.get('runner_org', '')
+                          report += f"| {name} | {group} | {file_name} | {error} | {geo_hint} | {runner_country} | {runner_ip} | {runner_org} | {code} |\n"
                       report += "\n"
           else:
               report += """
           ## 🎉 All Streams Working!
-          
-          Congratulations! All streams are currently accessible from GitHub's infrastructure.
+
+          Congratulations! All streams are currently accessible from this runner location.
           """
-          
+
           report += f"""
           ## 📈 Geographic Notes
-          
-          - Tests run from **GitHub Actions infrastructure** (multiple global locations)
-          - "Access Denied" errors may indicate geo-restrictions
+
+          - Tests run from **GitHub Actions infrastructure** (current runner country: {runner_loc['country']})
+          - "Access Denied" errors may indicate geo-restrictions for this region
           - Some streams may work from different geographic locations
           - DNS errors suggest the streaming service may be down entirely
           - Timeout errors often indicate server overload or slow response
-          
+
           ## 📝 Technical Details
-          
+
           - **User-Agent:** Modern browser simulation for better compatibility
           - **Timeout:** 15 seconds per stream
           - **Method:** HEAD request first, then GET with stream verification
           - **Retry Logic:** Single attempt per stream to avoid rate limiting
           - **Headers:** Include Accept-Language and Referer for better success rates
-          
+
           ---
           *Last updated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC*
           *Report generated automatically by GitHub Actions*
           """
-          
-          # Write report to file
+
           try:
               with open('report.md', 'w', encoding='utf-8') as f:
                   f.write(report)
               print("Report generated successfully!")
           except Exception as e:
               print(f"Error writing report: {str(e)}")
-          
+
           print(f"Final Summary: {working_streams}/{total_streams} streams working ({working_percentage:.1f}%)")
           EOF
-        
+
       - name: Commit and push report
         run: |
           git config --local user.email "action@github.com"

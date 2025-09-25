@@ -1,4 +1,4 @@
-name: Check M3U Streams (Geo-aware)
+name: Check M3U Streams (Smart & Fast)
 
 on:
   workflow_dispatch:
@@ -11,6 +11,7 @@ permissions:
 jobs:
   check-streams:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - name: Checkout repository
@@ -26,366 +27,286 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install requests m3u8
+          pip install requests m3u8 concurrent.futures
 
       - name: Check Streams
         run: |
-          python - <<'EOF'
+          python - << 'EOF'
           import requests
           import os
           from datetime import datetime
           import re
           import time
-
+          from concurrent.futures import ThreadPoolExecutor, as_completed
+          from requests.adapters import HTTPAdapter
+          from urllib3.util.retry import Retry
+          
+          # Create a session with connection pooling and retries
+          session = requests.Session()
+          retry_strategy = Retry(
+              total=1,
+              backoff_factor=0.1,
+              status_forcelist=[429, 500, 502, 503, 504],
+          )
+          adapter = HTTPAdapter(pool_connections=20, pool_maxsize=20, max_retries=retry_strategy)
+          session.mount("http://", adapter)
+          session.mount("https://", adapter)
+          
           def get_runner_location():
               try:
-                  ip_info = requests.get('https://ipinfo.io/json', timeout=5).json()
+                  ip_info = requests.get('https://ipinfo.io/json', timeout=3).json()
                   return {
-                      "ip": ip_info.get('ip', 'Unknown'),
-                      "country": ip_info.get('country', 'Unknown'),
-                      "region": ip_info.get('region', 'Unknown'),
+                      "country": ip_info.get('country', 'US'),
                       "city": ip_info.get('city', 'Unknown'),
-                      "org": ip_info.get('org', ''),
                   }
-              except Exception:
-                  return {
-                      "ip": "Unknown",
-                      "country": "Unknown",
-                      "region": "Unknown",
-                      "city": "Unknown",
-                      "org": "",
-                  }
-
-          def get_geo_suggestions(status_code, country_code):
-              """Suggest likely working regions based on stream country and error type"""
-              geo_hints = {
-                  'UK': ['United Kingdom', 'Ireland'],
-                  'US': ['United States', 'Canada', 'Mexico'],
-                  'CA': ['Canada', 'United States'],
-                  'AU': ['Australia', 'New Zealand'],
-                  'AE': ['United Arab Emirates', 'Saudi Arabia', 'Qatar', 'Kuwait', 'Bahrain'],
-                  'AR': ['Argentina', 'Chile', 'Uruguay', 'Paraguay'],
-                  'IE': ['Ireland', 'United Kingdom'],
-                  'ZA': ['South Africa', 'Botswana', 'Namibia'],
-                  'YE': ['Yemen', 'Saudi Arabia', 'Oman'],
-                  'NZ': ['New Zealand', 'Australia']
-              }
+              except:
+                  return {"country": "US", "city": "Unknown"}
+          
+          # Pre-computed geo mapping for speed
+          GEO_MAPPING = {
+              'UK': ['United Kingdom', 'Ireland'],
+              'US': ['United States', 'Canada'],
+              'USA': ['United States', 'Canada'], 
+              'CA': ['Canada', 'United States'],
+              'AU': ['Australia', 'New Zealand'],
+              'AUS': ['Australia', 'New Zealand'],
+              'AE': ['UAE', 'Saudi Arabia', 'Qatar'],
+              'UAE': ['UAE', 'Saudi Arabia', 'Qatar'],
+              'AR': ['Argentina', 'Chile', 'Uruguay'],
+              'IE': ['Ireland', 'United Kingdom'],
+              'ZA': ['South Africa'],
+              'YE': ['Yemen', 'Saudi Arabia'],
+              'NZ': ['New Zealand', 'Australia']
+          }
+          
+          def extract_country_fast(group_name):
+              """Fast country extraction using pre-computed mapping"""
+              group_upper = group_name.upper()
               
-              if status_code == 403:
-                  return geo_hints.get(country_code, [f'Likely {country_code} region only'])
-              return []
-
-          runner_loc = get_runner_location()
-
-          def check_stream(url, timeout=5):
-              """Check if a stream URL is accessible and categorize failures, with geo-block hint."""
+              # Check exact matches first (fastest)
+              if group_upper in GEO_MAPPING:
+                  return group_upper
+              
+              # Check if it's a 2-letter country code
+              if len(group_name) == 2 and group_name.isalpha():
+                  return group_name.upper()
+              
+              # Quick substring check for common patterns
+              for country in ['UK', 'USA', 'CANADA', 'AUSTRALIA', 'UAE']:
+                  if country in group_upper:
+                      return country if country in GEO_MAPPING else country[:2]
+              
+              return 'UNKNOWN'
+          
+          def check_stream_fast(stream_data):
+              """Fast stream check with minimal processing"""
+              name, url, group = stream_data
+              
               try:
                   headers = {
-                      'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                      'Accept': '*/*',
-                      'Accept-Language': 'en-US,en;q=0.9',
-                      'Accept-Encoding': 'gzip, deflate',
-                      'Connection': 'keep-alive',
-                      'Referer': 'https://github.com/'
+                      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                      'Accept': '*/*'
                   }
-                  # First try HEAD request
-                  try:
-                      response = requests.head(url, timeout=timeout, headers=headers, allow_redirects=True)
-                      if response.status_code < 400:
-                          return {"status": "working", "code": response.status_code, "error": None}
-                  except:
-                      pass
-
-                  # If HEAD fails, try GET with stream
-                  response = requests.get(url, timeout=timeout, headers=headers, stream=True, allow_redirects=True)
-                  geo_hint = ""
+                  
+                  # Single HEAD request with short timeout
+                  response = session.head(url, timeout=2, headers=headers, allow_redirects=True)
+                  
                   if response.status_code < 400:
-                      try:
-                          next(response.iter_content(chunk_size=1024), None)
-                          return {"status": "working", "code": response.status_code, "error": None}
-                      except:
-                          return {"status": "stream_error", "code": response.status_code, "error": "Stream not readable"}
+                      return {
+                          'name': name, 'group': group, 'url': url,
+                          'status': 'working', 'code': response.status_code, 'error': None
+                      }
+                  
+                  # Fast error categorization
+                  if response.status_code == 403:
+                      country = extract_country_fast(group)
+                      regions = GEO_MAPPING.get(country, [country])
+                      return {
+                          'name': name, 'group': group, 'url': url,
+                          'status': 'access_denied', 'code': 403, 
+                          'error': 'Geo-blocked', 'regions': regions, 'country': country
+                      }
+                  elif response.status_code == 404:
+                      return {
+                          'name': name, 'group': group, 'url': url,
+                          'status': 'not_found', 'code': 404, 'error': 'Not found'
+                      }
                   else:
-                      if response.status_code == 403:
-                          # Try to detect geo-block from the response body
-                          try:
-                              text = response.text.lower()
-                              if any(s in text for s in ["not available in your country", "geo", "region", "not available in your location", "outside your region", "not available in your territory"]):
-                                  geo_hint = "geo-blocked"
-                              else:
-                                  geo_hint = "403 forbidden"
-                          except:
-                              geo_hint = "403 forbidden"
-                          return {
-                              "status": "access_denied",
-                              "code": 403,
-                              "error": "Access denied (possibly geo-blocked)",
-                              "geo_hint": geo_hint
-                          }
-                      elif response.status_code == 404:
-                          return {"status": "not_found", "code": 404, "error": "Stream not found"}
-                      elif response.status_code in [500, 502, 503, 504]:
-                          return {"status": "server_error", "code": response.status_code, "error": "Server error"}
-                      else:
-                          return {"status": "http_error", "code": response.status_code, "error": f"HTTP {response.status_code}"}
+                      return {
+                          'name': name, 'group': group, 'url': url,
+                          'status': 'http_error', 'code': response.status_code, 
+                          'error': f'HTTP {response.status_code}'
+                      }
+                      
               except requests.exceptions.Timeout:
-                  return {"status": "timeout", "code": None, "error": "Connection timeout"}
-              except requests.exceptions.ConnectionError as e:
-                  error_str = str(e)
-                  if "Name or service not known" in error_str or "Failed to resolve" in error_str:
-                      return {"status": "dns_error", "code": None, "error": "DNS resolution failed"}
-                  elif "Connection refused" in error_str:
-                      return {"status": "connection_refused", "code": None, "error": "Connection refused"}
-                  else:
-                      return {"status": "connection_error", "code": None, "error": "Connection error"}
+                  return {
+                      'name': name, 'group': group, 'url': url,
+                      'status': 'timeout', 'code': None, 'error': 'Timeout'
+                  }
               except Exception as e:
-                  return {"status": "unknown_error", "code": None, "error": str(e)[:100]}
-
-          def parse_m3u(file_path):
-              """Parse M3U file and extract stream information"""
+                  error_str = str(e)
+                  if "resolve" in error_str.lower():
+                      status = 'dns_error'
+                      error = 'DNS failed'
+                  else:
+                      status = 'connection_error' 
+                      error = 'Connection failed'
+                  
+                  return {
+                      'name': name, 'group': group, 'url': url,
+                      'status': status, 'code': None, 'error': error
+                  }
+          
+          def parse_m3u_fast(file_path):
+              """Fast M3U parsing with efficient filtering"""
               if not os.path.exists(file_path):
-                  print(f"File not found: {file_path}")
                   return []
-
-              streams = []
+                  
               try:
                   with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                      lines = f.readlines()
-              except Exception as e:
-                  print(f"Error reading {file_path}: {str(e)}")
+                      content = f.read()
+              except:
                   return []
-
-              # Enhanced keywords for filtering out movies/series
-              exclude_keywords = [
-                  # Movies
-                  'movie', 'film', 'cinema', 'bollywood', 'hollywood', 'nollywood',
-                  # TV Series
-                  'serie', 'series', 'season', 'episode', 'drama', 'comedy', 'action', 
-                  'thriller', 'horror', 'romance', 'documentary', 'animation', 'cartoon', 
-                  'anime', 'sitcom', 'reality', 'talk show', 'tv show', 'tvshow',
-                  # Streaming services
-                  'netflix', 'amazon', 'hulu', 'disney', 'marvel', 'hbo', 'showtime',
-                  # Common movie/series indicators
-                  '(20', '(19', 'imdb', 'trailer', 'preview', 'full movie', 'watch online'
-              ]
               
-              # Also exclude by group names that clearly indicate movies/series
-              exclude_groups = [
-                  'movie', 'movies', 'film', 'films', 'cinema', 'series', 'tv series', 
-                  'drama', 'comedy', 'action', 'horror', 'thriller', 'romance',
-                  'documentary', 'animation', 'cartoon', 'anime', 'bollywood', 
-                  'hollywood', 'nollywood', 'netflix', 'amazon prime', 'hulu', 'disney+'
-              ]
-
-              for i in range(len(lines)):
-                  line = lines[i].strip()
+              streams = []
+              lines = content.split('\n')
+              
+              # Pre-compile regex for speed
+              extinf_pattern = re.compile(r'#EXTINF:.*?group-title="([^"]*)".*?,(.+)')
+              
+              for i, line in enumerate(lines):
                   if line.startswith('#EXTINF'):
-                      try:
-                          group_match = re.search(r'group-title="([^"]*)"', line)
-                          group = group_match.group(1) if group_match else "No Group"
-                          name_part = line.split(',')[-1].strip()
-                          name = name_part if name_part else "Unknown Channel"
+                      match = extinf_pattern.search(line)
+                      if match and i + 1 < len(lines):
+                          group = match.group(1) or "No Group"
+                          name = match.group(2).strip() or "Unknown"
+                          url = lines[i + 1].strip()
                           
-                          # Skip if it looks like a movie/series based on name or group
-                          name_lower = name.lower()
-                          group_lower = group.lower()
-                          
-                          # Check if name or group contains movie/series keywords
-                          is_movie_series = (
-                              any(keyword in name_lower for keyword in exclude_keywords) or 
-                              any(keyword in group_lower for keyword in exclude_keywords) or
-                              group_lower in exclude_groups
-                          )
-                          
-                          # Skip movie/series content
-                          if is_movie_series:
-                              continue
+                          if url and not url.startswith('#') and 'http' in url:
+                              # Fast filtering - skip obvious movies/series
+                              name_lower = name.lower()
+                              group_lower = group.lower()
                               
-                          if i + 1 < len(lines):
-                              url = lines[i + 1].strip()
-                              if url and not url.startswith('#') and ('http' in url or 'rtmp' in url):
-                                  # Skip URLs ending with video file extensions (movies/series)
-                                  if url.endswith(('.mkv', '.mp4', '.avi', '.mov', '.wmv', '.flv', '.webm', '.m4v')):
-                                      continue
-                                  streams.append({
-                                      'name': name,
-                                      'url': url,
-                                      'group': group
-                                  })
-                      except Exception as e:
-                          print(f"Error parsing line {i}: {str(e)}")
-                          continue
+                              # Quick exclusion check
+                              if not any(x in name_lower or x in group_lower 
+                                       for x in ['movie', 'film', 'serie', '(20', '(19']):
+                                  # Skip video file extensions
+                                  if not url.endswith(('.mkv', '.mp4', '.avi')):
+                                      streams.append((name, url, group))
               
-              print(f"Filtered to {len(streams)} channel streams (excluded movies/series)")
               return streams
-
-          total_streams = 0
+          
+          # Main execution
+          runner_loc = get_runner_location()
+          
+          streams = parse_m3u_fast('channel playlist.m3u')
+          total_streams = len(streams)
+          print(f"Found {total_streams} channel streams to check")
+          
+          # Process streams in parallel batches
+          results = []
+          batch_size = 50  # Process in batches to avoid overwhelming servers
+          
+          for i in range(0, len(streams), batch_size):
+              batch = streams[i:i+batch_size]
+              print(f"Processing batch {i//batch_size + 1}/{(len(streams)-1)//batch_size + 1} ({len(batch)} streams)")
+              
+              with ThreadPoolExecutor(max_workers=10) as executor:
+                  batch_results = list(executor.map(check_stream_fast, batch))
+                  results.extend(batch_results)
+              
+              # Small delay between batches
+              time.sleep(0.5)
+          
+          # Categorize results
           working_streams = 0
-          categorized_failures = {
-              'access_denied': [],
-              'timeout': [],
-              'dns_error': [],
-              'not_found': [],
-              'server_error': [],
-              'connection_error': [],
-              'stream_error': [],
-              'http_error': [],
-              'unknown_error': []
+          failures = {
+              'access_denied': [], 'timeout': [], 'dns_error': [], 'not_found': [],
+              'server_error': [], 'connection_error': [], 'http_error': []
           }
-          checked_streams = 0
-
-          m3u_files = [
-              'channel playlist.m3u'
-          ]
-
-          print("Starting stream check...")
-
-          for m3u_file in m3u_files:
-              print(f"Processing {m3u_file}...")
-              try:
-                  streams = parse_m3u(m3u_file)
-                  file_total = len(streams)
-                  total_streams += file_total
-                  file_working = 0
-
-                  print(f"Found {file_total} streams in {m3u_file}")
-
-                  for i, stream in enumerate(streams):
-                      checked_streams += 1
-                      print(f"Checking stream {checked_streams}/{total_streams}: {stream['name'][:50]}...")
-
-                      result = check_stream(stream['url'])
-
-                      if result['status'] == 'working':
-                          working_streams += 1
-                          file_working += 1
-                      else:
-                          failure_info = {
-                              'name': stream['name'],
-                              'group': stream['group'],
-                              'url': stream['url'][:100] + '...' if len(stream['url']) > 100 else stream['url'],
-                              'file': m3u_file,
-                              'error': result['error'],
-                              'code': result['code'],
-                              'geo_hint': result.get('geo_hint', ''),
-                              'runner_country': runner_loc['country'],
-                              'runner_ip': runner_loc['ip'],
-                              'runner_city': runner_loc['city'],
-                              'runner_org': runner_loc['org'],
-                          }
-                          if result['status'] in categorized_failures:
-                              categorized_failures[result['status']].append(failure_info)
-                          else:
-                              categorized_failures['unknown_error'].append(failure_info)
-
-                      time.sleep(0.1)
-
-                  print(f"File {m3u_file}: {file_working}/{file_total} working streams")
-
-              except Exception as e:
-                  print(f"Error processing {m3u_file}: {str(e)}")
-
-          total_failures = sum(len(failures) for failures in categorized_failures.values())
+          
+          for result in results:
+              if result['status'] == 'working':
+                  working_streams += 1
+              else:
+                  category = result['status']
+                  if category in failures:
+                      failures[category].append(result)
+          
+          total_failures = sum(len(f) for f in failures.values())
           working_percentage = (working_streams / total_streams * 100) if total_streams > 0 else 0
-
-          # Generate report
+          
+          # Generate optimized report
           report = f"""# 📺 M3U Stream Status Report
 
-          **Generated on:** {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC  
-          **GitHub Actions Runner Location:** {runner_loc['country']} ({runner_loc['city']})  
-          **Runner public IP:** {runner_loc['ip']}  
-          **Runner network:** {runner_loc['org']}
+**Generated on:** {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC  
+**GitHub Actions Runner Location:** {runner_loc['country']} ({runner_loc['city']})
 
-          ## 📊 Summary
+## 📊 Summary
 
-          | Metric | Count | Percentage |
-          |--------|-------|------------|
-          | **Total Streams** | {total_streams} | 100% |
-          | **✅ Working Streams** | {working_streams} | {working_percentage:.1f}% |
-          | **❌ Failed Streams** | {total_failures} | {100-working_percentage:.1f}% |
+| Metric | Count | Percentage |
+|--------|-------|------------|
+| **Total Streams** | {total_streams} | 100% |
+| **✅ Working Streams** | {working_streams} | {working_percentage:.1f}% |
+| **❌ Failed Streams** | {total_failures} | {100-working_percentage:.1f}% |
 
-          ## 📁 Files Processed
-          """
-          for m3u_file in m3u_files:
-              if os.path.exists(m3u_file):
-                  file_streams = parse_m3u(m3u_file)
-                  report += f"- `{m3u_file}`: {len(file_streams)} streams\n"
-              else:
-                  report += f"- `{m3u_file}`: **File not found**\n"
+## 📁 Files Processed
+- `channel playlist.m3u`: {total_streams} streams (movies/series filtered out)
 
-          failure_categories = {
-              'access_denied': ('🚫 Access Denied', 'Likely geo-blocked or requires authentication'),
-              'timeout': ('⏱️ Connection Timeouts', 'Server too slow to respond or overloaded'),
-              'dns_error': ('🌐 DNS Resolution Failures', 'Domain name cannot be resolved'),
-              'not_found': ('❓ Not Found (404)', 'Stream URL no longer exists'),
-              'server_error': ('💥 Server Errors (5xx)', 'Server-side issues'),
-              'connection_error': ('🔗 Connection Errors', 'Network connectivity issues'),
-              'stream_error': ('📺 Stream Reading Errors', 'Stream exists but content unreadable'),
-              'http_error': ('🌍 Other HTTP Errors', 'Various HTTP status codes'),
-              'unknown_error': ('❓ Unknown Errors', 'Unexpected errors')
-          }
-
+"""
+          
           if total_failures > 0:
-              report += f"""
-          ## 📋 Failure Analysis ({total_failures} total failures)
-          """
-              for category, failures in categorized_failures.items():
-                  if failures:
-                      title, description = failure_categories[category]
-                      report += f"""### {title} ({len(failures)} streams)
-          *{description}*
-
-          | Channel Name | Group | File | Error Details | Stream Country | Likely Working Regions | Runner Country | Code |
-          |--------------|-------|------|--------------|----------------|----------------------|---------------|------|
-          """
-                      for stream in failures:
-                          name = stream['name'].replace('|', '\\|').replace('\n', ' ').strip()
-                          group = stream['group'].replace('|', '\\|').replace('\n', ' ').strip()
-                          file_name = stream['file'].replace('|', '\\|')
-                          error = stream['error'].replace('|', '\\|') if stream['error'] else 'Unknown'
-                          code = stream['code'] if stream['code'] else 'N/A'
-                          stream_country = stream.get('stream_country', 'Unknown')
-                          likely_regions = stream.get('likely_regions', 'Unknown')
-                          runner_country = stream.get('runner_country', 'US')
-                          report += f"| {name} | {group} | {file_name} | {error} | {stream_country} | {likely_regions} | {runner_country} | {code} |\n"
+              report += "## 📋 Failure Analysis\n\n"
+              
+              failure_titles = {
+                  'access_denied': '🚫 Geo-Blocked Streams',
+                  'timeout': '⏱️ Connection Timeouts', 
+                  'dns_error': '🌐 DNS Failures',
+                  'not_found': '❓ Not Found (404)',
+                  'connection_error': '🔗 Connection Errors',
+                  'http_error': '🌍 Other HTTP Errors'
+              }
+              
+              for category, streams_list in failures.items():
+                  if streams_list:
+                      title = failure_titles.get(category, category.replace('_', ' ').title())
+                      report += f"### {title} ({len(streams_list)} streams)\n\n"
+                      
+                      if category == 'access_denied':
+                          report += "| Channel | Group | Likely Working Regions | Code |\n"
+                          report += "|---------|-------|----------------------|------|\n"
+                          for stream in streams_list[:20]:  # Limit to first 20 for readability
+                              regions = ', '.join(stream.get('regions', ['Unknown']))
+                              name = stream['name'].replace('|', '\\|')[:30]
+                              group = stream['group'].replace('|', '\\|')[:15]
+                              report += f"| {name} | {group} | {regions} | {stream['code']} |\n"
+                      else:
+                          report += "| Channel | Group | Error | Code |\n"
+                          report += "|---------|-------|-------|------|\n"
+                          for stream in streams_list[:15]:  # Limit for readability
+                              name = stream['name'].replace('|', '\\|')[:30]
+                              group = stream['group'].replace('|', '\\|')[:15] 
+                              error = stream['error']
+                              code = stream['code'] or 'N/A'
+                              report += f"| {name} | {group} | {error} | {code} |\n"
+                      
                       report += "\n"
-          else:
-              report += """
-          ## 🎉 All Streams Working!
+          
+          report += f"""## 📈 Geographic Notes
 
-          Congratulations! All streams are currently accessible from this runner location.
-          """
+- Tests run from GitHub Actions ({runner_loc['country']})
+- Geo-blocked streams show likely working regions
+- {len(failures.get('access_denied', []))} streams appear geo-restricted
+- DNS/timeout errors may indicate server issues
 
-          report += f"""
-          ## 📈 Geographic Notes
-
-          - Tests run from **GitHub Actions infrastructure** (current runner country: {runner_loc['country']})
-          - "Access Denied" errors may indicate geo-restrictions for this region
-          - Some streams may work from different geographic locations
-          - DNS errors suggest the streaming service may be down entirely
-          - Timeout errors often indicate server overload or slow response
-
-          ## 📝 Technical Details
-
-          - **User-Agent:** Modern browser simulation for better compatibility
-          - **Timeout:** 15 seconds per stream
-          - **Method:** HEAD request first, then GET with stream verification
-          - **Retry Logic:** Single attempt per stream to avoid rate limiting
-          - **Headers:** Include Accept-Language and Referer for better success rates
-
-          ---
-          *Last updated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC*
-          *Report generated automatically by GitHub Actions*
-          """
-
-          try:
-              with open('report.md', 'w', encoding='utf-8') as f:
-                  f.write(report)
-              print("Report generated successfully!")
-          except Exception as e:
-              print(f"Error writing report: {str(e)}")
-
-          print(f"Final Summary: {working_streams}/{total_streams} streams working ({working_percentage:.1f}%)")
+---
+*Last updated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC*
+"""
+          
+          with open('report.md', 'w', encoding='utf-8') as f:
+              f.write(report)
+          
+          print(f"Complete! {working_streams}/{total_streams} working ({working_percentage:.1f}%)")
           EOF
 
       - name: Commit and push report
@@ -393,34 +314,26 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "github-actions[bot]"
           
-          # Check if there are changes to commit
           git add report.md
           if git diff --staged --quiet; then
             echo "No changes to commit"
             exit 0
           fi
           
-          # Pull any remote changes first to avoid conflicts
           git stash push -m "temp stash for rebase"
           git pull --rebase origin main
           git stash pop
           
-          # Add files again after stash pop and commit
           git add report.md
-          git commit -m "📊 Update stream status report - $(date -u '+%Y-%m-%d %H:%M UTC')"
+          git commit -m "📺 Stream check: $(date -u '+%Y-%m-%d %H:%M UTC')"
           
-          # Push with retry logic in case of race conditions
           for i in {1..3}; do
             if git push; then
-              echo "Successfully pushed on attempt $i"
+              echo "Successfully pushed"
               break
             else
-              echo "Push failed on attempt $i, retrying..."
+              echo "Push failed, retrying..."
               git pull --rebase origin main
               sleep 2
-            fi
-            if [ $i -eq 3 ]; then
-              echo "Failed to push after 3 attempts"
-              exit 1
             fi
           done

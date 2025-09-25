@@ -56,6 +56,25 @@ jobs:
                       "org": "",
                   }
 
+          def get_geo_suggestions(status_code, country_code):
+              """Suggest likely working regions based on stream country and error type"""
+              geo_hints = {
+                  'UK': ['United Kingdom', 'Ireland'],
+                  'US': ['United States', 'Canada', 'Mexico'],
+                  'CA': ['Canada', 'United States'],
+                  'AU': ['Australia', 'New Zealand'],
+                  'AE': ['United Arab Emirates', 'Saudi Arabia', 'Qatar', 'Kuwait', 'Bahrain'],
+                  'AR': ['Argentina', 'Chile', 'Uruguay', 'Paraguay'],
+                  'IE': ['Ireland', 'United Kingdom'],
+                  'ZA': ['South Africa', 'Botswana', 'Namibia'],
+                  'YE': ['Yemen', 'Saudi Arabia', 'Oman'],
+                  'NZ': ['New Zealand', 'Australia']
+              }
+              
+              if status_code == 403:
+                  return geo_hints.get(country_code, [f'Likely {country_code} region only'])
+              return []
+
           runner_loc = get_runner_location()
 
           def check_stream(url, timeout=5):
@@ -136,13 +155,26 @@ jobs:
                   print(f"Error reading {file_path}: {str(e)}")
                   return []
 
-              # Keywords that typically indicate TV series/movies (not live channels)
+              # Enhanced keywords for filtering out movies/series
               exclude_keywords = [
-                  'movie', 'film', 'cinema', 'serie', 'series', 'season', 'episode',
-                  'drama', 'comedy', 'action', 'thriller', 'horror', 'romance',
-                  'documentary', 'animation', 'cartoon', 'anime', 'bollywood',
-                  'hollywood', 'netflix', 'amazon', 'hulu', 'disney', 'marvel',
-                  'tv show', 'tvshow', 'sitcom', 'reality', 'talk show'
+                  # Movies
+                  'movie', 'film', 'cinema', 'bollywood', 'hollywood', 'nollywood',
+                  # TV Series
+                  'serie', 'series', 'season', 'episode', 'drama', 'comedy', 'action', 
+                  'thriller', 'horror', 'romance', 'documentary', 'animation', 'cartoon', 
+                  'anime', 'sitcom', 'reality', 'talk show', 'tv show', 'tvshow',
+                  # Streaming services
+                  'netflix', 'amazon', 'hulu', 'disney', 'marvel', 'hbo', 'showtime',
+                  # Common movie/series indicators
+                  '(20', '(19', 'imdb', 'trailer', 'preview', 'full movie', 'watch online'
+              ]
+              
+              # Also exclude by group names that clearly indicate movies/series
+              exclude_groups = [
+                  'movie', 'movies', 'film', 'films', 'cinema', 'series', 'tv series', 
+                  'drama', 'comedy', 'action', 'horror', 'thriller', 'romance',
+                  'documentary', 'animation', 'cartoon', 'anime', 'bollywood', 
+                  'hollywood', 'nollywood', 'netflix', 'amazon prime', 'hulu', 'disney+'
               ]
 
               for i in range(len(lines)):
@@ -159,8 +191,11 @@ jobs:
                           group_lower = group.lower()
                           
                           # Check if name or group contains movie/series keywords
-                          is_movie_series = any(keyword in name_lower or keyword in group_lower 
-                                              for keyword in exclude_keywords)
+                          is_movie_series = (
+                              any(keyword in name_lower for keyword in exclude_keywords) or 
+                              any(keyword in group_lower for keyword in exclude_keywords) or
+                              group_lower in exclude_groups
+                          )
                           
                           # Skip movie/series content
                           if is_movie_series:
@@ -300,8 +335,8 @@ jobs:
                       report += f"""### {title} ({len(failures)} streams)
           *{description}*
 
-          | Channel Name | Group | File | Error Details | Geo Block Hint | Runner Country | Runner IP | Runner Org | Code |
-          |--------------|-------|------|--------------|---------------|---------------|-----------|------------|------|
+          | Channel Name | Group | File | Error Details | Stream Country | Likely Working Regions | Runner Country | Code |
+          |--------------|-------|------|--------------|----------------|----------------------|---------------|------|
           """
                       for stream in failures:
                           name = stream['name'].replace('|', '\\|').replace('\n', ' ').strip()
@@ -309,11 +344,10 @@ jobs:
                           file_name = stream['file'].replace('|', '\\|')
                           error = stream['error'].replace('|', '\\|') if stream['error'] else 'Unknown'
                           code = stream['code'] if stream['code'] else 'N/A'
-                          geo_hint = stream.get('geo_hint', '')
-                          runner_country = stream.get('runner_country', '')
-                          runner_ip = stream.get('runner_ip', '')
-                          runner_org = stream.get('runner_org', '')
-                          report += f"| {name} | {group} | {file_name} | {error} | {geo_hint} | {runner_country} | {runner_ip} | {runner_org} | {code} |\n"
+                          stream_country = stream.get('stream_country', 'Unknown')
+                          likely_regions = stream.get('likely_regions', 'Unknown')
+                          runner_country = stream.get('runner_country', 'US')
+                          report += f"| {name} | {group} | {file_name} | {error} | {stream_country} | {likely_regions} | {runner_country} | {code} |\n"
                       report += "\n"
           else:
               report += """

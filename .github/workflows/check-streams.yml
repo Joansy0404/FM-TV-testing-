@@ -99,8 +99,10 @@ jobs:
               all_streams = {}
               for src in BACKUP_SOURCES:
                   try:
+                      print(f"Downloading backup source: {src['name']}...")
                       r = requests.get(src['url'], timeout=30)
                       lines = r.text.splitlines()
+                      count = 0
                       for i, line in enumerate(lines):
                           if line.startswith('#EXTINF'):
                               name = line.split(',')[-1].strip()
@@ -119,8 +121,11 @@ jobs:
                                   if name not in all_streams:
                                       all_streams[name] = []
                                   all_streams[name].append(meta)
+                                  count += 1
+                      print(f"  Found {count} streams in {src['name']}")
                   except Exception as e:
                       print(f"Error downloading {src['url']}: {e}")
+              print(f"Total backup channels loaded: {len(all_streams)}")
               return all_streams
 
           backup_streams = download_backups()
@@ -180,23 +185,34 @@ jobs:
 
           def find_backup(original, used_urls, health, swap_attempts):
               candidates = []
+              # First pass: exact category and language match
               for name, backups in backup_streams.items():
                   for b in backups:
                       if b['url'] in used_urls: continue
                       if b['category'] == original['category'] and b['lang'] == original['lang']:
-                          candidates.append((b, score_candidate(b, original, health)))
+                          candidates.append((b, name, score_candidate(b, original, health)))
+              # Second pass: category OR language match
               if not candidates:
                   for name, backups in backup_streams.items():
                       for b in backups:
                           if b['url'] in used_urls: continue
                           if b['category'] == original['category'] or b['lang'] == original['lang']:
-                              candidates.append((b, score_candidate(b, original, health)-10))
+                              candidates.append((b, name, score_candidate(b, original, health)-10))
+              # Third pass: any available backup
               if not candidates:
-                  return None
-              candidates.sort(key=lambda x: x[1], reverse=True)
-              for cand, sc in candidates[:3]:
+                  for name, backups in backup_streams.items():
+                      for b in backups:
+                          if b['url'] in used_urls: continue
+                          candidates.append((b, name, score_candidate(b, original, health)-20))
+              
+              if not candidates:
+                  return None, None
+              
+              candidates.sort(key=lambda x: x[2], reverse=True)
+              for cand, backup_name, sc in candidates[:3]:
                   attempt = {
                       "url": cand['url'],
+                      "backup_name": backup_name,
                       "source": cand['source'],
                       "score": sc,
                       "category": cand['category'],
@@ -208,11 +224,11 @@ jobs:
                   if check_stream(cand['url']):
                       attempt["result"] = "working"
                       swap_attempts.append(attempt)
-                      return cand
+                      return cand, backup_name
                   else:
                       attempt["result"] = "fail"
                       swap_attempts.append(attempt)
-              return None
+              return None, None
 
           # --- MAIN LOOP ---
           total, fixed, failed = 0, 0, 0
@@ -236,7 +252,7 @@ jobs:
                       continue
                   print("❌ Trying backup...", end='')
                   if m3u == TARGET_FILE:
-                      backup = find_backup(s, used_backup_urls, health, swap_attempts)
+                      backup, backup_name = find_backup(s, used_backup_urls, health, swap_attempts)
                       if backup:
                           key = f"{backup['source']}:{backup['url'][:40]}"
                           health[key]['attempts'] += 1
@@ -246,6 +262,7 @@ jobs:
                           fixed += 1
                           swap_log.append({
                               "original": s['name'],
+                              "backup_channel": backup_name,
                               "old_url": s['url'],
                               "new_url": backup['url'],
                               "source": backup['source'],
@@ -254,7 +271,7 @@ jobs:
                               "quality": backup['quality'],
                               "network": backup['network']
                           })
-                          print(f"Swapped! ({backup['source']})")
+                          print(f"Swapped! ({backup['source']}: '{backup_name}')")
                           continue
                   key = f"{s['name']}:{s['url'][:40]}"
                   health[key]['attempts'] += 1
@@ -280,31 +297,68 @@ jobs:
               f.write(f"**Total Streams Checked:** {total}\n")
               f.write(f"**Fixed via Hot-Swap:** {fixed}\n")
               f.write(f"**Still Failing:** {failed}\n\n")
+              
               if swap_log:
-                  f.write("## 🔄 Hot-Swaps Applied\n")
-                  f.write("| Channel | Old URL | New URL | Backup Source | Category | Lang | Quality | Network |\n")
-                  f.write("|---|---|---|---|---|---|---|---|\n")
-                  for s in swap_log:
-                      f.write(f"| {s['original'][:30]} | {s['old_url'][:12]}... | {s['new_url'][:12]}... | {s['source']} | {s['category']} | {s['lang']} | {s['quality']} | {s['network']} |\n")
+                  f.write("## 🔄 Channel Replacements Applied\n")
+                  f.write("*Shows which channels were replaced with which backup channels:*\n\n")
+                  f.write("| # | Original Channel (FAILED) | ➜ | Backup Channel (WORKING) | Source | Category | Language | Quality |\n")
+                  f.write("|---|---------------------------|---|--------------------------|--------|----------|----------|----------|\n")
+                  for i, s in enumerate(swap_log, 1):
+                      f.write(f"| {i} | `{s['original']}` | ➜ | `{s['backup_channel']}` | {s['source']} | {s['category']} | {s['lang']} | {s['quality']} |\n")
+                  
+                  f.write("\n### 📋 Detailed URL Changes\n")
+                  f.write("*Complete URL mappings for technical reference:*\n\n")
+                  for i, s in enumerate(swap_log, 1):
+                      f.write(f"#### {i}. {s['original']} ➜ {s['backup_channel']}\n")
+                      f.write(f"**Original URL (FAILED):** `{s['old_url']}`\n\n")
+                      f.write(f"**Replacement URL (WORKING):** `{s['new_url']}`\n\n")
+                      f.write("---\n\n")
+              
               if swap_attempts:
-                  f.write("\n## 🧠 Swap Attempts (Top 10)\n")
-                  f.write("| URL | Source | Score | Cat | Lang | Qual | Net | Result |\n")
-                  f.write("|---|---|---|---|---|---|---|---|\n")
-                  for s in swap_attempts[:10]:
-                      f.write(f"| {s['url'][:12]}... | {s['source']} | {s['score']} | {s['category']} | {s['lang']} | {s['quality']} | {s['network']} | {s['result']} |\n")
+                  f.write("## 🧠 All Swap Attempts (Including Failed)\n")
+                  f.write("*Shows all backup URLs that were tested during the swap process:*\n\n")
+                  f.write("| Attempt | Backup Channel | Backup URL | Source | Score | Category | Language | Quality | Network | Result |\n")
+                  f.write("|---------|----------------|------------|--------|-------|----------|----------|---------|---------|--------|\n")
+                  for i, s in enumerate(swap_attempts, 1):
+                      status_emoji = "✅" if s['result'] == "working" else "❌"
+                      backup_name = s.get('backup_name', 'Unknown')
+                      f.write(f"| {i} | `{backup_name}` | `{s['url'][:50]}{'...' if len(s['url']) > 50 else ''}` | {s['source']} | {s['score']} | {s['category']} | {s['lang']} | {s['quality']} | {s['network']} | {status_emoji} {s['result']} |\n")
+              
               if failures:
-                  f.write("\n## ❌ Remaining Failures (Top 10)\n")
-                  f.write("| Name | URL | Cat | Lang | Qual | Net |\n")
-                  f.write("|---|---|---|---|---|---|\n")
-                  for s in failures[:10]:
-                      f.write(f"| {s['name'][:25]} | {s['url'][:12]}... | {s['category']} | {s['lang']} | {s['quality']} | {s['network']} |\n")
-              f.write("\n## 📊 Backup Source Health (Session Only)\n")
-              f.write("| Key | Attempts | Success | Fails |\n")
-              f.write("|---|---|---|---|\n")
-              for k, v in health.items():
-                  f.write(f"| {k} | {v['attempts']} | {v['success']} | {v['fails']} |\n")
+                  f.write("\n## ❌ Streams Still Failing\n")
+                  f.write("*These streams are still broken and need manual attention:*\n\n")
+                  for i, s in enumerate(failures, 1):
+                      f.write(f"### {i}. {s['name']}\n")
+                      f.write(f"**Failed URL:** `{s['url']}`\n\n")
+                      f.write(f"**Category:** {s['category']} | **Language:** {s['lang']} | **Quality:** {s['quality']} | **Network:** {s['network']}\n\n")
+                      f.write("---\n\n")
+              
+              f.write("## 📊 Session Statistics\n")
+              f.write("*Performance metrics for this checking session:*\n\n")
+              f.write("| Metric | Count | Percentage |\n")
+              f.write("|--------|-------|------------|\n")
+              f.write(f"| Total Streams | {total} | 100% |\n")
+              f.write(f"| Working Streams | {total - failed - fixed} | {((total - failed - fixed) / total * 100):.1f}% |\n")
+              f.write(f"| Fixed via Swap | {fixed} | {(fixed / total * 100):.1f}% |\n")
+              f.write(f"| Still Failing | {failed} | {(failed / total * 100):.1f}% |\n")
+              
+              if health:
+                  f.write(f"\n## 🏥 Backup Source Health\n")
+                  f.write("*Reliability statistics for backup sources used in this session:*\n\n")
+                  f.write("| Source/Stream | Attempts | Success | Fails | Success Rate |\n")
+                  f.write("|---------------|----------|---------|-------|-------------|\n")
+                  for k, v in sorted(health.items(), key=lambda x: x[1]['success'], reverse=True):
+                      success_rate = (v['success'] / v['attempts'] * 100) if v['attempts'] > 0 else 0
+                      f.write(f"| `{k[:40]}{'...' if len(k) > 40 else ''}` | {v['attempts']} | {v['success']} | {v['fails']} | {success_rate:.1f}% |\n")
 
           print(f"\nDone! Total: {total} | Fixed: {fixed} | Failed: {failed}")
+          print(f"Report generated: report.md")
+          if swap_log:
+              print(f"✅ Successfully replaced {len(swap_log)} failing channels:")
+              for s in swap_log:
+                  print(f"  • '{s['original']}' ➜ '{s['backup_channel']}' (from {s['source']})")
+          if failures:
+              print(f"❌ {len(failures)} channels still need manual attention")
           EOF
 
       - name: Commit and push changes
@@ -315,6 +369,6 @@ jobs:
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "🧠 Enhanced Hot-Swap: Fixed failing streams with intelligent backup and included health in report.md"
+            git commit -m "🧠 Enhanced Hot-Swap: Fixed failing streams with intelligent backup and channel name tracking in report.md"
             git push
           fi

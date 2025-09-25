@@ -1,9 +1,9 @@
-name: Enhanced Hot-Swap Stream Checker
+name: Check M3U Streams
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 */6 * * *'  # Every 6 hours
+    - cron: '0 */6 * * *'  # Runs every 6 hours
 
 permissions:
   contents: write
@@ -24,351 +24,299 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install requests m3u8 fuzzywuzzy python-levenshtein
+          pip install requests m3u8
 
-      - name: Run Enhanced Stream Checker
+      - name: Check Streams
         run: |
           python - << 'EOF'
-          import requests, os, re, time
+          import requests
+          import os
           from datetime import datetime
-          from fuzzywuzzy import fuzz
-          from collections import defaultdict
-
-          # --- CONFIG ---
-          BACKUP_SOURCES = [
-            {'url': 'https://github.com/Jehovah-witnesses-here/Stream-collection-/raw/refs/heads/main/moj.m3u',
-             'name': 'moj', 'priority': 1, 'reliability_score': 0.85, 'network': 'generic'},
-            {'url': 'https://github.com/Jehovah-witnesses-here/Stream-collection-/raw/refs/heads/main/dlive.m3u',
-             'name': 'dlive', 'priority': 2, 'reliability_score': 0.75, 'network': 'generic'}
-          ]
-          M3U_FILES = ['vod playlist.m3u', 'channel playlist.m3u']
-          TARGET_FILE = 'channel playlist.m3u'
-
-          CATEGORY_MAP = {
-            'news':  ['news', 'cnn', 'bbc', 'al jazeera', 'sky news', 'fox news'],
-            'sports':['sport', 'espn', 'sky sports', 'bein', 'nba', 'fifa'],
-            'movies':['cinema', 'movie', 'film', 'hbo', 'starz'],
-            'kids':  ['kids', 'cartoon', 'disney', 'spacetoon'],
-            'music': ['music', 'mtv', 'vh1'],
-            'entertainment': ['comedy', 'drama', 'talk show']
-          }
+          import re
+          import time
           
-          LANGUAGE_MAP = {
-            'arabic': ['arabic', 'عربي', 'mbc', 'al jazeera'],
-            'english': ['english', 'cnn', 'bbc', 'sky', 'hbo'],
-            'french': ['french', 'france', 'canal']
-          }
-          
-          QUALITY_MAP = {
-            'hd': ['hd', '720p', '1080p'],
-            '4k': ['4k', 'uhd'],
-            'sd': ['sd', '480p']
-          }
-          
-          NETWORK_PATTERNS = ['bbc', 'mbc', 'sky', 'bein', 'cnn', 'disney']
-
-          def get_category(name):
-              name = name.lower()
-              for k, vals in CATEGORY_MAP.items():
-                  if any(v in name for v in vals):
-                      return k
-              return 'other'
-
-          def get_language(name):
-              name = name.lower()
-              for k, vals in LANGUAGE_MAP.items():
-                  if any(v in name for v in vals):
-                      return k
-              return 'unknown'
-
-          def get_quality(name):
-              name = name.lower()
-              for k, vals in QUALITY_MAP.items():
-                  if any(v in name for v in vals):
-                      return k
-              return 'unknown'
-
-          def get_network(name):
-              name = name.lower()
-              for n in NETWORK_PATTERNS:
-                  if n in name:
-                      return n
-              return 'generic'
-
-          def download_backups():
-              all_streams = {}
-              for src in BACKUP_SOURCES:
-                  try:
-                      print(f"Downloading backup source: {src['name']}...")
-                      r = requests.get(src['url'], timeout=30)
-                      lines = r.text.splitlines()
-                      count = 0
-                      for i, line in enumerate(lines):
-                          if line.startswith('#EXTINF'):
-                              name = line.split(',')[-1].strip()
-                              url = lines[i+1].strip() if i+1 < len(lines) else ''
-                              if name and url.startswith('http'):
-                                  meta = {
-                                      'url': url,
-                                      'category': get_category(name),
-                                      'lang': get_language(name),
-                                      'quality': get_quality(name),
-                                      'network': get_network(name),
-                                      'source': src['name'],
-                                      'priority': src['priority'],
-                                      'reliability': src['reliability_score']
-                                  }
-                                  if name not in all_streams:
-                                      all_streams[name] = []
-                                  all_streams[name].append(meta)
-                                  count += 1
-                      print(f"  Found {count} streams in {src['name']}")
-                  except Exception as e:
-                      print(f"Error downloading {src['url']}: {e}")
-              print(f"Total backup channels loaded: {len(all_streams)}")
-              return all_streams
-
-          backup_streams = download_backups()
-
-          def parse_m3u(file):
-              streams = []
-              if not os.path.exists(file): return [], []
-              with open(file, encoding='utf-8', errors='ignore') as f:
-                  lines = f.readlines()
-              for i, line in enumerate(lines):
-                  if line.startswith('#EXTINF'):
-                      name = line.split(',')[-1].strip()
-                      url = lines[i+1].strip() if i+1 < len(lines) else ''
-                      streams.append({
-                          'name': name, 'url': url, 'extinf': i, 'url_line': i+1,
-                          'category': get_category(name),
-                          'lang': get_language(name),
-                          'quality': get_quality(name),
-                          'network': get_network(name)
-                      })
-              return streams, lines
-
-          def check_stream(url):
+          def check_stream(url, timeout=15):
+              """Check if a stream URL is accessible and categorize failures"""
               try:
-                  r = requests.head(url, timeout=15)
-                  if r.status_code < 400:
-                      return True
-              except:
-                  pass
-              try:
-                  r = requests.get(url, timeout=15, stream=True)
-                  if r.status_code < 400:
-                      return True
-              except:
-                  pass
-              return False
-
-          def score_candidate(candidate, original, health):
-              score = 0
-              if candidate['quality'] == original['quality']:
-                  score += 25
-              if candidate['category'] == original['category']:
-                  score += 30
-              if candidate['lang'] == original['lang']:
-                  score += 15
-              if candidate['network'] == original['network']:
-                  score += 10
-              score += fuzz.ratio(candidate['url'], original['url']) // 8
-              score += int(candidate.get('reliability', 0.5) * 20)
-              key = f"{candidate['source']}:{candidate['url'][:40]}"
-              h = health.get(key, {'attempts':0,'success':0})
-              attempts = h.get('attempts', 1)
-              succ = h.get('success', 0)
-              hist = (succ / attempts) if attempts else 0
-              score += int(hist * 10)
-              return score
-
-          def find_backup(original, used_urls, health, swap_attempts):
-              candidates = []
-              # First pass: exact category and language match
-              for name, backups in backup_streams.items():
-                  for b in backups:
-                      if b['url'] in used_urls: continue
-                      if b['category'] == original['category'] and b['lang'] == original['lang']:
-                          candidates.append((b, name, score_candidate(b, original, health)))
-              # Second pass: category OR language match
-              if not candidates:
-                  for name, backups in backup_streams.items():
-                      for b in backups:
-                          if b['url'] in used_urls: continue
-                          if b['category'] == original['category'] or b['lang'] == original['lang']:
-                              candidates.append((b, name, score_candidate(b, original, health)-10))
-              # Third pass: any available backup
-              if not candidates:
-                  for name, backups in backup_streams.items():
-                      for b in backups:
-                          if b['url'] in used_urls: continue
-                          candidates.append((b, name, score_candidate(b, original, health)-20))
-              
-              if not candidates:
-                  return None, None
-              
-              candidates.sort(key=lambda x: x[2], reverse=True)
-              for cand, backup_name, sc in candidates[:3]:
-                  attempt = {
-                      "url": cand['url'],
-                      "backup_name": backup_name,
-                      "source": cand['source'],
-                      "score": sc,
-                      "category": cand['category'],
-                      "lang": cand['lang'],
-                      "quality": cand['quality'],
-                      "network": cand['network'],
-                      "result": None
+                  # Handle different types of URLs
+                  headers = {
+                      'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                      'Accept': '*/*',
+                      'Accept-Language': 'en-US,en;q=0.9',
+                      'Accept-Encoding': 'gzip, deflate',
+                      'Connection': 'keep-alive',
+                      'Referer': 'https://github.com/'
                   }
-                  if check_stream(cand['url']):
-                      attempt["result"] = "working"
-                      swap_attempts.append(attempt)
-                      return cand, backup_name
-                  else:
-                      attempt["result"] = "fail"
-                      swap_attempts.append(attempt)
-              return None, None
-
-          # --- MAIN LOOP ---
-          total, fixed, failed = 0, 0, 0
-          used_backup_urls = set()
-          health = defaultdict(lambda: {'attempts':0,'success':0,'fails':0})
-          swap_log = []
-          swap_attempts = []
-          failures = []
-
-          for m3u in M3U_FILES:
-              print(f"\nProcessing {m3u}...")
-              streams, lines = parse_m3u(m3u)
-              for s in streams:
-                  total += 1
-                  print(f"Checking {s['name'][:40]}...", end='')
-                  if check_stream(s['url']):
-                      key = f"{s['name']}:{s['url'][:40]}"
-                      health[key]['attempts'] += 1
-                      health[key]['success'] += 1
-                      print("✅")
-                      continue
-                  print("❌ Trying backup...", end='')
-                  if m3u == TARGET_FILE:
-                      backup, backup_name = find_backup(s, used_backup_urls, health, swap_attempts)
-                      if backup:
-                          key = f"{backup['source']}:{backup['url'][:40]}"
-                          health[key]['attempts'] += 1
-                          health[key]['success'] += 1
-                          lines[s['url_line']] = backup['url']+'\n'
-                          used_backup_urls.add(backup['url'])
-                          fixed += 1
-                          swap_log.append({
-                              "original": s['name'],
-                              "backup_channel": backup_name,
-                              "old_url": s['url'],
-                              "new_url": backup['url'],
-                              "source": backup['source'],
-                              "category": backup['category'],
-                              "lang": backup['lang'],
-                              "quality": backup['quality'],
-                              "network": backup['network']
-                          })
-                          print(f"Swapped! ({backup['source']}: '{backup_name}')")
-                          continue
-                  key = f"{s['name']}:{s['url'][:40]}"
-                  health[key]['attempts'] += 1
-                  health[key]['fails'] += 1
-                  failed += 1
-                  failures.append({
-                      "name": s['name'],
-                      "url": s['url'],
-                      "category": s['category'],
-                      "lang": s['lang'],
-                      "quality": s['quality'],
-                      "network": s['network']
-                  })
-                  print("FAILED")
-              if m3u == TARGET_FILE:
-                  with open(m3u, 'w', encoding='utf-8') as f:
-                      f.writelines(lines)
-
-          # --- REPORT GENERATION ---
-          with open("report.md", "w", encoding="utf-8") as f:
-              f.write(f"# 🚀 Enhanced Stream Checker Report\n")
-              f.write(f"**Date:** {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC\n\n")
-              f.write(f"**Total Streams Checked:** {total}\n")
-              f.write(f"**Fixed via Hot-Swap:** {fixed}\n")
-              f.write(f"**Still Failing:** {failed}\n\n")
-              
-              if swap_log:
-                  f.write("## 🔄 Channel Replacements Applied\n")
-                  f.write("*Shows which channels were replaced with which backup channels:*\n\n")
-                  f.write("| # | Original Channel (FAILED) | ➜ | Backup Channel (WORKING) | Source | Category | Language | Quality |\n")
-                  f.write("|---|---------------------------|---|--------------------------|--------|----------|----------|----------|\n")
-                  for i, s in enumerate(swap_log, 1):
-                      f.write(f"| {i} | `{s['original']}` | ➜ | `{s['backup_channel']}` | {s['source']} | {s['category']} | {s['lang']} | {s['quality']} |\n")
                   
-                  f.write("\n### 📋 Detailed URL Changes\n")
-                  f.write("*Complete URL mappings for technical reference:*\n\n")
-                  for i, s in enumerate(swap_log, 1):
-                      f.write(f"#### {i}. {s['original']} ➜ {s['backup_channel']}\n")
-                      f.write(f"**Original URL (FAILED):** `{s['old_url']}`\n\n")
-                      f.write(f"**Replacement URL (WORKING):** `{s['new_url']}`\n\n")
-                      f.write("---\n\n")
+                  # First try HEAD request
+                  try:
+                      response = requests.head(url, timeout=timeout, headers=headers, allow_redirects=True)
+                      if response.status_code < 400:
+                          return {"status": "working", "code": response.status_code, "error": None}
+                  except:
+                      pass
+                  
+                  # If HEAD fails, try GET with stream
+                  response = requests.get(url, timeout=timeout, headers=headers, stream=True, allow_redirects=True)
+                  
+                  if response.status_code < 400:
+                      # Try to read a small chunk to verify it's actually streaming
+                      try:
+                          next(response.iter_content(chunk_size=1024), None)
+                          return {"status": "working", "code": response.status_code, "error": None}
+                      except:
+                          return {"status": "stream_error", "code": response.status_code, "error": "Stream not readable"}
+                  else:
+                      # Categorize HTTP errors
+                      if response.status_code == 403:
+                          return {"status": "access_denied", "code": 403, "error": "Access denied (possibly geo-blocked)"}
+                      elif response.status_code == 404:
+                          return {"status": "not_found", "code": 404, "error": "Stream not found"}
+                      elif response.status_code in [500, 502, 503, 504]:
+                          return {"status": "server_error", "code": response.status_code, "error": "Server error"}
+                      else:
+                          return {"status": "http_error", "code": response.status_code, "error": f"HTTP {response.status_code}"}
+                          
+              except requests.exceptions.Timeout:
+                  return {"status": "timeout", "code": None, "error": "Connection timeout"}
+              except requests.exceptions.ConnectionError as e:
+                  error_str = str(e)
+                  if "Name or service not known" in error_str or "Failed to resolve" in error_str:
+                      return {"status": "dns_error", "code": None, "error": "DNS resolution failed"}
+                  elif "Connection refused" in error_str:
+                      return {"status": "connection_refused", "code": None, "error": "Connection refused"}
+                  else:
+                      return {"status": "connection_error", "code": None, "error": "Connection error"}
+              except Exception as e:
+                  return {"status": "unknown_error", "code": None, "error": str(e)[:100]}
+          
+          def parse_m3u(file_path):
+              """Parse M3U file and extract stream information"""
+              if not os.path.exists(file_path):
+                  print(f"File not found: {file_path}")
+                  return []
+                  
+              streams = []
               
-              if swap_attempts:
-                  f.write("## 🧠 All Swap Attempts (Including Failed)\n")
-                  f.write("*Shows all backup URLs that were tested during the swap process:*\n\n")
-                  f.write("| Attempt | Backup Channel | Backup URL | Source | Score | Category | Language | Quality | Network | Result |\n")
-                  f.write("|---------|----------------|------------|--------|-------|----------|----------|---------|---------|--------|\n")
-                  for i, s in enumerate(swap_attempts, 1):
-                      status_emoji = "✅" if s['result'] == "working" else "❌"
-                      backup_name = s.get('backup_name', 'Unknown')
-                      f.write(f"| {i} | `{backup_name}` | `{s['url'][:50]}{'...' if len(s['url']) > 50 else ''}` | {s['source']} | {s['score']} | {s['category']} | {s['lang']} | {s['quality']} | {s['network']} | {status_emoji} {s['result']} |\n")
+              try:
+                  with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                      lines = f.readlines()
+              except Exception as e:
+                  print(f"Error reading {file_path}: {str(e)}")
+                  return []
+                  
+              for i in range(len(lines)):
+                  line = lines[i].strip()
+                  if line.startswith('#EXTINF'):
+                      try:
+                          # Extract group-title if present
+                          group_match = re.search(r'group-title="([^"]*)"', line)
+                          group = group_match.group(1) if group_match else "No Group"
+                          
+                          # Extract channel name (after last comma)
+                          name_part = line.split(',')[-1].strip()
+                          name = name_part if name_part else "Unknown Channel"
+                          
+                          # Get URL from next line
+                          if i + 1 < len(lines):
+                              url = lines[i + 1].strip()
+                              if url and not url.startswith('#') and ('http' in url or 'rtmp' in url):
+                                  streams.append({
+                                      'name': name,
+                                      'url': url,
+                                      'group': group
+                                  })
+                      except Exception as e:
+                          print(f"Error parsing line {i}: {str(e)}")
+                          continue
               
-              if failures:
-                  f.write("\n## ❌ Streams Still Failing\n")
-                  f.write("*These streams are still broken and need manual attention:*\n\n")
-                  for i, s in enumerate(failures, 1):
-                      f.write(f"### {i}. {s['name']}\n")
-                      f.write(f"**Failed URL:** `{s['url']}`\n\n")
-                      f.write(f"**Category:** {s['category']} | **Language:** {s['lang']} | **Quality:** {s['quality']} | **Network:** {s['network']}\n\n")
-                      f.write("---\n\n")
+              return streams
+          
+          # Initialize counters and lists
+          total_streams = 0
+          working_streams = 0
+          categorized_failures = {
+              'access_denied': [],
+              'timeout': [],
+              'dns_error': [],
+              'not_found': [],
+              'server_error': [],
+              'connection_error': [],
+              'stream_error': [],
+              'http_error': [],
+              'unknown_error': []
+          }
+          checked_streams = 0
+          
+          # Your M3U files (update these to match your actual file names)
+          m3u_files = [
+              'vod playlist.m3u',
+              'channel playlist.m3u'
+          ]
+          
+          print("Starting stream check...")
+          
+          for m3u_file in m3u_files:
+              print(f"Processing {m3u_file}...")
               
-              f.write("## 📊 Session Statistics\n")
-              f.write("*Performance metrics for this checking session:*\n\n")
-              f.write("| Metric | Count | Percentage |\n")
-              f.write("|--------|-------|------------|\n")
-              f.write(f"| Total Streams | {total} | 100% |\n")
-              f.write(f"| Working Streams | {total - failed - fixed} | {((total - failed - fixed) / total * 100):.1f}% |\n")
-              f.write(f"| Fixed via Swap | {fixed} | {(fixed / total * 100):.1f}% |\n")
-              f.write(f"| Still Failing | {failed} | {(failed / total * 100):.1f}% |\n")
+              try:
+                  streams = parse_m3u(m3u_file)
+                  file_total = len(streams)
+                  total_streams += file_total
+                  file_working = 0
+                  
+                  print(f"Found {file_total} streams in {m3u_file}")
+                  
+                  for i, stream in enumerate(streams):
+                      checked_streams += 1
+                      print(f"Checking stream {checked_streams}/{total_streams}: {stream['name'][:50]}...")
+                      
+                      result = check_stream(stream['url'])
+                      
+                      if result['status'] == 'working':
+                          working_streams += 1
+                          file_working += 1
+                      else:
+                          # Categorize the failure
+                          failure_info = {
+                              'name': stream['name'],
+                              'group': stream['group'],
+                              'url': stream['url'][:100] + '...' if len(stream['url']) > 100 else stream['url'],
+                              'file': m3u_file,
+                              'error': result['error'],
+                              'code': result['code']
+                          }
+                          
+                          if result['status'] in categorized_failures:
+                              categorized_failures[result['status']].append(failure_info)
+                          else:
+                              categorized_failures['unknown_error'].append(failure_info)
+                      
+                      # Small delay to avoid overwhelming servers
+                      time.sleep(0.1)
+                  
+                  print(f"File {m3u_file}: {file_working}/{file_total} working streams")
+                  
+              except Exception as e:
+                  print(f"Error processing {m3u_file}: {str(e)}")
+          
+          # Calculate totals
+          total_failures = sum(len(failures) for failures in categorized_failures.values())
+          working_percentage = (working_streams / total_streams * 100) if total_streams > 0 else 0
+          
+          # Generate report
+          report = f"""# 📺 M3U Stream Status Report
+          
+          **Generated on:** {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC
+          **GitHub Actions Runner Location:** GitHub's infrastructure (global)
+          
+          ## 📊 Summary
+          
+          | Metric | Count | Percentage |
+          |--------|-------|------------|
+          | **Total Streams** | {total_streams} | 100% |
+          | **✅ Working Streams** | {working_streams} | {working_percentage:.1f}% |
+          | **❌ Failed Streams** | {total_failures} | {100-working_percentage:.1f}% |
+          
+          ## 📁 Files Processed
+          
+          """
+          
+          for m3u_file in m3u_files:
+              if os.path.exists(m3u_file):
+                  file_streams = parse_m3u(m3u_file)
+                  report += f"- `{m3u_file}`: {len(file_streams)} streams\n"
+              else:
+                  report += f"- `{m3u_file}`: **File not found**\n"
+          
+          # Failure categories with explanations
+          failure_categories = {
+              'access_denied': ('🚫 Access Denied', 'Likely geo-blocked or requires authentication'),
+              'timeout': ('⏱️ Connection Timeouts', 'Server too slow to respond or overloaded'),
+              'dns_error': ('🌐 DNS Resolution Failures', 'Domain name cannot be resolved'),
+              'not_found': ('❓ Not Found (404)', 'Stream URL no longer exists'),
+              'server_error': ('💥 Server Errors (5xx)', 'Server-side issues'),
+              'connection_error': ('🔗 Connection Errors', 'Network connectivity issues'),
+              'stream_error': ('📺 Stream Reading Errors', 'Stream exists but content unreadable'),
+              'http_error': ('🌍 Other HTTP Errors', 'Various HTTP status codes'),
+              'unknown_error': ('❓ Unknown Errors', 'Unexpected errors')
+          }
+          
+          if total_failures > 0:
+              report += f"""
+          ## 📋 Failure Analysis ({total_failures} total failures)
+          
+          """
               
-              if health:
-                  f.write(f"\n## 🏥 Backup Source Health\n")
-                  f.write("*Reliability statistics for backup sources used in this session:*\n\n")
-                  f.write("| Source/Stream | Attempts | Success | Fails | Success Rate |\n")
-                  f.write("|---------------|----------|---------|-------|-------------|\n")
-                  for k, v in sorted(health.items(), key=lambda x: x[1]['success'], reverse=True):
-                      success_rate = (v['success'] / v['attempts'] * 100) if v['attempts'] > 0 else 0
-                      f.write(f"| `{k[:40]}{'...' if len(k) > 40 else ''}` | {v['attempts']} | {v['success']} | {v['fails']} | {success_rate:.1f}% |\n")
-
-          print(f"\nDone! Total: {total} | Fixed: {fixed} | Failed: {failed}")
-          print(f"Report generated: report.md")
-          if swap_log:
-              print(f"✅ Successfully replaced {len(swap_log)} failing channels:")
-              for s in swap_log:
-                  print(f"  • '{s['original']}' ➜ '{s['backup_channel']}' (from {s['source']})")
-          if failures:
-              print(f"❌ {len(failures)} channels still need manual attention")
+              for category, failures in categorized_failures.items():
+                  if failures:
+                      title, description = failure_categories[category]
+                      report += f"""### {title} ({len(failures)} streams)
+          *{description}*
+          
+          | Channel Name | Group | File | Error Details | Code |
+          |-------------|-------|------|---------------|------|
+          """
+                      
+                      for stream in failures:
+                          # Escape special characters for markdown
+                          name = stream['name'].replace('|', '\\|').replace('\n', ' ').strip()
+                          group = stream['group'].replace('|', '\\|').replace('\n', ' ').strip()
+                          file_name = stream['file'].replace('|', '\\|')
+                          error = stream['error'].replace('|', '\\|') if stream['error'] else 'Unknown'
+                          code = stream['code'] if stream['code'] else 'N/A'
+                          
+                          report += f"| {name} | {group} | {file_name} | {error} | {code} |\n"
+                      
+                      report += "\n"
+          else:
+              report += """
+          ## 🎉 All Streams Working!
+          
+          Congratulations! All streams are currently accessible from GitHub's infrastructure.
+          """
+          
+          report += f"""
+          ## 📈 Geographic Notes
+          
+          - Tests run from **GitHub Actions infrastructure** (multiple global locations)
+          - "Access Denied" errors may indicate geo-restrictions
+          - Some streams may work from different geographic locations
+          - DNS errors suggest the streaming service may be down entirely
+          - Timeout errors often indicate server overload or slow response
+          
+          ## 📝 Technical Details
+          
+          - **User-Agent:** Modern browser simulation for better compatibility
+          - **Timeout:** 15 seconds per stream
+          - **Method:** HEAD request first, then GET with stream verification
+          - **Retry Logic:** Single attempt per stream to avoid rate limiting
+          - **Headers:** Include Accept-Language and Referer for better success rates
+          
+          ---
+          *Last updated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC*
+          *Report generated automatically by GitHub Actions*
+          """
+          
+          # Write report to file
+          try:
+              with open('report.md', 'w', encoding='utf-8') as f:
+                  f.write(report)
+              print("Report generated successfully!")
+          except Exception as e:
+              print(f"Error writing report: {str(e)}")
+          
+          print(f"Final Summary: {working_streams}/{total_streams} streams working ({working_percentage:.1f}%)")
           EOF
-
-      - name: Commit and push changes
+        
+      - name: Commit and push report
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "github-actions[bot]"
-          git add .
+          git add report.md
           if git diff --staged --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "🧠 Enhanced Hot-Swap: Fixed failing streams with intelligent backup and channel name tracking in report.md"
+            git commit -m "📊 Update stream status report - $(date -u '+%Y-%m-%d %H:%M UTC')"
             git push
           fi

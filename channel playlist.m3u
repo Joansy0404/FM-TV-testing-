@@ -1167,16 +1167,20 @@ https://akmzed.cloud/_v1_akmzed/1tU24+3Cig~V12cEmZLkYuRppjyhdYAylUCUqdVPTNY=/aW5
 https://akmzed.cloud/_v1_akmzed/GC3fX8QffcA78pyGsPuMyEFn62+r+cNWgBkiDGq7914=/aW5kZXgubTN1OA==.m3u8/#.mkv
 #EXTINF:0 CUID="261" tvg-name="28 Weeks Later" tvg-logo="https://image.tmdb.org/t/p/w780/oix0aNv1lvW3nUGspUyvSIBlpbs.jpg" group-title="Disney+",28 Weeks Later
 https://akmzed.cloud/_v1_akmzed/zcNJkExBoyoZEl3qa0W3i+1MPdDxs11Tcf7sgM5gO8s=/aW5kZXgubTN1OA==.m3u8/#.mkv
-#EXTINF:0 CUID="279" tvg-name="The Simpsons: The Good, the Bart, and the Loki" group-title="Disney+",The Simpsons: The Good, the Bart, and the Loki
+#EXTINF:0 CUID="279" tvg-name="The Simpsons: The Good, the Bart, and the Loki" tvg-logo="https://image.tmdb.org/t/p/w780/rtMdtzywcAGOrF6t8fbxJBqpdcq.jpg" group-title="Disney+",The Simpsons: The Good, the Bart, and the Loki
 https://akmzed.cloud/_v1_akmzed/W34Cdo+e6kQ2UIXmB4EEb0IZ+2~0p1U2eOL1miupI1g=/aW5kZXgubTN1OA==.m3u8/#.mkv
-#EXTINF:0 CUID="281" tvg-name="The Simpsons: The Past and the Furious" group-title="Disney+",The Simpsons: The Past and the Furious
+#EXTINF:0 CUID="281" tvg-name="The Simpsons: The Past and the Furious" tvg-logo="https://image.tmdb.org/t/p/w780/mTBDwYCwVBmZqPs2rq4OtkfVDOD.jpg" group-title="Disney+",The Simpsons: The Past and the Furious
 https://akmzed.cloud/_v1_akmzed/LGOSGWvNcTPQKLuTrqSlgYQSdJ3HYs+UJlk9Le1Xc7E=/aW5kZXgubTN1OA==.m3u8/#.mkv
-#EXTINF:0 CUID="282" tvg-name="The Chronicles of Narnia: The Lion, the Witch and the Wardrobe" group-title="Disney+",The Chronicles of Narnia: The Lion, the Witch and the Wardrobe
+#EXTINF:0 CUID="282" tvg-name="The Chronicles of Narnia: The Lion, the Witch and the Wardrobe" tvg-logo="https://image.tmdb.org/t/p/w780/iREd0rNCjYdf5Ar0vfaW32yrkm.jpg" group-title="Disney+",The Chronicles of Narnia: The Lion, the Witch and the Wardrobe
 https://akmzed.cloud/_v1_akmzed/baDYbExynB80rBSHn9Qe~2Uq57sVKVC0KieoH5rFJWI=/aW5kZXgubTN1OA==.m3u8/#.mkv
-#EXTINF:0 CUID="285" tvg-name="The Fox and the Hound" group-title="Disney+",The Fox and the Hound
+#EXTINF:0 CUID="285" tvg-name="The Fox and the Hound" tvg-logo="https://image.tmdb.org/t/p/w780/aC3k6XBaYnulGSkK8263ABjU3Md.jpg" group-title="Disney+",The Fox and the Hound
 https://akmzed.cloud/_v1_akmzed/W72HeLX36Zr9HSjQggNYXa3sSnWuwngl1xiLPYcIVVU=/aW5kZXgubTN1OA==.m3u8/#.mkv
-#EXTINF:0 CUID="288" tvg-name="The Old Man & the Gun" group-title="Disney+",The Old Man & the Gun
+#EXTINF:0 CUID="288" tvg-name="The Old Man & the Gun" tvg-logo="https://image.tmdb.org/t/p/w780/a4BfxRK8dBgbQqbRxPs8kmLd8LG.jpg" group-title="Disney+",The Old Man & the Gun
 https://akmzed.cloud/_v1_akmzed/qY9QFaH1hF~H1nZZyvTrvauqDdJ8hrQ88ErugJT726U=/aW5kZXgubTN1OA==.m3u8/#.mkv
+#EXTINF:0 CUID="300" tvg-name="The Abyss" tvg-logo="https://image.tmdb.org/t/p/w780/2dCit3XAtv9KWCJvRKdPkJ0FAkH.jpg" group-title="Disney+",The Abyss
+https://akmzed.cloud/_v1_akmzed/FlE3Qxnutrj~69ty3jWuPkwhlgg6PPcgqwRaGjyUu3g=/aW5kZXgubTN1OA==.m3u8/#.mkv
+#EXTINF:0 CUID="307" tvg-name="Ad Astra" group-title="Disney+",Ad Astra
+https://akmzed.cloud/_v1_akmzed/~htGI7r3JFPxzAkYik4rQ6Z9LkE~IQ0suF7R41jB3GQ=/aW5kZXgubTN1OA==.m3u8/#.mkv
 #EXTINF:0 CUID="14" tvg-name="Road House (2024)" tvg-logo="https://image.tmdb.org/t/p/w780/fDEdtS4P0gJsxHDIt8dG8TR5dx1.jpg" group-title="PRIME VIDEO",Road House (2024)
 https://akmzed.cloud/_v1_akmzed/CGANxHXMtuTAHfyi7J2ttVpd7Rpr4lNJHxpA+R5FUg0=/aW5kZXgubTN1OA==.m3u8/#.mkv
 #EXTINF:0 CUID="41" tvg-name="Air (2023)" tvg-logo="https://image.tmdb.org/t/p/w780/76AKQPdH3M8cvsFR9K8JsOzVlY5.jpg" group-title="PRIME VIDEO",Air (2023)
@@ -1203,6 +1207,8 @@ https://akmzed.cloud/_v1_akmzed/83e1NzfqYQ~iDI00bgS0kU68YP0OZ6pcQQ1X4TEYsjI=/aW5
 https://akmzed.cloud/_v1_akmzed/bFdULen+KfNUX0XpRbvuop6eT2oGfi2B121yxdr4pVo=/aW5kZXgubTN1OA==.m3u8/#.mkv
 #EXTINF:0 CUID="253" tvg-name="2001: A Space Odyssey" tvg-logo="https://image.tmdb.org/t/p/w780/ve72VxNqjGM69Uky4WTo2bK6rfq.jpg" group-title="PRIME VIDEO",2001: A Space Odyssey
 https://akmzed.cloud/_v1_akmzed/B63ii1FPnfRdzzss+pxVycCEbiAdhrK4dc0ho53RgIc=/aW5kZXgubTN1OA==.m3u8/#.mkv
+#EXTINF:0 CUID="303" tvg-name="The Accountant²" group-title="PRIME VIDEO",The Accountant²
+https://akmzed.cloud/_v1_akmzed/O2GYyu9g07vlBIc7938aBcOyLYBxjXyovXN6jWQ6HvM=/aW5kZXgubTN1OA==.m3u8/#.mkv
 #EXTINF:0 CUID="10" tvg-name="Weapons" tvg-logo="https://image.tmdb.org/t/p/w780/cpf7vsRZ0MYRQcnLWteD5jK9ymT.jpg" group-title="HBO MAX",Weapons
 https://akmzed.cloud/_v1_akmzed/jlYHg751nv41lJReDm3d2tRKTEVWn8h21zsCSWG4+yw=/aW5kZXgubTN1OA==.m3u8/#.mkv
 #EXTINF:0 CUID="11" tvg-name="Final Destination Bloodlines" tvg-logo="https://image.tmdb.org/t/p/w780/6WxhEvFsauuACfv8HyoVX6mZKFj.jpg" group-title="HBO MAX",Final Destination Bloodlines
@@ -1317,8 +1323,20 @@ https://akmzed.cloud/_v1_akmzed/EPHKVjMJGG2FtqWpWY2oag4y29ncWcxn+P9pSkflxIE=/aW5
 https://akmzed.cloud/_v1_akmzed/+MCaAgVZVL+w1Uny~O9TSwR8z8HgHt~T23gQTzLDDBM=/aW5kZXgubTN1OA==.m3u8/#.mkv
 #EXTINF:0 CUID="277" tvg-name="A.I. Artificial Intelligence" tvg-logo="https://image.tmdb.org/t/p/w780/8MZSGX5JORoO72EfuAEcejH5yHn.jpg" group-title="HBO MAX",A.I. Artificial Intelligence
 https://akmzed.cloud/_v1_akmzed/3MUSC2rmTNt5VsB2fV59wyBfTLuJepTgwvRFfkzTo3Y=/aW5kZXgubTN1OA==.m3u8/#.mkv
-#EXTINF:0 CUID="283" tvg-name="The Hobbit: The Battle of the Five Armies" group-title="HBO MAX",The Hobbit: The Battle of the Five Armies
+#EXTINF:0 CUID="283" tvg-name="The Hobbit: The Battle of the Five Armies" tvg-logo="https://image.tmdb.org/t/p/w780/xT98tLqatZPQApyRmlPL12LtiWp.jpg" group-title="HBO MAX",The Hobbit: The Battle of the Five Armies
 https://akmzed.cloud/_v1_akmzed/6jSozGGlcrNNmtA5YQJwBaMrHK7BtXyzaLmAH9~V0mM=/aW5kZXgubTN1OA==.m3u8/#.mkv
+#EXTINF:0 CUID="296" tvg-name="About Schmidt" tvg-logo="https://image.tmdb.org/t/p/w780/tstvsrJHY57hc951lb190alXRQm.jpg" group-title="HBO MAX",About Schmidt
+https://akmzed.cloud/_v1_akmzed/3h0a02DnwM~0UmHNALa73ROWYyh~c~EvxoQgWoN4Xd0=/aW5kZXgubTN1OA==.m3u8/#.mkv
+#EXTINF:0 CUID="298" tvg-name="Above the Law" tvg-logo="https://image.tmdb.org/t/p/w780/pS6j4cIrv1LWSIk5NxYvpQwNTsT.jpg" group-title="HBO MAX",Above the Law
+https://akmzed.cloud/_v1_akmzed/ti3eYWvMaSQhN~MxMT+t4OaJhRDMucfD2DKRkNK22AQ=/aW5kZXgubTN1OA==.m3u8/#.mkv
+#EXTINF:0 CUID="302" tvg-name="The Accountant" tvg-logo="https://image.tmdb.org/t/p/w780/fceheXB5fC4WrLVuWJ6OZv9FXYr.jpg" group-title="HBO MAX",The Accountant
+https://akmzed.cloud/_v1_akmzed/MlQebuwocQ4m2mmRCBidg+N3sMXqB8PlBSj~w7W9ux0=/aW5kZXgubTN1OA==.m3u8/#.mkv
+#EXTINF:0 CUID="304" tvg-name="Ace Ventura: Pet Detective" group-title="HBO MAX",Ace Ventura: Pet Detective
+https://akmzed.cloud/_v1_akmzed/+RegOcBZxMwAD42VTr0ZB885z8VMSLRHIlZIoaMce9o=/aW5kZXgubTN1OA==.m3u8/#.mkv
+#EXTINF:0 CUID="305" tvg-name="Ace Ventura: When Nature Calls" group-title="HBO MAX",Ace Ventura: When Nature Calls
+https://akmzed.cloud/_v1_akmzed/MjNvswBTyXRGb5bDjh3oEJzelavFm4kK6HJTljxOyuw=/aW5kZXgubTN1OA==.m3u8/#.mkv
+#EXTINF:0 CUID="312" tvg-name="Meg 2: The Trench" group-title="HBO MAX",Meg 2: The Trench
+https://akmzed.cloud/_v1_akmzed/1HmDEU4adpFuoPMr2FVhMErnwcHsKCrEGy3PhhDYbuk=/aW5kZXgubTN1OA==.m3u8/#.mkv
 #EXTINF:0 CUID="17" tvg-name="Drop" tvg-logo="https://image.tmdb.org/t/p/w780/hSQPSW8aLjsMBfwqGjgJ6HozTkp.jpg" group-title="Peacock TV",Drop
 https://akmzed.cloud/_v1_akmzed/OzTiCHlteddsszKMpQrNdJ8Y1YNj+DuYsdCp4nncoZw=/aW5kZXgubTN1OA==.m3u8/#.mkv
 #EXTINF:0 CUID="18" tvg-name="Speak No Evil" tvg-logo="https://image.tmdb.org/t/p/w780/dA4N6uWOnEMgbxXwFX7qX7adzs8.jpg" group-title="Peacock TV",Speak No Evil
@@ -1411,12 +1429,20 @@ https://akmzed.cloud/_v1_akmzed/shoCM8yNX9JcHVojSeTUdfRHCSeVhOYBtKAzrsjLmmM=/aW5
 https://akmzed.cloud/_v1_akmzed/LrVFR+mQpJln4Vp67XVZounxDrjspu1wO7FkSyeIc+s=/aW5kZXgubTN1OA==.m3u8/#.mkv
 #EXTINF:0 CUID="278" tvg-name="First Man" tvg-logo="https://image.tmdb.org/t/p/w780/i91mfvFcPPlaegcbOyjGgiWfZzh.jpg" group-title="Peacock TV",First Man
 https://akmzed.cloud/_v1_akmzed/D7kHvP1ViqM~W5EXswTaDrBYzJDb1Tylx+1vGGE6Mwg=/aW5kZXgubTN1OA==.m3u8/#.mkv
-#EXTINF:0 CUID="284" tvg-name="The Cat in the Hat" group-title="Peacock TV",The Cat in the Hat
+#EXTINF:0 CUID="284" tvg-name="The Cat in the Hat" tvg-logo="https://image.tmdb.org/t/p/w780/uYYLz67e5xEQMsY858VSSCDsLU6.jpg" group-title="Peacock TV",The Cat in the Hat
 https://akmzed.cloud/_v1_akmzed/UKnIrj8biEE3Uw1DoaDmTgR0RgfR3vx+KKZD63YWYWg=/aW5kZXgubTN1OA==.m3u8/#.mkv
-#EXTINF:0 CUID="286" tvg-name="The Girl on the Train" group-title="Peacock TV",The Girl on the Train
+#EXTINF:0 CUID="286" tvg-name="The Girl on the Train" tvg-logo="https://image.tmdb.org/t/p/w780/AhTO2QWG0tug7yDoh0XoaMhPt3J.jpg" group-title="Peacock TV",The Girl on the Train
 https://akmzed.cloud/_v1_akmzed/VH6kXue2ZPmVy276nOlJcnz9Fp~GsyODl37zGbzCwg8=/aW5kZXgubTN1OA==.m3u8/#.mkv
-#EXTINF:0 CUID="289" tvg-name="The Fate of the Furious" group-title="Peacock TV",The Fate of the Furious
+#EXTINF:0 CUID="289" tvg-name="The Fate of the Furious" tvg-logo="https://image.tmdb.org/t/p/w780/dImWM7GJqryWJO9LHa3XQ8DD5NH.jpg" group-title="Peacock TV",The Fate of the Furious
 https://akmzed.cloud/_v1_akmzed/KO7ASGCmp6aDuHcaRGK6AU4iqRY~PzK~6T6z2BnX+jQ=/aW5kZXgubTN1OA==.m3u8/#.mkv
+#EXTINF:0 CUID="294" tvg-name="Abigail" tvg-logo="https://image.tmdb.org/t/p/w780/5gKKSoD3iezjoL7YqZONjmyAiRA.jpg" group-title="Peacock TV",Abigail
+https://akmzed.cloud/_v1_akmzed/jYMBY+lRGK5lZmFkBsoeB0NysRtoFOhJBNeYFGHk7Kw=/aW5kZXgubTN1OA==.m3u8/#.mkv
+#EXTINF:0 CUID="295" tvg-name="Abominable" tvg-logo="https://image.tmdb.org/t/p/w780/llhj3xtNes2Ri4d9HqtleKo1CfL.jpg" group-title="Peacock TV",Abominable
+https://akmzed.cloud/_v1_akmzed/PMjfuPFtBj42npDHBYxrsS5wT~pIpErgoZVpfsQEWO4=/aW5kZXgubTN1OA==.m3u8/#.mkv
+#EXTINF:0 CUID="297" tvg-name="About Time" tvg-logo="https://image.tmdb.org/t/p/w780/iR1bVfURbN7r1C46WHFbwCkVve.jpg" group-title="Peacock TV",About Time
+https://akmzed.cloud/_v1_akmzed/ulgd0LJy~~bq5sC6LJ3QxrK62Ihe6J5gFBQ43VbkmT0=/aW5kZXgubTN1OA==.m3u8/#.mkv
+#EXTINF:0 CUID="301" tvg-name="Accepted" tvg-logo="https://image.tmdb.org/t/p/w780/pMh1dCw5vhMATmJs0ve0OpoSVED.jpg" group-title="Peacock TV",Accepted
+https://akmzed.cloud/_v1_akmzed/OULJgojPciQKVIGmbTQmx+RL6m9ZtjgBJ+zSZlpA75Y=/aW5kZXgubTN1OA==.m3u8/#.mkv
 #EXTINF:0 CUID="13" tvg-name="Smile 2" tvg-logo="https://image.tmdb.org/t/p/w780/ht8Uv9QPv9y7K0RvUyJIaXOZTfd.jpg" group-title="Paramount+",Smile 2
 https://akmzed.cloud/_v1_akmzed/fojybTAPAacIvzpyp9MEAWcdDfGwZoNSGYZpbuBLNKw=/aW5kZXgubTN1OA==.m3u8/#.mkv
 #EXTINF:0 CUID="20" tvg-name="The Godfather" tvg-logo="https://image.tmdb.org/t/p/w780/3bhkrj58Vtu7enYsRolD1fZdja1.jpg" group-title="Paramount+",The Godfather
@@ -1469,6 +1495,14 @@ https://akmzed.cloud/_v1_akmzed/XfyWlL37ZgFPZEu7nh+TrgpwSgjRgYMNopqD0IF3DzM=/aW5
 https://akmzed.cloud/_v1_akmzed/~vgsTy4cQfdLMzwlN3xfRukoRVOFebBk2hJeBMdC8lQ=/aW5kZXgubTN1OA==.m3u8/#.mkv
 #EXTINF:0 CUID="247" tvg-name="13 Hours: The Secret Soldiers of Benghazi" tvg-logo="https://image.tmdb.org/t/p/w780/AskDcQ6Sa6jImyt2KDQbgRuPebH.jpg" group-title="Paramount+",13 Hours: The Secret Soldiers of Benghazi
 https://akmzed.cloud/_v1_akmzed/7nYyJwnYxfNYLMhLc3P~5q6AP4Cxt4ljgqWk+F8U5Ic=/aW5kZXgubTN1OA==.m3u8/#.mkv
+#EXTINF:0 CUID="309" tvg-name="Transformers One" group-title="Paramount+",Transformers One
+https://akmzed.cloud/_v1_akmzed/3daidotIJKFTDQ1aF9uXCYoeD1uo8E~eebteIdH9M+0=/aW5kZXgubTN1OA==.m3u8/#.mkv
+#EXTINF:0 CUID="311" tvg-name="Pet Sematary: Bloodlines" group-title="Paramount+",Pet Sematary: Bloodlines
+https://akmzed.cloud/_v1_akmzed/StSQMG+tw6FpDhMbJdT1xilsT4lLA7XR7ZBy8+TxIyw=/aW5kZXgubTN1OA==.m3u8/#.mkv
+#EXTINF:0 CUID="313" tvg-name="Transformers: Rise of the Beasts" group-title="Paramount+",Transformers: Rise of the Beasts
+https://akmzed.cloud/_v1_akmzed/nMZDw7mUMTrNrOfJEPvtybTGC+NIN~gcoSYa48~u6Ho=/aW5kZXgubTN1OA==.m3u8/#.mkv
+#EXTINF:0 CUID="314" tvg-name="Infinite" group-title="Paramount+",Infinite
+https://akmzed.cloud/_v1_akmzed/yvPteI1xe~K9siPfLBN8rV3yBQolkIPGpjpICRaAaww=/aW5kZXgubTN1OA==.m3u8/#.mkv
 #EXTINF:0 CUID="62" tvg-name="The Garfield Movie" tvg-logo="https://image.tmdb.org/t/p/w780/xYduFGuch9OwbCOEUiamml18ZoB.jpg" group-title="SONY Pictures Core",The Garfield Movie
 https://akmzed.cloud/_v1_akmzed/iB7tZRBX8gUAVdvUN+xKADvALoNu0cYLsNYjGEW8AtI=/aW5kZXgubTN1OA==.m3u8/#.mkv
 #EXTINF:0 CUID="64" tvg-name="Blade Runner 2049" tvg-logo="https://image.tmdb.org/t/p/w780/gajva2L0rPYkEWjzgFlBXCAVBE5.jpg" group-title="SONY Pictures Core",Blade Runner 2049
@@ -1531,6 +1565,8 @@ https://akmzed.cloud/_v1_akmzed/rWxUUmSfO3BWTb3DcI5D0jXaD2EWvMzdCqkTe1Rpvo4=/aW5
 https://akmzed.cloud/_v1_akmzed/oyLv3PNAowW98Hty6zliBpxlx7qYZ6y7zkBf6r6hbUQ=/aW5kZXgubTN1OA==.m3u8/#.mkv
 #EXTINF:0 CUID="275" tvg-name="65" tvg-logo="https://image.tmdb.org/t/p/w780/rzRb63TldOKdKydCvWJM8B6EkPM.jpg" group-title="SONY Pictures Core",65
 https://akmzed.cloud/_v1_akmzed/X15TMygfKqFJtuUeqX+5fSpZTjg1Zhw6QeYVqbJE3nc=/aW5kZXgubTN1OA==.m3u8/#.mkv
+#EXTINF:0 CUID="310" tvg-name="Madame Web" group-title="SONY Pictures Core",Madame Web
+https://akmzed.cloud/_v1_akmzed/adwI16It3nygWEmE3PamWjKZDLdT3YMvcdv3Mk1GG1g=/aW5kZXgubTN1OA==.m3u8/#.mkv
 #EXTINF:0 CUID="56" tvg-name="Allegiant" tvg-logo="https://image.tmdb.org/t/p/w780/faq9JlF8znUGQ5p3En1W61Fi5p0.jpg" group-title="STARZ",Allegiant
 https://akmzed.cloud/_v1_akmzed/SHVe7V0paqeoe6JIDSOoVP9cnDhhyCUn0ETAxt6FxJg=/aW5kZXgubTN1OA==.m3u8/#.mkv
 #EXTINF:0 CUID="146" tvg-name="Gunslingers" tvg-logo="https://image.tmdb.org/t/p/w780/O7REXWPANWXvX2jhQydHjAq2DV.jpg" group-title="STARZ",Gunslingers
@@ -1551,8 +1587,12 @@ https://akmzed.cloud/_v1_akmzed/bRUOjLnHsjw+SPh7GlxZmnO8eHBbcB~PrYKVkrwqVSg=/aW5
 https://akmzed.cloud/_v1_akmzed/LPn9BdvqIJesdU3dp4c4QKqnQU+TSw5dkktgzi0qT1Y=/aW5kZXgubTN1OA==.m3u8/#.mkv
 #EXTINF:0 CUID="273" tvg-name="50/50" tvg-logo="https://image.tmdb.org/t/p/w780/8f9tM9JVB4ETBhxlQcXIjLckArl.jpg" group-title="STARZ",50/50
 https://akmzed.cloud/_v1_akmzed/oa4kp34Pv9h0qHKc4tvLPYhbkimpoKpnfkQ2OwrHkeA=/aW5kZXgubTN1OA==.m3u8/#.mkv
-#EXTINF:0 CUID="287" tvg-name="The Cabin in the Woods" group-title="STARZ",The Cabin in the Woods
+#EXTINF:0 CUID="287" tvg-name="The Cabin in the Woods" tvg-logo="https://image.tmdb.org/t/p/w780/zZZe5wn0udlhMtdlDjN4NB72R6e.jpg" group-title="STARZ",The Cabin in the Woods
 https://akmzed.cloud/_v1_akmzed/N+Uf9ScVN4fnS8oFoaxBvj21nspD0iAfyg2YT0NbKYI=/aW5kZXgubTN1OA==.m3u8/#.mkv
+#EXTINF:0 CUID="293" tvg-name="Abduction" tvg-logo="https://image.tmdb.org/t/p/w780/4vqkl1w4eSTMdIcL9IrBzln58Wy.jpg" group-title="STARZ",Abduction
+https://akmzed.cloud/_v1_akmzed/9Bgczn6ClvVql149qyQecWKebXtIwRsNLed0o~OFdIU=/aW5kZXgubTN1OA==.m3u8/#.mkv
+#EXTINF:0 CUID="308" tvg-name="Plane" group-title="STARZ",Plane
+https://akmzed.cloud/_v1_akmzed/RRsO681wBUSlgv3eQUa0lIQdII~xfEdCGGZp+GvyK40=/aW5kZXgubTN1OA==.m3u8/#.mkv
 #EXTINF:0 CUID="48" tvg-name="Arcadian" tvg-logo="https://image.tmdb.org/t/p/w780/h4T8Xeydkw53h9uIbulYsss25UF.jpg" group-title="AMC+",Arcadian
 https://akmzed.cloud/_v1_akmzed/AnGu1WoP2NF3YsfxUXwx~hOdYJDam~Tp0n7O6~RQmZA=/aW5kZXgubTN1OA==.m3u8/#.mkv
 #EXTINF:0 CUID="2" tvg-name="'71" tvg-logo="https://image.tmdb.org/t/p/w780/wbhqBocsP7QoX8SZLvCsGOWUAaQ.jpg" group-title="Studiocanal Presents",'71
@@ -1567,7 +1607,7 @@ https://akmzed.cloud/_v1_akmzed/tg6VVjQwb8OgXgBoOtJuJ8kUttVpijZNKyabuaU5cu8=/aW5
 https://akmzed.cloud/_v1_akmzed/hIBJIyCo753HMWx~9zYVCF9SW9hOW7z7xiHwqaT5Ksg=/aW5kZXgubTN1OA==.m3u8/#.mkv
 #EXTINF:0 CUID="132" tvg-name="The Banker" tvg-logo="https://image.tmdb.org/t/p/w780/biXzsw22U6vSd0XktmZwAOc4uik.jpg" group-title="Apple TV+",The Banker
 https://akmzed.cloud/_v1_akmzed/Xf0npNH3u87kVr5fx+iZTWPWQdm3kEDw6dKOtPzNfK8=/aW5kZXgubTN1OA==.m3u8/#.mkv
-#EXTINF:0 CUID="280" tvg-name="The Boy, the Mole, the Fox and the Horse" group-title="Apple TV+",The Boy, the Mole, the Fox and the Horse
+#EXTINF:0 CUID="280" tvg-name="The Boy, the Mole, the Fox and the Horse" tvg-logo="https://image.tmdb.org/t/p/w780/aBBJRyS17TIrdXih3uSYvPAR3Ua.jpg" group-title="Apple TV+",The Boy, the Mole, the Fox and the Horse
 https://akmzed.cloud/_v1_akmzed/Q6bh4TWCffXLlMPPnE5eSqEsV0xCsubdxJgbahgHb~k=/aW5kZXgubTN1OA==.m3u8/#.mkv
 #EXTINF:0 CUID="1" tvg-name=".45" tvg-logo="https://image.tmdb.org/t/p/w780/clv6FaRRliTN5E6GpDJI4FPFguk.jpg" group-title="Others",.45
 https://akmzed.cloud/_v1_akmzed/4jH2REcndfCdF1P1oLDhFCpW05ycklOdbTWKMrVK2Ys=/aW5kZXgubTN1OA==.m3u8/#.mkv
@@ -1609,6 +1649,16 @@ https://akmzed.cloud/_v1_akmzed/wgx6sXcMULdpLzhznXGQTi55~HGRTwc65a5yRVNiM6g=/aW5
 https://akmzed.cloud/_v1_akmzed/FFzNK7aw1AluuA5u5qsUZZXW80fyp01DAf+Fte7h7PQ=/aW5kZXgubTN1OA==.m3u8/#.mkv
 #EXTINF:0 CUID="262" tvg-name="3 Days to Kill" tvg-logo="https://image.tmdb.org/t/p/w780/8xOH2JhBHPmk2ZCniBpWhiZ6xeC.jpg" group-title="Others",3 Days to Kill
 https://akmzed.cloud/_v1_akmzed/ZAk772jUUakZEWyYzC82sL3aBE~dSSA73n~JoLqH1kY=/aW5kZXgubTN1OA==.m3u8/#.mkv
+#EXTINF:0 CUID="290" tvg-name="A-X-L" tvg-logo="https://image.tmdb.org/t/p/w780/9kB56ZdMB6RgY5QtX9Bar45jCeI.jpg" group-title="Others",A-X-L
+https://akmzed.cloud/_v1_akmzed/eUV6Igp05x1dQ3eWcyfnukxUV1zu2Hdt4dj4OSHbFrY=/aW5kZXgubTN1OA==.m3u8/#.mkv
+#EXTINF:0 CUID="291" tvg-name="A.C.O.D." tvg-logo="https://image.tmdb.org/t/p/w780/iU5DZVXV8br0dnYl0ngu1Ih5WaS.jpg" group-title="Others",A.C.O.D.
+https://akmzed.cloud/_v1_akmzed/eNJytkYCxyv0rcUKGttOtdQrDPuD4KHgmeRrA1LK+gA=/aW5kZXgubTN1OA==.m3u8/#.mkv
+#EXTINF:0 CUID="292" tvg-name="ABBA: The Movie" group-title="Others",ABBA: The Movie
+https://akmzed.cloud/_v1_akmzed/ftHhb0hFB+~C0MBEAaEnUZuxDIKQnCMbg~16njPokYw=/aW5kZXgubTN1OA==.m3u8/#.mkv
+#EXTINF:0 CUID="299" tvg-name="Absolutely Anything" tvg-logo="https://image.tmdb.org/t/p/w780/2gkyLFG3MpbqXC1eF8dlSge886s.jpg" group-title="Others",Absolutely Anything
+https://akmzed.cloud/_v1_akmzed/PxEqrjJxnFbrLkvN9CKH8oG5TMJ+yvmz17ltPDgK3Z8=/aW5kZXgubTN1OA==.m3u8/#.mkv
+#EXTINF:0 CUID="306" tvg-name="Ace Ventura Jr: Pet Detective" group-title="Others",Ace Ventura Jr: Pet Detective
+https://akmzed.cloud/_v1_akmzed/2FEYpAtE2b9PTsr22SWbTZqEqYnIvl3oTDDlZj8lN34=/aW5kZXgubTN1OA==.m3u8/#.mkv
 #EXTINF:0 CUID="117" tvg-name="A Dickens of a Holiday!" tvg-logo="https://image.tmdb.org/t/p/w780/rqm52nuyi19lxFEHz4DCVsCmA6v.jpg" group-title="Hallmark+",A Dickens of a Holiday!
 https://akmzed.cloud/_v1_akmzed/6fy7wq0HMSXF6W3ULKXgA3LtA0EhqiQ7j0YKUBL6Znw=/aW5kZXgubTN1OA==.m3u8/#.mkv
 #EXTINF:0 CUID="133" tvg-name="True History of the Kelly Gang" tvg-logo="https://image.tmdb.org/t/p/w780/eVyESHnWiTY1el8DEWbYMVW3K5k.jpg" group-title="Stan.",True History of the Kelly Gang

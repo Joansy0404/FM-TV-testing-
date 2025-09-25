@@ -1,9 +1,9 @@
 # 🚀 Enhanced Stream Checker Report
-**Date:** 2025-09-24 23:14:33 UTC
+**Date:** 2025-09-25 02:02:53 UTC
 
 **Total Streams Checked:** 1302
-**Fixed via Hot-Swap:** 6
-**Still Failing:** 5
+**Fixed via Hot-Swap:** 9
+**Still Failing:** 4
 
 ## 🔄 Hot-Swaps Applied
 | Channel | Old URL | New URL | Backup Source | Category | Lang | Quality | Network |
@@ -11,7 +11,10 @@
 | BLAZE | https://live... | https://fl7.... | moj | other | unknown | unknown | generic |
 | TG 4 | https://dx44... | https://fl7.... | moj | other | unknown | unknown | generic |
 | TV WAREHOUSE | https://tvwa... | https://fl7.... | moj | other | unknown | unknown | generic |
-| ABC | http://41.20... | https://fl7.... | moj | other | unknown | unknown | generic |
+| AMERICAN HEROES CHANNEL (AHC) | https://v8.t... | https://fl7.... | moj | other | unknown | unknown | generic |
+| C SPAN 2 | https://v13.... | https://fl7.... | moj | other | unknown | unknown | generic |
+| CRIME+INVESTIGATION | https://v8.t... | https://fl7.... | moj | other | unknown | unknown | generic |
+| CTB PERTH NEWS | https://news... | https://fl7.... | moj | news | unknown | unknown | generic |
 | Sportsnet 360 | http://shpca... | https://fl7.... | moj | sports | unknown | unknown | generic |
 | Fubo sports 1 | http://shpca... | https://fl7.... | moj | sports | unknown | unknown | generic |
 
@@ -21,21 +24,20 @@
 | https://fl7.... | moj | 102 | other | unknown | unknown | generic | working |
 | https://fl7.... | moj | 103 | other | unknown | unknown | generic | working |
 | https://fl7.... | moj | 103 | other | unknown | unknown | generic | working |
-| https://fl7.... | moj | 104 | other | unknown | unknown | generic | working |
-| https://fl7.... | moj | 101 | sports | unknown | unknown | generic | working |
-| https://fl7.... | moj | 102 | sports | unknown | unknown | generic | fail |
-| https://fl7.... | moj | 102 | sports | unknown | unknown | generic | working |
-| https://worl... | dlive | 98 | sports | unknown | hd | generic | fail |
-| https://worl... | dlive | 98 | sports | unknown | hd | generic | fail |
-| https://worl... | dlive | 98 | sports | unknown | hd | generic | fail |
+| https://fl7.... | moj | 100 | other | unknown | unknown | generic | fail |
+| https://fl7.... | moj | 100 | other | unknown | unknown | generic | working |
+| https://fl7.... | moj | 100 | other | unknown | unknown | generic | fail |
+| https://fl7.... | moj | 100 | other | unknown | unknown | generic | working |
+| https://fl7.... | moj | 100 | other | unknown | unknown | generic | fail |
+| https://fl7.... | moj | 100 | other | unknown | unknown | generic | working |
+| https://fl7.... | moj | 103 | other | unknown | unknown | generic | fail |
 
 ## ❌ Remaining Failures (Top 10)
 | Name | URL | Cat | Lang | Qual | Net |
 |---|---|---|---|---|---|
+| CTB PERTH | https://live... | other | unknown | unknown | generic |
 | Sportsnet Ontario HD | http://shpca... | sports | unknown | hd | generic |
 | AL MASHHAD | https://bcov... | other | unknown | unknown | generic |
-| CANAL 5 PICO TRUNCADO | https://stre... | other | french | unknown | generic |
-| CANAL 11 DE LA COSTA | https://vivo... | other | french | unknown | generic |
 | Moulin Rouge! | /MT+8zcbBQ0P... | other | unknown | unknown | generic |
 
 ## 📊 Backup Source Health (Session Only)
@@ -717,12 +719,12 @@
 | SPARKLE MOVIES:https://jmp2.uk/stvp-GBAJ400042T1 | 1 | 1 | 0 |
 | A WEALTH OF ENTERTAINMENT (AWE):https://a-cdn.klowdtv.com/live1/awe_720p | 1 | 1 | 0 |
 | A&E:https://e1.thetvapp.to/hls/AEEast/tracks | 1 | 1 | 0 |
-| moj:https://fl7.moveonjoy.com/ABC_EAST/index | 1 | 1 | 0 |
+| ABC:http://41.205.93.154/ABC/index.m3u8 | 1 | 1 | 0 |
 | ABC NEWS LIVE:https://content.uplynk.com/channel/3324f | 1 | 1 | 0 |
 | ACC NETWORK:https://a1xs.vip/40000016 | 1 | 1 | 0 |
 | ALTITUDE SPORTS:https://a1xs.vip/40000048 | 1 | 1 | 0 |
 | AMC (EAST):http://cors.tundracast.com:2000/https:// | 1 | 1 | 0 |
-| AMERICAN HEROES CHANNEL (AHC):https://v8.thetvapp.to/hls/AmericanHeroe | 1 | 1 | 0 |
+| moj:https://fl7.moveonjoy.com/Destination_Am | 1 | 1 | 0 |
 | ANIMAL PLANET:https://a1xs.vip/300035 | 1 | 1 | 0 |
 | ASPIRE:https://fl7.moveonjoy.com/Aspire/index.m | 1 | 1 | 0 |
 | AXS TV:https://fl7.moveonjoy.com/Axs_TV/index.m | 1 | 1 | 0 |
@@ -740,7 +742,7 @@
 | BOUNCE:https://cvtv.cvalley.net/hls/KMCIBounceT | 1 | 1 | 0 |
 | BRAVO (EAST):https://fl7.moveonjoy.com/BRAVO/index.m3 | 1 | 1 | 0 |
 | BUZZR:http://23.237.104.106:8080/USA_BUZZR/ind | 1 | 1 | 0 |
-| C SPAN 2:https://v13.thetvapp.to/hls/CSPAN2/track | 1 | 1 | 0 |
+| moj:https://fl7.moveonjoy.com/Aspire/index.m | 1 | 1 | 0 |
 | CARTOON NETWORK:http://23.237.104.106:8080/USA_CARTOON_N | 1 | 1 | 0 |
 | CBS SPORTS GOLAZO NETWORK:https://amd-mediator-eolq3tk4la-uk.a.run | 1 | 1 | 0 |
 | CBS SPORTS NETWORK:https://fl7.moveonjoy.com/CBS_SPORTS_NET | 1 | 1 | 0 |
@@ -759,7 +761,7 @@
 | COOKING CHANNEL:http://23.237.104.106:8080/USA_COOKING/i | 1 | 1 | 0 |
 | COURT TV:https://s2host5.localnow.api.cms.amdvids | 1 | 1 | 0 |
 | COZI TV:https://fl7.moveonjoy.com/COZI_TV/index. | 1 | 1 | 0 |
-| CRIME+INVESTIGATION:https://v8.thetvapp.to/hls/CrimePlusInve | 1 | 1 | 0 |
+| moj:https://fl7.moveonjoy.com/Discovery_Scie | 1 | 1 | 0 |
 | C•SPAN:https://fl7.moveonjoy.com/C-SPAN/index.m | 1 | 1 | 0 |
 | DESTINATION AMERICA:http://23.237.104.106:8080/USA_DESTINATI | 1 | 1 | 0 |
 | DISCOVERY:https://a1xs.vip/300034 | 1 | 1 | 0 |
@@ -922,9 +924,9 @@
 | BLOOMBERG TELEVISION AUSTRALIA:https://bloomberg.com/media-manifest/str | 1 | 1 | 0 |
 | C31 MELBOURNE:https://d1k6kax80wecy5.cloudfront.net/RL | 1 | 1 | 0 |
 | CHANNEL 44:https://d1k6kax80wecy5.cloudfront.net/WF | 1 | 1 | 0 |
-| CTB PERTH:https://live.ctbperth.net.au/hls/0/strea | 1 | 1 | 0 |
+| CTB PERTH:https://live.ctbperth.net.au/hls/0/strea | 1 | 0 | 1 |
 | CTB PERTH MOVIES:https://movies.ctbperth.net.au/hls/strea | 1 | 1 | 0 |
-| CTB PERTH NEWS:https://news.ctbperth.net.au/hls/stream. | 1 | 1 | 0 |
+| moj:https://fl7.moveonjoy.com/ESPN_NEWS/inde | 1 | 1 | 0 |
 | EXPO CHANNEL:https://tvsnhlslivetest.akamaized.net/hl | 1 | 1 | 0 |
 | INDO OZ TV:https://stream.e2is.in/hls/indoztv.m3u8 | 1 | 1 | 0 |
 | SKY NEWS EXTRA 1:https://skynewsau-live.akamaized.net/hls | 1 | 1 | 0 |
@@ -1040,14 +1042,14 @@
 | CANAL 4 POSADAS:https://iptv.ixfo.com.ar:30443/live/C4PO | 1 | 1 | 0 |
 | CANAL 4 SAN JUAN:https://streamlov.alsolnet.com/canal4san | 1 | 1 | 0 |
 | CANAL 5 DEL PUEBLO:https://stmv4.voxtvhd.com.br/canal5puebl | 1 | 1 | 0 |
-| CANAL 5 PICO TRUNCADO:https://stream.arcast.com.ar/canal5picot | 1 | 0 | 1 |
+| CANAL 5 PICO TRUNCADO:https://stream.arcast.com.ar/canal5picot | 1 | 1 | 0 |
 | CANAL 5 SANTA FE:https://stream.arcast.com.ar/c5sf/c5sf/p | 1 | 1 | 0 |
 | CANAL 6 POSADAS:https://iptv.ixfo.com.ar:30443/live/c6di | 1 | 1 | 0 |
 | CANAL 7 SALTA:https://vivo.solumedia.com:19360/coopera | 1 | 1 | 0 |
 | CANAL 7 SANTIAGO DEL ESTERO:https://stream.arcast.com.ar/envivo/cast | 1 | 1 | 0 |
 | CANAL 9 LITORAL:https://stream.arcast.live/ahora/ahora/p | 1 | 1 | 0 |
 | CANAL 9 RESISTENCIA:http://coninfo.net:1935/9linklivert/smil | 1 | 1 | 0 |
-| CANAL 11 DE LA COSTA:https://vivo.solumedia.com:19360/dadapro | 1 | 0 | 1 |
+| CANAL 11 DE LA COSTA:https://vivo.solumedia.com:19360/dadapro | 1 | 1 | 0 |
 | CANAL 13 LA RIOJA:http://arcast.net:1935/mp/mp/playlist.m3 | 1 | 1 | 0 |
 | CANAL 21 TV:https://iptv.ixfo.com.ar:30443/c21tv/hd/ | 1 | 1 | 0 |
 | 24/7 FAMILY GUY:http://user.scalecdn.co:8080/live/267250 | 1 | 1 | 0 |

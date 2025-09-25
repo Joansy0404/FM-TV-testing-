@@ -58,7 +58,7 @@ jobs:
 
           runner_loc = get_runner_location()
 
-          def check_stream(url, timeout=15):
+          def check_stream(url, timeout=5):
               """Check if a stream URL is accessible and categorize failures, with geo-block hint."""
               try:
                   headers = {
@@ -136,6 +136,15 @@ jobs:
                   print(f"Error reading {file_path}: {str(e)}")
                   return []
 
+              # Keywords that typically indicate TV series/movies (not live channels)
+              exclude_keywords = [
+                  'movie', 'film', 'cinema', 'serie', 'series', 'season', 'episode',
+                  'drama', 'comedy', 'action', 'thriller', 'horror', 'romance',
+                  'documentary', 'animation', 'cartoon', 'anime', 'bollywood',
+                  'hollywood', 'netflix', 'amazon', 'hulu', 'disney', 'marvel',
+                  'tv show', 'tvshow', 'sitcom', 'reality', 'talk show'
+              ]
+
               for i in range(len(lines)):
                   line = lines[i].strip()
                   if line.startswith('#EXTINF'):
@@ -144,9 +153,25 @@ jobs:
                           group = group_match.group(1) if group_match else "No Group"
                           name_part = line.split(',')[-1].strip()
                           name = name_part if name_part else "Unknown Channel"
+                          
+                          # Skip if it looks like a movie/series based on name or group
+                          name_lower = name.lower()
+                          group_lower = group.lower()
+                          
+                          # Check if name or group contains movie/series keywords
+                          is_movie_series = any(keyword in name_lower or keyword in group_lower 
+                                              for keyword in exclude_keywords)
+                          
+                          # Skip movie/series content
+                          if is_movie_series:
+                              continue
+                              
                           if i + 1 < len(lines):
                               url = lines[i + 1].strip()
                               if url and not url.startswith('#') and ('http' in url or 'rtmp' in url):
+                                  # Skip URLs ending with video file extensions (movies/series)
+                                  if url.endswith(('.mkv', '.mp4', '.avi', '.mov', '.wmv', '.flv', '.webm', '.m4v')):
+                                      continue
                                   streams.append({
                                       'name': name,
                                       'url': url,
@@ -155,6 +180,8 @@ jobs:
                       except Exception as e:
                           print(f"Error parsing line {i}: {str(e)}")
                           continue
+              
+              print(f"Filtered to {len(streams)} channel streams (excluded movies/series)")
               return streams
 
           total_streams = 0

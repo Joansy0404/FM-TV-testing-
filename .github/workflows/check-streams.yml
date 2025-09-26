@@ -367,7 +367,9 @@ jobs:
           
           # Generate enhanced report
           print("📝 Generating report...")
-          report = f"""# 📺 Enhanced M3U Stream Status Report
+          
+          try:
+              report = f"""# 📺 Enhanced M3U Stream Status Report
           
           **Generated on:** {end_time.strftime('%Y-%m-%d %H:%M:%S')} UTC  
           **Duration:** {duration.total_seconds():.1f} seconds  
@@ -387,103 +389,169 @@ jobs:
           ## 📁 Files Processed
           
           """
+              
+              print("📝 Report header generated successfully")
+              
+          except Exception as e:
+              print(f"❌ Error generating report header: {str(e)}")
+              import traceback
+              traceback.print_exc()
+              import sys
+              sys.exit(1)
           
-          for m3u_file in m3u_files:
-              if os.path.exists(m3u_file):
-                  file_streams = parse_m3u(m3u_file)
-                  report += f"- `{m3u_file}`: {len(file_streams)} streams\n"
+          try:
+              for m3u_file in m3u_files:
+                  if os.path.exists(m3u_file):
+                      file_streams = parse_m3u(m3u_file)
+                      report += f"- `{m3u_file}`: {len(file_streams)} streams\n"
+              
+              print("📝 Files section added")
+              
+          except Exception as e:
+              print(f"❌ Error adding files section: {str(e)}")
+              import traceback
+              traceback.print_exc()
+              import sys
+              sys.exit(1)
           
           # Skipped streams section
-          if skipped_streams > 0:
-              report += f"""
+          try:
+              if skipped_streams > 0:
+                  print("📝 Adding skipped streams section")
+                  report += f"""
           ## ⏭️ Skipped Streams ({skipped_streams} total)
           
           """
-              
-              if skipped_categories['vods'] and not CHECK_VODS:
-                  report += f"""### 🎬 VOD Files ({len(skipped_categories['vods'])} skipped)
+                  
+                  if skipped_categories['vods'] and not CHECK_VODS:
+                      print(f"📝 Adding {len(skipped_categories['vods'])} VOD entries")
+                      report += f"""### 🎬 VOD Files ({len(skipped_categories['vods'])} skipped)
           *Enable "Check VODs" in workflow dispatch to test these*
           
           | Channel Name | Group | File | URL Preview |
           |-------------|-------|------|-------------|
           """
-                  for item in skipped_categories['vods'][:15]:  # Limit to first 15
-                      name = item['name'].replace('|', '\\|')
-                      group = item['group'].replace('|', '\\|')
-                      url_preview = item.get('url', 'N/A').replace('|', '\\|')
-                      report += f"| {name} | {group} | {item['file']} | {url_preview} |\n"
+                      for item in skipped_categories['vods'][:15]:  # Limit to first 15
+                          try:
+                              name = str(item.get('name', 'Unknown')).replace('|', '\\|')[:50]
+                              group = str(item.get('group', 'No Group')).replace('|', '\\|')[:30]
+                              url_preview = str(item.get('url', 'N/A')).replace('|', '\\|')[:60]
+                              file_name = str(item.get('file', 'Unknown')).replace('|', '\\|')
+                              report += f"| {name} | {group} | {file_name} | {url_preview} |\n"
+                          except Exception as e:
+                              print(f"⚠️ Error adding VOD entry: {str(e)}")
+                              continue
+                      
+                      if len(skipped_categories['vods']) > 15:
+                          report += f"*... and {len(skipped_categories['vods']) - 15} more VOD files*\n"
+                      report += "\n"
                   
-                  if len(skipped_categories['vods']) > 15:
-                      report += f"*... and {len(skipped_categories['vods']) - 15} more VOD files*\n"
-                  report += "\n"
-              
-              if skipped_categories['ppv'] and not CHECK_PPV:
-                  report += f"""### 🥊 PPV/Event Channels ({len(skipped_categories['ppv'])} skipped)
+                  if skipped_categories['ppv'] and not CHECK_PPV:
+                      print(f"📝 Adding {len(skipped_categories['ppv'])} PPV entries")
+                      report += f"""### 🥊 PPV/Event Channels ({len(skipped_categories['ppv'])} skipped)
           *Enable "Check PPV" in workflow dispatch to test these*
           
           | Channel Name | Group | File | URL Preview |
           |-------------|-------|------|-------------|
           """
-                  for item in skipped_categories['ppv'][:15]:  # Limit to first 15
-                      name = item['name'].replace('|', '\\|')
-                      group = item['group'].replace('|', '\\|')
-                      url_preview = item.get('url', 'N/A').replace('|', '\\|')
-                      report += f"| {name} | {group} | {item['file']} | {url_preview} |\n"
-                  
-                  if len(skipped_categories['ppv']) > 15:
-                      report += f"*... and {len(skipped_categories['ppv']) - 15} more event channels*\n"
-                  report += "\n"
+                      for item in skipped_categories['ppv'][:15]:  # Limit to first 15
+                          try:
+                              name = str(item.get('name', 'Unknown')).replace('|', '\\|')[:50]
+                              group = str(item.get('group', 'No Group')).replace('|', '\\|')[:30]
+                              url_preview = str(item.get('url', 'N/A')).replace('|', '\\|')[:60]
+                              file_name = str(item.get('file', 'Unknown')).replace('|', '\\|')
+                              report += f"| {name} | {group} | {file_name} | {url_preview} |\n"
+                          except Exception as e:
+                              print(f"⚠️ Error adding PPV entry: {str(e)}")
+                              continue
+                      
+                      if len(skipped_categories['ppv']) > 15:
+                          report += f"*... and {len(skipped_categories['ppv']) - 15} more event channels*\n"
+                      report += "\n"
+              
+              print("📝 Skipped streams section completed")
+              
+          except Exception as e:
+              print(f"❌ Error generating skipped streams section: {str(e)}")
+              import traceback
+              traceback.print_exc()
+              # Continue anyway - this is not critical
+              report += "\n*Error generating skipped streams details*\n"
           
           # Enhanced failure analysis
-          if total_failures > 0:
-              failure_categories = {
-                  'access_denied': ('🚫 Access Denied', 'Geo-blocked or authentication required'),
-                  'timeout': ('⏱️ Connection Timeouts', 'Server slow/overloaded or PPV preparing'),
-                  'dns_error': ('🌐 DNS Failures', 'Domain name resolution failed'),
-                  'not_found': ('❓ Not Found (404)', 'Stream URL no longer exists'),
-                  'server_error': ('💥 Server Errors (5xx)', 'Server-side technical issues'),
-                  'connection_error': ('🔗 Connection Errors', 'Network connectivity problems'),
-                  'stream_error': ('📺 Stream Errors', 'Stream exists but unreadable'),
-                  'rate_limited': ('🚫 Rate Limited', 'Too many requests'),
-                  'http_error': ('🌍 HTTP Errors', 'Other HTTP status codes'),
-                  'unknown_error': ('❓ Unknown Errors', 'Unexpected errors')
-              }
-              
-              report += f"""
+          try:
+              if total_failures > 0:
+                  print(f"📝 Adding failure analysis for {total_failures} failures")
+                  failure_categories = {
+                      'access_denied': ('🚫 Access Denied', 'Geo-blocked or authentication required'),
+                      'timeout': ('⏱️ Connection Timeouts', 'Server slow/overloaded or PPV preparing'),
+                      'dns_error': ('🌐 DNS Failures', 'Domain name resolution failed'),
+                      'not_found': ('❓ Not Found (404)', 'Stream URL no longer exists'),
+                      'server_error': ('💥 Server Errors (5xx)', 'Server-side technical issues'),
+                      'connection_error': ('🔗 Connection Errors', 'Network connectivity problems'),
+                      'stream_error': ('📺 Stream Errors', 'Stream exists but unreadable'),
+                      'rate_limited': ('🚫 Rate Limited', 'Too many requests'),
+                      'http_error': ('🌍 HTTP Errors', 'Other HTTP status codes'),
+                      'unknown_error': ('❓ Unknown Errors', 'Unexpected errors')
+                  }
+                  
+                  report += f"""
           ## 📋 Failure Analysis ({total_failures} total failures)
           
           """
-              
-              for category, failures in categorized_failures.items():
-                  if failures:
-                      title, description = failure_categories[category]
-                      report += f"""### {title} ({len(failures)} streams)
+                  
+                  for category, failures in categorized_failures.items():
+                      if failures:
+                          title, description = failure_categories.get(category, (f'❓ {category}', 'Unknown error type'))
+                          print(f"📝 Adding {len(failures)} failures for {category}")
+                          report += f"""### {title} ({len(failures)} streams)
           *{description}*
           
           | Channel | Group | Type | Error | Code | File |
           |---------|-------|------|-------|------|------|
           """
-                      
-                      for stream in failures:
-                          name = stream['name'].replace('|', '\\|')[:30]
-                          group = stream['group'].replace('|', '\\|')[:20]
-                          stream_type = stream.get('type', 'Live')[:8]
-                          error = (stream['error'] or 'Unknown').replace('|', '\\|')[:40]
-                          code = stream['code'] if stream['code'] else 'N/A'
-                          file_name = stream['file'].replace('|', '\\|')
                           
-                          report += f"| {name} | {group} | {stream_type} | {error} | {code} | {file_name} |\n"
-                      
-                      report += "\n"
-          
-          else:
-              report += """
+                          for stream in failures:
+                              try:
+                                  name = str(stream.get('name', 'Unknown'))[:30].replace('|', '\\|')
+                                  group = str(stream.get('group', 'No Group'))[:20].replace('|', '\\|')
+                                  stream_type = str(stream.get('type', 'Live'))[:8]
+                                  error = str(stream.get('error', 'Unknown'))[:40].replace('|', '\\|')
+                                  code = str(stream.get('code', 'N/A'))
+                                  file_name = str(stream.get('file', 'Unknown')).replace('|', '\\|')
+                                  
+                                  report += f"| {name} | {group} | {stream_type} | {error} | {code} | {file_name} |\n"
+                              except Exception as e:
+                                  print(f"⚠️ Error adding failure entry: {str(e)}")
+                                  continue
+                          
+                          report += "\n"
+              
+              else:
+                  print("📝 No failures to report - adding success message")
+                  report += """
           ## 🎉 All Checked Streams Working!
           
           All tested streams are currently accessible from GitHub's infrastructure.
           """
+              
+              print("📝 Failure analysis section completed")
+              
+          except Exception as e:
+              print(f"❌ Error generating failure analysis: {str(e)}")
+              import traceback
+              traceback.print_exc()
+              # Add a simple fallback
+              report += f"""
+          ## 📋 Failure Analysis
           
-          report += f"""
+          *Error generating detailed failure analysis. {total_failures} streams failed.*
+          """
+          
+          # Add final sections
+          try:
+              print("📝 Adding final configuration and notes sections")
+              report += f"""
           ## 📋 Configuration Notes
           
           - **VOD Checking:** {'Enabled' if CHECK_VODS else 'Disabled'} - Files ending with .mkv, .mp4, etc. {'were' if CHECK_VODS else 'were not'} tested
@@ -520,6 +588,18 @@ jobs:
           ---
           *Last updated: {end_time.strftime('%Y-%m-%d %H:%M:%S')} UTC*  
           *Report generated automatically by Enhanced GitHub Actions*
+          """
+              
+              print("📝 Report generation completed successfully")
+              
+          except Exception as e:
+              print(f"❌ Error adding final sections: {str(e)}")
+              import traceback
+              traceback.print_exc()
+              # Add minimal footer
+              report += f"""
+          ---
+          *Last updated: {end_time.strftime('%Y-%m-%d %H:%M:%S')} UTC*
           """
           
           # Write report

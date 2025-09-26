@@ -79,6 +79,11 @@ jobs:
               
               return is_vod
           
+          def is_m3u8_stream(url):
+              """Check if URL is an M3U8 stream"""
+              url_lower = url.lower()
+              return '.m3u8' in url_lower and not is_vod_url(url)
+          
           def is_ppv_channel(name, group):
               """Check if channel is PPV (Pay-Per-View) or Event channel"""
               name_lower = name.lower()
@@ -144,7 +149,7 @@ jobs:
                           try:
                               chunk = next(response.iter_content(chunk_size=1024), None)
                               if chunk:
-                                  stream_type = "PPV" if is_ppv else "Live Stream"
+                                  stream_type = "PPV" if is_ppv else ("M3U8 Stream" if is_m3u8_stream(url) else "Live Stream")
                                   return {"status": "working", "code": response.status_code, "error": None, "type": stream_type}
                               else:
                                   return {"status": "stream_error", "code": response.status_code, "error": "Empty stream response"}
@@ -228,9 +233,17 @@ jobs:
           
           # Initialize counters
           total_streams = 0
+          total_m3u8_streams = 0
+          total_vod_files = 0
           checked_streams = 0
           working_streams = 0
           skipped_streams = 0
+          
+          # Track working/failed counts by type
+          working_m3u8 = 0
+          working_vod = 0
+          failed_m3u8 = 0
+          failed_vod = 0
           
           # Enhanced failure categorization
           categorized_failures = {
@@ -269,7 +282,25 @@ jobs:
                   file_working = 0
                   file_skipped = 0
                   
-                  print(f"Found {file_total} streams in {m3u_file}")
+                  # Count M3U8 streams and VOD files in this file
+                  file_m3u8_count = 0
+                  file_vod_count = 0
+                  
+                  for stream in streams:
+                      if is_vod_url(stream['url']):
+                          file_vod_count += 1
+                          total_vod_files += 1
+                      elif is_m3u8_stream(stream['url']):
+                          file_m3u8_count += 1
+                          total_m3u8_streams += 1
+                      else:
+                          # Other stream types (RTMP, etc.)
+                          total_m3u8_streams += 1  # Count as regular stream
+                  
+                  print(f"Found {file_total} total streams in {m3u_file}:")
+                  print(f"  📺 M3U8 Streams: {file_m3u8_count}")
+                  print(f"  🎬 VOD Files: {file_vod_count}")
+                  print(f"  📡 Other Streams: {file_total - file_m3u8_count - file_vod_count}")
                   
                   for i, stream in enumerate(streams):
                       # Check if stream should be skipped
@@ -281,9 +312,9 @@ jobs:
                           
                           # Show what's being skipped for debugging
                           if "VOD" in skip_reason:
-                              print(f"⏭️ Skipping VOD: {stream['name'][:40]}")
+                              print(f"⭐ Skipping VOD: {stream['name'][:40]}")
                           elif "PPV" in skip_reason:
-                              print(f"⏭️ Skipping PPV: {stream['name'][:40]} (Group: {stream['group']})")
+                              print(f"⭐ Skipping PPV: {stream['name'][:40]} (Group: {stream['group']})")
                           
                           # Categorize skipped streams
                           if "VOD" in skip_reason:
@@ -322,9 +353,22 @@ jobs:
                       if result['status'] == 'working':
                           working_streams += 1
                           file_working += 1
+                          
+                          # Track working streams by type
+                          if is_vod_url(stream['url']):
+                              working_vod += 1
+                          else:
+                              working_m3u8 += 1
+                          
                           print(f"  ✅ Working ({result.get('type', 'Stream')})")
                       else:
                           print(f"  ❌ Failed: {result['error']}")
+                          
+                          # Track failed streams by type
+                          if is_vod_url(stream['url']):
+                              failed_vod += 1
+                          else:
+                              failed_m3u8 += 1
                           
                           # Categorize the failure
                           failure_info = {
@@ -334,7 +378,7 @@ jobs:
                               'file': m3u_file,
                               'error': result['error'],
                               'code': result['code'],
-                              'type': 'PPV' if is_ppv else ('VOD' if is_vod_url(stream['url']) else 'Live')
+                              'type': 'PPV' if is_ppv else ('VOD' if is_vod_url(stream['url']) else ('M3U8' if is_m3u8_stream(stream['url']) else 'Other'))
                           }
                           
                           if result['status'] in categorized_failures:
@@ -365,7 +409,10 @@ jobs:
           duration = end_time - start_time
           
           print(f"⏱️ Check completed in {duration.total_seconds():.1f} seconds")
-          print(f"📊 Totals: {working_streams} working, {total_failures} failed, {skipped_streams} skipped")
+          print(f"📊 Stream Type Summary:")
+          print(f"  📺 Total M3U8/Live Streams: {total_m3u8_streams}")
+          print(f"  🎬 Total VOD Files: {total_vod_files}")
+          print(f"📊 Results: {working_streams} working ({working_m3u8} M3U8, {working_vod} VOD), {total_failures} failed ({failed_m3u8} M3U8, {failed_vod} VOD), {skipped_streams} skipped")
           
           # Validate results before proceeding
           if total_streams == 0:
@@ -383,27 +430,38 @@ jobs:
               checked_percentage = (total_checked/total_streams*100) if total_streams > 0 else 0
               failure_percentage = (total_failures/total_checked*100) if total_checked > 0 else 0
               skipped_percentage = (skipped_streams/total_streams*100) if total_streams > 0 else 0
+              m3u8_percentage = (total_m3u8_streams/total_streams*100) if total_streams > 0 else 0
+              vod_percentage = (total_vod_files/total_streams*100) if total_streams > 0 else 0
               
               report = f"""# 📺 Enhanced M3U Stream Status Report
-          
-          **Generated on:** {end_time.strftime('%Y-%m-%d %H:%M:%S')} UTC  
-          **Duration:** {duration.total_seconds():.1f} seconds  
-          **Runner Location:** GitHub Actions (global infrastructure)  
-          **Configuration:** VODs: {'✅' if CHECK_VODS else '❌'}, PPV: {'✅' if CHECK_PPV else '❌'}, Timeout: {TIMEOUT_SECONDS}s
-          
-          ## 📊 Summary
-          
-          | Metric | Count | Percentage |
-          |--------|-------|------------|
-          | **Total Streams Found** | {total_streams} | 100% |
-          | **🔍 Checked Streams** | {total_checked} | {checked_percentage:.1f}% |
-          | **✅ Working Streams** | {working_streams} | {working_percentage:.1f}% |
-          | **❌ Failed Streams** | {total_failures} | {failure_percentage:.1f}% |
-          | **⏭️ Skipped Streams** | {skipped_streams} | {skipped_percentage:.1f}% |
-          
-          ## 📁 Files Processed
-          
-          """
+
+**Generated on:** {end_time.strftime('%Y-%m-%d %H:%M:%S')} UTC  
+**Duration:** {duration.total_seconds():.1f} seconds  
+**Runner Location:** GitHub Actions (global infrastructure)  
+**Configuration:** VODs: {'✅' if CHECK_VODS else '❌'}, PPV: {'✅' if CHECK_PPV else '❌'}, Timeout: {TIMEOUT_SECONDS}s
+
+## 📊 Summary
+
+| Metric | Count | Percentage |
+|--------|-------|------------|
+| **Total Streams Found** | {total_streams} | 100% |
+| **📺 M3U8/Live Streams** | {total_m3u8_streams} | {m3u8_percentage:.1f}% |
+| **🎬 VOD Files** | {total_vod_files} | {vod_percentage:.1f}% |
+| **🔍 Checked Streams** | {total_checked} | {checked_percentage:.1f}% |
+| **✅ Working Streams** | {working_streams} | {working_percentage:.1f}% |
+| **❌ Failed Streams** | {total_failures} | {failure_percentage:.1f}% |
+| **⭐ Skipped Streams** | {skipped_streams} | {skipped_percentage:.1f}% |
+
+## 📊 Stream Type Breakdown
+
+| Type | Working | Failed | Total Checked | Success Rate |
+|------|---------|--------|---------------|--------------|
+| **📺 M3U8/Live** | {working_m3u8} | {failed_m3u8} | {working_m3u8 + failed_m3u8} | {(working_m3u8/(working_m3u8 + failed_m3u8)*100) if (working_m3u8 + failed_m3u8) > 0 else 0:.1f}% |
+| **🎬 VOD Files** | {working_vod} | {failed_vod} | {working_vod + failed_vod} | {(working_vod/(working_vod + failed_vod)*100) if (working_vod + failed_vod) > 0 else 0:.1f}% |
+
+## 📁 Files Processed
+
+"""
               
               print("📝 Report header generated successfully")
               
@@ -418,9 +476,11 @@ jobs:
               for m3u_file in m3u_files:
                   if os.path.exists(m3u_file):
                       file_streams = parse_m3u(m3u_file)
-                      report += f"- `{m3u_file}`: {len(file_streams)} streams\n"
+                      file_m3u8 = sum(1 for s in file_streams if is_m3u8_stream(s['url']))
+                      file_vod = sum(1 for s in file_streams if is_vod_url(s['url']))
+                      report += f"- `{m3u_file}`: {len(file_streams)} streams ({file_m3u8} M3U8, {file_vod} VOD)\n"
               
-              print("📝 Files section added")
+              print("📁 Files section added")
               
           except Exception as e:
               print(f"❌ Error adding files section: {str(e)}")
@@ -434,9 +494,9 @@ jobs:
               if skipped_streams > 0:
                   print("📝 Adding skipped streams section")
                   report += f"""
-          ## ⏭️ Skipped Streams ({skipped_streams} total)
-          
-          """
+## ⭐ Skipped Streams ({skipped_streams} total)
+
+"""
                   
                   if skipped_categories['vods'] and not CHECK_VODS:
                       print(f"📝 Adding VOD summary")
@@ -448,11 +508,11 @@ jobs:
                           vod_groups[group] = vod_groups.get(group, 0) + 1
                       
                       report += f"""### 🎬 VOD Files ({len(skipped_categories['vods'])} skipped)
-          *Enable "Check VODs" in workflow dispatch to test these*
-          
-          | Group | Count |
-          |-------|-------|
-          """
+*Enable "Check VODs" in workflow dispatch to test these*
+
+| Group | Count |
+|-------|-------|
+"""
                       for group, count in sorted(vod_groups.items()):
                           group_safe = str(group).replace('|', '\\|')
                           report += f"| {group_safe} | {count} |\n"
@@ -468,11 +528,11 @@ jobs:
                           ppv_groups[group] = ppv_groups.get(group, 0) + 1
                       
                       report += f"""### 🥊 PPV/Event Channels ({len(skipped_categories['ppv'])} skipped)
-          *Enable "Check PPV" in workflow dispatch to test these*
-          
-          | Group | Count |
-          |-------|-------|
-          """
+*Enable "Check PPV" in workflow dispatch to test these*
+
+| Group | Count |
+|-------|-------|
+"""
                       for group, count in sorted(ppv_groups.items()):
                           group_safe = str(group).replace('|', '\\|')
                           report += f"| {group_safe} | {count} |\n"
@@ -500,25 +560,25 @@ jobs:
                       'connection_error': ('🔗 Connection Errors', 'Network connectivity problems'),
                       'stream_error': ('📺 Stream Errors', 'Stream exists but unreadable'),
                       'rate_limited': ('🚫 Rate Limited', 'Too many requests'),
-                      'http_error': ('🌍 HTTP Errors', 'Other HTTP status codes'),
+                      'http_error': ('🌐 HTTP Errors', 'Other HTTP status codes'),
                       'unknown_error': ('❓ Unknown Errors', 'Unexpected errors')
                   }
                   
                   report += f"""
-          ## 📋 Failure Analysis ({total_failures} total failures)
-          
-          """
+## 📋 Failure Analysis ({total_failures} total failures)
+
+"""
                   
                   for category, failures in categorized_failures.items():
                       if failures:
                           title, description = failure_categories.get(category, (f'❓ {category}', 'Unknown error type'))
                           print(f"📝 Adding {len(failures)} failures for {category}")
                           report += f"""### {title} ({len(failures)} streams)
-          *{description}*
-          
-          | Channel | Group | Type | Error | Code | File |
-          |---------|-------|------|-------|------|------|
-          """
+*{description}*
+
+| Channel | Group | Type | Error | Code | File |
+|---------|-------|------|-------|------|------|
+"""
                           
                           for stream in failures:
                               try:
@@ -539,10 +599,10 @@ jobs:
               else:
                   print("📝 No failures to report - adding success message")
                   report += """
-          ## 🎉 All Checked Streams Working!
-          
-          All tested streams are currently accessible from GitHub's infrastructure.
-          """
+## 🎉 All Checked Streams Working!
+
+All tested streams are currently accessible from GitHub's infrastructure.
+"""
               
               print("📝 Failure analysis section completed")
               
@@ -552,53 +612,56 @@ jobs:
               traceback.print_exc()
               # Add a simple fallback
               report += f"""
-          ## 📋 Failure Analysis
-          
-          *Error generating detailed failure analysis. {total_failures} streams failed.*
-          """
+## 📋 Failure Analysis
+
+*Error generating detailed failure analysis. {total_failures} streams failed.*
+"""
           
           # Add final sections
           try:
               print("📝 Adding final configuration and notes sections")
               report += f"""
-          ## 📋 Configuration Notes
-          
-          - **VOD Checking:** {'Enabled' if CHECK_VODS else 'Disabled'} - URLs with .m3u8/#.mkv format {'were' if CHECK_VODS else 'were not'} tested
-          - **PPV/Event Checking:** {'Enabled' if CHECK_PPV else 'Disabled'} - UK EVENTS & USA EVENTS groups {'were' if CHECK_PPV else 'were not'} tested  
-          - **Timeout:** {TIMEOUT_SECONDS} seconds per stream (PPV channels get 2x timeout)
-          - **VOD Detection:** Matches URLs ending with .m3u8/#.mkv, .m3u8/#.mp4, etc.
-          - **Event Groups:** Automatically detects "UK EVENTS", "USA EVENTS", and similar groups
-          
-          ## 📈 Geographic & Technical Notes
-          
-          - Tests run from **GitHub Actions** global infrastructure
-          - "Access Denied" (403) errors typically indicate geo-restrictions
-          - PPV channels may be offline between events (normal behavior)
-          - VOD files are static content and should be consistently available
-          - Timeout errors may indicate server overload or preparation time
-          - DNS errors suggest the streaming service domain is down
-          
-          ## 🔧 Technical Details
-          
-          - **User-Agent:** Chrome 120 simulation for maximum compatibility
-          - **Method:** HEAD for direct video files, GET with stream verification for live content
-          - **VOD Detection:** Specifically matches .m3u8/#.mkv, .m3u8/#.mp4 format URLs
-          - **Headers:** Enhanced with security headers and proper content type
-          - **Rate Limiting:** Dynamic delays based on success rate
-          - **Retry Logic:** Single attempt per stream to avoid overwhelming servers
-          
-          ## 🎛️ Manual Testing Options
-          
-          To test specific content types:
-          1. Go to **Actions** → **Check M3U Streams** → **Run workflow**
-          2. Toggle **Check VODs** to test .m3u8/#.mkv files (video-on-demand)
-          3. Toggle **Check PPV** to test Pay-Per-View channels
-          4. Adjust **Timeout** for slower connections
-          
-          ---
-          *Last updated: {end_time.strftime('%Y-%m-%d %H:%M:%S')} UTC*  
-          *Report generated automatically by Enhanced GitHub Actions*
-          """
+## 📋 Configuration Notes
+
+- **VOD Checking:** {'Enabled' if CHECK_VODS else 'Disabled'} - URLs with .m3u8/#.mkv format {'were' if CHECK_VODS else 'were not'} tested
+- **PPV/Event Checking:** {'Enabled' if CHECK_PPV else 'Disabled'} - UK EVENTS & USA EVENTS groups {'were' if CHECK_PPV else 'were not'} tested  
+- **Timeout:** {TIMEOUT_SECONDS} seconds per stream (PPV channels get 2x timeout)
+- **VOD Detection:** Matches URLs ending with .m3u8/#.mkv, .m3u8/#.mp4, etc.
+- **M3U8 Detection:** Matches URLs containing .m3u8 (excluding VOD formats)
+- **Event Groups:** Automatically detects "UK EVENTS", "USA EVENTS", and similar groups
+
+## 📈 Geographic & Technical Notes
+
+- Tests run from **GitHub Actions** global infrastructure
+- "Access Denied" (403) errors typically indicate geo-restrictions
+- PPV channels may be offline between events (normal behavior)
+- VOD files are static content and should be consistently available
+- M3U8 streams are adaptive bitrate live streams
+- Timeout errors may indicate server overload or preparation time
+- DNS errors suggest the streaming service domain is down
+
+## 🔧 Technical Details
+
+- **User-Agent:** Chrome 120 simulation for maximum compatibility
+- **Method:** HEAD for direct video files, GET with stream verification for live content
+- **VOD Detection:** Specifically matches .m3u8/#.mkv, .m3u8/#.mp4 format URLs
+- **M3U8 Detection:** Identifies adaptive streaming URLs (.m3u8)
+- **Headers:** Enhanced with security headers and proper content type
+- **Rate Limiting:** Dynamic delays based on success rate
+- **Retry Logic:** Single attempt per stream to avoid overwhelming servers
+
+## 🎛️ Manual Testing Options
+
+To test specific content types:
+1. Go to **Actions** → **Check M3U Streams** → **Run workflow**
+2. Toggle **Check VODs** to test .m3u8/#.mkv files (video-on-demand)
+3. Toggle **Check PPV** to test Pay-Per-View channels
+4. Adjust **Timeout** for slower connections
+
+---
+*Last updated: {end_time.strftime('%Y-%m-%d %H:%M:%S')} UTC*  
+*Report generated automatically by Enhanced GitHub Actions*
+"""
               
               print("📝 Report generation completed successfully")
               
@@ -608,9 +671,9 @@ jobs:
               traceback.print_exc()
               # Add minimal footer
               report += f"""
-          ---
-          *Last updated: {end_time.strftime('%Y-%m-%d %H:%M:%S')} UTC*
-          """
+---
+*Last updated: {end_time.strftime('%Y-%m-%d %H:%M:%S')} UTC*
+"""
           
           # Write report
           print("💾 Writing report to file...")
@@ -619,6 +682,8 @@ jobs:
                   f.write(report)
               print("📊 Enhanced report generated successfully!")
               print(f"📈 Final Summary: {working_streams}/{total_checked} streams working ({working_percentage:.1f}%), {skipped_streams} skipped")
+              print(f"📺 M3U8/Live: {working_m3u8} working, {failed_m3u8} failed")
+              print(f"🎬 VOD Files: {working_vod} working, {failed_vod} failed")
               
               # Verify file was written
               if os.path.exists('report.md'):

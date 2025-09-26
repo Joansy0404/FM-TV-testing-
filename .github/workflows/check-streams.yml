@@ -67,19 +67,22 @@ jobs:
           print(f"📋 Files in directory: {os.listdir('.')}")
           
           def is_vod_url(url):
-              """Check if URL points to a VOD file"""
+              """Check if URL points to a VOD file - URLs ending with .m3u8/#.mkv format"""
               vod_extensions = ['.mkv', '.mp4', '.avi', '.mov', '.wmv', '.flv', '.webm', '.m4v']
               
-              # Check both the path and fragment (after #) for VOD extensions
+              # Check if URL ends with .m3u8/# followed by a video extension
+              url_lower = url.lower()
+              
+              # Look for the pattern: .m3u8/#.extension
+              if '.m3u8/#' in url_lower:
+                  # Extract everything after .m3u8/#
+                  fragment_part = url_lower.split('.m3u8/#', 1)[1]
+                  return any(fragment_part.startswith(ext[1:]) for ext in vod_extensions)  # Remove the '.' from extension
+              
+              # Also check for direct video file URLs (fallback)
               parsed_url = urllib.parse.urlparse(url)
               path = parsed_url.path.lower()
-              fragment = parsed_url.fragment.lower()
-              full_url = url.lower()
-              
-              # Check if any VOD extension appears in path, fragment, or anywhere in URL
-              return (any(path.endswith(ext) for ext in vod_extensions) or
-                      any(fragment.endswith(ext) for ext in vod_extensions) or
-                      any(ext in full_url for ext in vod_extensions))
+              return any(path.endswith(ext) for ext in vod_extensions)
           
           def is_ppv_channel(name, group):
               """Check if channel is PPV (Pay-Per-View) or Event channel"""
@@ -559,10 +562,10 @@ jobs:
               report += f"""
           ## 📋 Configuration Notes
           
-          - **VOD Checking:** {'Enabled' if CHECK_VODS else 'Disabled'} - Files ending with .mkv, .mp4, etc. {'were' if CHECK_VODS else 'were not'} tested
+          - **VOD Checking:** {'Enabled' if CHECK_VODS else 'Disabled'} - URLs with .m3u8/#.mkv format {'were' if CHECK_VODS else 'were not'} tested
           - **PPV/Event Checking:** {'Enabled' if CHECK_PPV else 'Disabled'} - UK EVENTS & USA EVENTS groups {'were' if CHECK_PPV else 'were not'} tested  
           - **Timeout:** {TIMEOUT_SECONDS} seconds per stream (PPV channels get 2x timeout)
-          - **Detection:** VODs detected by file extensions anywhere in URL (including after #)
+          - **VOD Detection:** Matches URLs ending with .m3u8/#.mkv, .m3u8/#.mp4, etc.
           - **Event Groups:** Automatically detects "UK EVENTS", "USA EVENTS", and similar groups
           
           ## 📈 Geographic & Technical Notes
@@ -577,7 +580,8 @@ jobs:
           ## 🔧 Technical Details
           
           - **User-Agent:** Chrome 120 simulation for maximum compatibility
-          - **Method:** HEAD for VODs, GET with stream verification for live content
+          - **Method:** HEAD for direct video files, GET with stream verification for live content
+          - **VOD Detection:** Specifically matches .m3u8/#.mkv, .m3u8/#.mp4 format URLs
           - **Headers:** Enhanced with security headers and proper content type
           - **Rate Limiting:** Dynamic delays based on success rate
           - **Retry Logic:** Single attempt per stream to avoid overwhelming servers
@@ -586,7 +590,7 @@ jobs:
           
           To test specific content types:
           1. Go to **Actions** → **Check M3U Streams** → **Run workflow**
-          2. Toggle **Check VODs** to test .mkv/.mp4 files
+          2. Toggle **Check VODs** to test .m3u8/#.mkv files (video-on-demand)
           3. Toggle **Check PPV** to test Pay-Per-View channels
           4. Adjust **Timeout** for slower connections
           

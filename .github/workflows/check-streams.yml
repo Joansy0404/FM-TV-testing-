@@ -58,10 +58,12 @@ jobs:
           
           # Configuration from environment
           CHECK_VODS = os.getenv('CHECK_VODS', 'false').lower() == 'true'
-          CHECK_PPV = os.getenv('CHECK_PPV', 'false').lower() == 'true'
+          CHECK_PPV = os.getenv('CHECK_PPV', 'false').lower() == 'true' 
           TIMEOUT_SECONDS = int(os.getenv('TIMEOUT_SECONDS', '10'))
           
-          print(f"Configuration: VODs={CHECK_VODS}, PPV={CHECK_PPV}, Timeout={TIMEOUT_SECONDS}s")
+          print(f"🔧 Configuration: VODs={CHECK_VODS}, PPV={CHECK_PPV}, Timeout={TIMEOUT_SECONDS}s")
+          print(f"📁 Current directory: {os.getcwd()}")
+          print(f"📋 Files in directory: {os.listdir('.')}")
           
           def is_vod_url(url):
               """Check if URL points to a VOD file"""
@@ -341,6 +343,8 @@ jobs:
                   
               except Exception as e:
                   print(f"❌ Error processing {m3u_file}: {str(e)}")
+                  # Continue processing other files instead of failing
+                  continue
           
           # Calculate final statistics
           total_checked = checked_streams
@@ -350,6 +354,7 @@ jobs:
           duration = end_time - start_time
           
           print(f"⏱️ Check completed in {duration.total_seconds():.1f} seconds")
+          print(f"📊 Totals: {working_streams} working, {total_failures} failed, {skipped_streams} skipped")
           
           # Generate enhanced report
           report = f"""# 📺 Enhanced M3U Stream Status Report
@@ -513,8 +518,15 @@ jobs:
                   f.write(report)
               print("📊 Enhanced report generated successfully!")
               print(f"📈 Final Summary: {working_streams}/{total_checked} streams working ({working_percentage:.1f}%), {skipped_streams} skipped")
+              
+              # Exit successfully
+              import sys
+              sys.exit(0)
+              
           except Exception as e:
               print(f"❌ Error writing report: {str(e)}")
+              import sys
+              sys.exit(1)
           
           EOF
         
@@ -522,20 +534,33 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "github-actions[bot]"
+          
+          # Check if report was generated
+          if [[ -f "report.md" ]]; then
+            echo "✅ Report file found"
+            ls -la report.md
+          else
+            echo "❌ Report file not found!"
+            ls -la
+            exit 1
+          fi
+          
           git add report.md
           if git diff --staged --quiet; then
-            echo "No changes to commit"
+            echo "📝 No changes to commit"
           else
             # Enhanced commit message with configuration info
             COMMIT_MSG="📊 Stream report"
-            if [[ "$CHECK_VODS" == "true" ]]; then
+            if [[ "${CHECK_VODS:-false}" == "true" ]]; then
               COMMIT_MSG="$COMMIT_MSG +VODs"
             fi
-            if [[ "$CHECK_PPV" == "true" ]]; then
-              COMMIT_MSG="$COMMIT_MSG +PPV"
+            if [[ "${CHECK_PPV:-false}" == "true" ]]; then
+              COMMIT_MSG="$COMMIT_MSG +PPV" 
             fi
             COMMIT_MSG="$COMMIT_MSG - $(date -u '+%Y-%m-%d %H:%M UTC')"
             
+            echo "💾 Committing: $COMMIT_MSG"
             git commit -m "$COMMIT_MSG"
             git push
+            echo "🚀 Report pushed successfully"
           fi

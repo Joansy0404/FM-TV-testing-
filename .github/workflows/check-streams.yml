@@ -74,10 +74,8 @@ jobs:
               url_lower = url.lower()
               is_vod = any(url_lower.endswith(ext) for ext in vod_extensions)
               
-              # Debug: Show first few VODs detected to verify pattern
-              if is_vod and len(vod_debug_list) < 5:
-                  vod_debug_list.append(url)
-                  print(f"🎬 VOD detected: {url}")
+              if is_vod:
+                  print(f"🎬 VOD detected: {url[:80]}...")
               
               return is_vod
           
@@ -261,37 +259,6 @@ jobs:
           print("🚀 Starting enhanced stream check...")
           start_time = datetime.now(timezone.utc)
           
-          # First pass: Count all streams by type to validate detection
-          print("🔍 Analyzing stream types...")
-          for m3u_file in m3u_files:
-              if os.path.exists(m3u_file):
-                  temp_streams = parse_m3u(m3u_file)
-                  for stream in temp_streams:
-                      if is_vod_url(stream['url']):
-                          total_vods += 1
-                      else:
-                          total_channels += 1
-                  total_streams += len(temp_streams)
-          
-          print(f"📊 Detection Results: {total_channels} live channels, {total_vods} VODs, {total_streams} total streams")
-          print(f"📋 Expected: ~656 channels, ~685 VODs (683 movies + 2 TV series)")
-          print(f"🎯 Will test: {total_channels if not CHECK_VODS else total_channels + total_vods} streams (VODs: {'ON' if CHECK_VODS else 'OFF'}, PPV: {'ON' if CHECK_PPV else 'OFF'})")
-          
-          # Show discrepancy if detected counts don't match expected
-          expected_vods = 685
-          expected_channels = 656
-          if abs(total_vods - expected_vods) > 10:
-              print(f"⚠️  VOD count mismatch! Expected ~{expected_vods}, detected {total_vods}")
-          if abs(total_channels - expected_channels) > 10:
-              print(f"⚠️  Channel count mismatch! Expected ~{expected_channels}, detected {total_channels}")
-          
-          print()
-          
-          # Reset counters for actual processing
-          total_streams = 0
-          total_channels = 0
-          total_vods = 0
-          
           for m3u_file in m3u_files:
               print(f"📁 Processing {m3u_file}...")
               
@@ -303,15 +270,6 @@ jobs:
                   file_skipped = 0
                   
                   print(f"Found {file_total} streams in {m3u_file}")
-                  
-                  # Count channels vs VODs BEFORE processing
-                  for stream in streams:
-                      if is_vod_url(stream['url']):
-                          total_vods += 1
-                      else:
-                          total_channels += 1
-                  
-                  print(f"📊 Breakdown: {total_channels} channels, {total_vods} VODs so far")
                   
                   for i, stream in enumerate(streams):
                       # Check if stream should be skipped
@@ -408,7 +366,6 @@ jobs:
           
           print(f"⏱️ Check completed in {duration.total_seconds():.1f} seconds")
           print(f"📊 Totals: {working_streams} working, {total_failures} failed, {skipped_streams} skipped")
-          print(f"🔍 Content Breakdown: {total_channels} live channels, {total_vods} VOD files detected")
           
           # Validate results before proceeding
           if total_streams == 0:
@@ -439,8 +396,6 @@ jobs:
           | Metric | Count | Percentage |
           |--------|-------|------------|
           | **Total Streams Found** | {total_streams} | 100% |
-          | **📺 Live Channels Found** | {total_channels} | {(total_channels/total_streams*100):.1f}% |
-          | **🎬 VOD Files Found** | {total_vods} | {(total_vods/total_streams*100):.1f}% |
           | **🔍 Checked Streams** | {total_checked} | {checked_percentage:.1f}% |
           | **✅ Working Streams** | {working_streams} | {working_percentage:.1f}% |
           | **❌ Failed Streams** | {total_failures} | {failure_percentage:.1f}% |

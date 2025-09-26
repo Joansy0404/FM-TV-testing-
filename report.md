@@ -1,9 +1,9 @@
 # 📺 Enhanced M3U Stream Status Report
 
-**Generated on:** 2025-09-26 02:33:57 UTC  
-**Duration:** 726.5 seconds  
+**Generated on:** 2025-09-26 02:50:07 UTC  
+**Duration:** 812.3 seconds  
 **Runner Location:** GitHub Actions (global infrastructure)  
-**Configuration:** VODs: ❌, PPV: ❌, Timeout: 10s
+**Configuration:** VODs: ❌, PPV: ❌, Timeout: 5s
 
 ## 📊 Summary
 
@@ -11,8 +11,8 @@
 |--------|-------|------------|
 | **Total Streams Found** | 1349 | 100% |
 | **🔍 Checked Streams** | 1297 | 96.1% |
-| **✅ Working Streams** | 1271 | 98.0% |
-| **❌ Failed Streams** | 26 | 2.0% |
+| **✅ Working Streams** | 1257 | 96.9% |
+| **❌ Failed Streams** | 40 | 3.1% |
 | **⏭️ Skipped Streams** | 52 | 3.9% |
 
 ## 📁 Files Processed
@@ -44,7 +44,7 @@
 *... and 37 more event channels*
 
 
-## 📋 Failure Analysis (26 total failures)
+## 📋 Failure Analysis (40 total failures)
 
 ### 🚫 Access Denied (14 streams)
 *Geo-blocked or authentication required*
@@ -66,21 +66,35 @@
 | SPACETOON ARABIC | AE | Live | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
 | WANASAH | AE | Live | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
 
-### ⏱️ Connection Timeouts (10 streams)
+### ⏱️ Connection Timeouts (24 streams)
 *Server slow/overloaded or PPV preparing*
 
 | Channel | Group | Type | Error | Code | File |
 |---------|-------|------|-------|------|------|
-| SKY SPORTS GOLF | UK | Live | Timeout after 10s | None | channel playlist.m3u |
-| TNT SPORTS 2 | UK | Live | Timeout after 10s | None | channel playlist.m3u |
-| TNT SPORTS 3 | UK | Live | Timeout after 10s | None | channel playlist.m3u |
-| ESPN | USA | Live | Timeout after 10s | None | channel playlist.m3u |
-| ESPN 2 | USA | Live | Timeout after 10s | None | channel playlist.m3u |
-| FS1 | USA | Live | Timeout after 10s | None | channel playlist.m3u |
-| FS2 | USA | Live | Timeout after 10s | None | channel playlist.m3u |
-| PEACOCK PREMIER LEAGUE TV | USA | Live | Timeout after 10s | None | channel playlist.m3u |
-| 24/7 FAMILY GUY | INT | Live | Timeout after 10s | None | channel playlist.m3u |
-| Ant-Man | Disney+ | Live | Timeout after 10s | None | channel playlist.m3u |
+| CHALLENGE | UK | Live | Timeout after 5s | None | channel playlist.m3u |
+| SKY SPORTS NFL | UK | Live | Timeout after 5s | None | channel playlist.m3u |
+| TNT SPORTS 2 | UK | Live | Timeout after 5s | None | channel playlist.m3u |
+| TNT SPORTS 3 | UK | Live | Timeout after 5s | None | channel playlist.m3u |
+| VIRGIN MEDIA FOUR | UK | Live | Timeout after 5s | None | channel playlist.m3u |
+| VIRGIN MEDIA THREE | UK | Live | Timeout after 5s | None | channel playlist.m3u |
+| RTÈ JR. | IE | Live | Timeout after 5s | None | channel playlist.m3u |
+| RTÈ ONE | IE | Live | Timeout after 5s | None | channel playlist.m3u |
+| ESPN 2 | USA | Live | Timeout after 5s | None | channel playlist.m3u |
+| FS1 | USA | Live | Timeout after 5s | None | channel playlist.m3u |
+| FS2 | USA | Live | Timeout after 5s | None | channel playlist.m3u |
+| WILLOW 2 | USA | Live | Timeout after 5s | None | channel playlist.m3u |
+| FOX SPORTS 504 | AUS | Live | Timeout after 5s | None | channel playlist.m3u |
+| 24/7 FAMILY GUY | INT | Live | Timeout after 5s | None | channel playlist.m3u |
+| (500) Days of Summer | Disney+ | Live | Timeout after 5s | None | channel playlist.m3u |
+| Gulliver's Travels | Disney+ | Live | Timeout after 5s | None | channel playlist.m3u |
+| Coco | Disney+ | Live | Timeout after 5s | None | channel playlist.m3u |
+| Diary of a Wimpy Kid: The Long | Disney+ | Live | Timeout after 5s | None | channel playlist.m3u |
+| 12 Angry Men (1957) | PRIME VIDEO | Live | Timeout after 5s | None | channel playlist.m3u |
+| Sinners | HBO MAX | Live | Timeout after 5s | None | channel playlist.m3u |
+| Transformers: Dark of the Moon | Paramount+ | Live | Timeout after 5s | None | channel playlist.m3u |
+| K-19: The Widowmaker | Paramount+ | Live | Timeout after 5s | None | channel playlist.m3u |
+| Naked Gun 33⅓: The Final Insul | Paramount+ | Live | Timeout after 5s | None | channel playlist.m3u |
+| Atatürk 1881 - 1919 | Others | Live | Timeout after 5s | None | channel playlist.m3u |
 
 ### ❓ Not Found (404) (2 streams)
 *Stream URL no longer exists*
@@ -95,7 +109,7 @@
 
 - **VOD Checking:** Disabled - URLs with .m3u8/#.mkv format were not tested
 - **PPV/Event Checking:** Disabled - UK EVENTS & USA EVENTS groups were not tested  
-- **Timeout:** 10 seconds per stream (PPV channels get 2x timeout)
+- **Timeout:** 5 seconds per stream (PPV channels get 2x timeout)
 - **VOD Detection:** Matches URLs ending with .m3u8/#.mkv, .m3u8/#.mp4, etc.
 - **Event Groups:** Automatically detects "UK EVENTS", "USA EVENTS", and similar groups
 
@@ -126,5 +140,5 @@ To test specific content types:
 4. Adjust **Timeout** for slower connections
 
 ---
-*Last updated: 2025-09-26 02:33:57 UTC*  
+*Last updated: 2025-09-26 02:50:07 UTC*  
 *Report generated automatically by Enhanced GitHub Actions*

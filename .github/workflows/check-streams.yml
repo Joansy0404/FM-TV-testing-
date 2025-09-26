@@ -67,29 +67,17 @@ jobs:
           print(f"📋 Files in directory: {os.listdir('.')}")
           
           def is_vod_url(url):
-              """Check if URL points to a VOD file - URLs ending with .m3u8/#.mkv format"""
-              vod_extensions = ['.mkv', '.mp4', '.avi', '.mov', '.wmv', '.flv', '.webm', '.m4v']
+              """Check if URL points to a VOD file - URLs ending with #.mkv format"""
+              vod_extensions = ['#.mkv', '#.mp4', '#.avi', '#.mov', '#.wmv', '#.flv', '#.webm', '#.m4v']
               
-              # Check if URL ends with .m3u8/# followed by a video extension
+              # Check if URL ends with any of the VOD patterns
               url_lower = url.lower()
+              is_vod = any(url_lower.endswith(ext) for ext in vod_extensions)
               
-              # Look for the pattern: .m3u8/#.extension
-              if '.m3u8/#' in url_lower:
-                  # Extract everything after .m3u8/#
-                  fragment_part = url_lower.split('.m3u8/#', 1)[1]
-                  # Check if fragment starts with any video extension (without the dot)
-                  is_vod = any(fragment_part.startswith(ext[1:]) for ext in vod_extensions)
-                  if is_vod:
-                      print(f"🎬 VOD detected: {url[:80]}...")
-                  return is_vod
+              if is_vod:
+                  print(f"🎬 VOD detected: {url[:80]}...")
               
-              # Also check for direct video file URLs (fallback)
-              parsed_url = urllib.parse.urlparse(url)
-              path = parsed_url.path.lower()
-              is_direct_vod = any(path.endswith(ext) for ext in vod_extensions)
-              if is_direct_vod:
-                  print(f"🎬 Direct VOD detected: {url[:80]}...")
-              return is_direct_vod
+              return is_vod
           
           def is_ppv_channel(name, group):
               """Check if channel is PPV (Pay-Per-View) or Event channel"""

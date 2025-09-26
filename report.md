@@ -1,117 +1,140 @@
-# 📺 M3U Stream Status Report
+# 📺 Enhanced M3U Stream Status Report
 
-**Generated on:** 2025-09-25 21:15:52 UTC  
-**GitHub Actions Runner Location:** US (Boydton)  
-**Runner public IP:** 172.172.87.87  
-**Runner network:** AS8075 Microsoft Corporation
+**Generated on:** 2025-09-26 02:10:16 UTC  
+**Duration:** 499.3 seconds  
+**Runner Location:** GitHub Actions (global infrastructure)  
+**Configuration:** VODs: ❌, PPV: ❌, Timeout: 5s
 
 ## 📊 Summary
 
 | Metric | Count | Percentage |
 |--------|-------|------------|
-| **Total Streams** | 614 | 100% |
-| **✅ Working Streams** | 560 | 91.2% |
-| **❌ Failed Streams** | 54 | 8.8% |
+| **Total Streams Found** | 1281 | 100% |
+| **🔍 Checked Streams** | 526 | 41.1% |
+| **✅ Working Streams** | 498 | 94.7% |
+| **❌ Failed Streams** | 28 | 5.3% |
+| **⏭️ Skipped Streams** | 755 | 58.9% |
 
 ## 📁 Files Processed
-- `channel playlist.m3u`: 614 streams
 
-## 📋 Failure Analysis (54 total failures)
-### 🚫 Access Denied (12 streams)
-*Likely geo-blocked or requires authentication*
+- `channel playlist.m3u`: 1281 streams
 
-| Channel Name | Group | File | Error Details | Geo Block Hint | Runner Country | Runner IP | Runner Org | Code |
-|--------------|-------|------|--------------|---------------|---------------|-----------|------------|------|
-| BLAZE | UK | channel playlist.m3u | Access denied (possibly geo-blocked) | 403 forbidden | US | 172.172.87.87 | AS8075 Microsoft Corporation | 403 |
-| TV WAREHOUSE | UK | channel playlist.m3u | Access denied (possibly geo-blocked) | 403 forbidden | US | 172.172.87.87 | AS8075 Microsoft Corporation | 403 |
-| INSIDE CRIME | UK FAST | channel playlist.m3u | Access denied (possibly geo-blocked) | 403 forbidden | US | 172.172.87.87 | AS8075 Microsoft Corporation | 403 |
-| TG 4 | IE | channel playlist.m3u | Access denied (possibly geo-blocked) | 403 forbidden | US | 172.172.87.87 | AS8075 Microsoft Corporation | 403 |
-| AL MASHHAD | AE | channel playlist.m3u | Access denied (possibly geo-blocked) | 403 forbidden | US | 172.172.87.87 | AS8075 Microsoft Corporation | 403 |
-| ALARABIYA | AE | channel playlist.m3u | Access denied (possibly geo-blocked) | 403 forbidden | US | 172.172.87.87 | AS8075 Microsoft Corporation | 403 |
-| MBC 1 | AE | channel playlist.m3u | Access denied (possibly geo-blocked) | 403 forbidden | US | 172.172.87.87 | AS8075 Microsoft Corporation | 403 |
-| MBC 4 | AE | channel playlist.m3u | Access denied (possibly geo-blocked) | 403 forbidden | US | 172.172.87.87 | AS8075 Microsoft Corporation | 403 |
-| MBC 5 | AE | channel playlist.m3u | Access denied (possibly geo-blocked) | 403 forbidden | US | 172.172.87.87 | AS8075 Microsoft Corporation | 403 |
-| MBC PERSIA | AE | channel playlist.m3u | Access denied (possibly geo-blocked) | 403 forbidden | US | 172.172.87.87 | AS8075 Microsoft Corporation | 403 |
-| SPACETOON ARABIC | AE | channel playlist.m3u | Access denied (possibly geo-blocked) | 403 forbidden | US | 172.172.87.87 | AS8075 Microsoft Corporation | 403 |
-| WANASAH | AE | channel playlist.m3u | Access denied (possibly geo-blocked) | 403 forbidden | US | 172.172.87.87 | AS8075 Microsoft Corporation | 403 |
+## ⏭️ Skipped Streams (755 total)
 
-### ⏱️ Connection Timeouts (30 streams)
-*Server too slow to respond or overloaded*
+### 🎬 VOD Files (752 skipped)
+*Enable "Check VODs" in workflow dispatch to test these*
 
-| Channel Name | Group | File | Error Details | Geo Block Hint | Runner Country | Runner IP | Runner Org | Code |
-|--------------|-------|------|--------------|---------------|---------------|-----------|------------|------|
-| SKY SPORTS GOLF | UK | channel playlist.m3u | Connection timeout |  | US | 172.172.87.87 | AS8075 Microsoft Corporation | N/A |
-| TNT SPORTS 2 | UK | channel playlist.m3u | Connection timeout |  | US | 172.172.87.87 | AS8075 Microsoft Corporation | N/A |
-| FS2 | USA | channel playlist.m3u | Connection timeout |  | US | 172.172.87.87 | AS8075 Microsoft Corporation | N/A |
-| MLB 1 | USA EVENTS | channel playlist.m3u | Connection timeout |  | US | 172.172.87.87 | AS8075 Microsoft Corporation | N/A |
-| MLB 2 | USA EVENTS | channel playlist.m3u | Connection timeout |  | US | 172.172.87.87 | AS8075 Microsoft Corporation | N/A |
-| MLB 3 | USA EVENTS | channel playlist.m3u | Connection timeout |  | US | 172.172.87.87 | AS8075 Microsoft Corporation | N/A |
-| NBA 1 | USA EVENTS | channel playlist.m3u | Connection timeout |  | US | 172.172.87.87 | AS8075 Microsoft Corporation | N/A |
-| NBA 11 | USA EVENTS | channel playlist.m3u | Connection timeout |  | US | 172.172.87.87 | AS8075 Microsoft Corporation | N/A |
-| NBA 13 | USA EVENTS | channel playlist.m3u | Connection timeout |  | US | 172.172.87.87 | AS8075 Microsoft Corporation | N/A |
-| NBA 2 | USA EVENTS | channel playlist.m3u | Connection timeout |  | US | 172.172.87.87 | AS8075 Microsoft Corporation | N/A |
-| NBA 3 | USA EVENTS | channel playlist.m3u | Connection timeout |  | US | 172.172.87.87 | AS8075 Microsoft Corporation | N/A |
-| NBA 4 | USA EVENTS | channel playlist.m3u | Connection timeout |  | US | 172.172.87.87 | AS8075 Microsoft Corporation | N/A |
-| NBA 9 | USA EVENTS | channel playlist.m3u | Connection timeout |  | US | 172.172.87.87 | AS8075 Microsoft Corporation | N/A |
-| NFL 15 | USA EVENTS | channel playlist.m3u | Connection timeout |  | US | 172.172.87.87 | AS8075 Microsoft Corporation | N/A |
-| NHL 1 | USA EVENTS | channel playlist.m3u | Connection timeout |  | US | 172.172.87.87 | AS8075 Microsoft Corporation | N/A |
-| NHL 10 | USA EVENTS | channel playlist.m3u | Connection timeout |  | US | 172.172.87.87 | AS8075 Microsoft Corporation | N/A |
-| NHL 11 | USA EVENTS | channel playlist.m3u | Connection timeout |  | US | 172.172.87.87 | AS8075 Microsoft Corporation | N/A |
-| NHL 13 | USA EVENTS | channel playlist.m3u | Connection timeout |  | US | 172.172.87.87 | AS8075 Microsoft Corporation | N/A |
-| NHL 4 | USA EVENTS | channel playlist.m3u | Connection timeout |  | US | 172.172.87.87 | AS8075 Microsoft Corporation | N/A |
-| NHL 5 | USA EVENTS | channel playlist.m3u | Connection timeout |  | US | 172.172.87.87 | AS8075 Microsoft Corporation | N/A |
-| NHL 6 | USA EVENTS | channel playlist.m3u | Connection timeout |  | US | 172.172.87.87 | AS8075 Microsoft Corporation | N/A |
-| NHL 7 | USA EVENTS | channel playlist.m3u | Connection timeout |  | US | 172.172.87.87 | AS8075 Microsoft Corporation | N/A |
-| NHL 8 | USA EVENTS | channel playlist.m3u | Connection timeout |  | US | 172.172.87.87 | AS8075 Microsoft Corporation | N/A |
-| NHL 9 | USA EVENTS | channel playlist.m3u | Connection timeout |  | US | 172.172.87.87 | AS8075 Microsoft Corporation | N/A |
-| PPV 1 | USA EVENTS | channel playlist.m3u | Connection timeout |  | US | 172.172.87.87 | AS8075 Microsoft Corporation | N/A |
-| PPV 2 | USA EVENTS | channel playlist.m3u | Connection timeout |  | US | 172.172.87.87 | AS8075 Microsoft Corporation | N/A |
-| PPV 3 | USA EVENTS | channel playlist.m3u | Connection timeout |  | US | 172.172.87.87 | AS8075 Microsoft Corporation | N/A |
-| PPV 4 | USA EVENTS | channel playlist.m3u | Connection timeout |  | US | 172.172.87.87 | AS8075 Microsoft Corporation | N/A |
-| PPV 5 | USA EVENTS | channel playlist.m3u | Connection timeout |  | US | 172.172.87.87 | AS8075 Microsoft Corporation | N/A |
-| PPV 6 | USA EVENTS | channel playlist.m3u | Connection timeout |  | US | 172.172.87.87 | AS8075 Microsoft Corporation | N/A |
+| Channel Name | Group | File | URL Preview |
+|-------------|-------|------|-------------|
+| ASPIRE | USA | channel playlist.m3u | https://fl7.moveonjoy.com/Aspire/index.m3u8 |
+| AXS TV | USA | channel playlist.m3u | https://fl7.moveonjoy.com/Axs_TV/index.m3u8 |
+| BBC NEWS | USA | channel playlist.m3u | https://fl7.moveonjoy.com/BBC_WORLD_NEWS/index.m3u8 |
+| BEIN SPORTS | USA | channel playlist.m3u | https://fl7.moveonjoy.com/BEIN_SPORTS/index.m3u8 |
+| BET (EAST) | USA | channel playlist.m3u | https://fl7.moveonjoy.com/BET_EAST/index.m3u8 |
+| BET GOSPEL | USA | channel playlist.m3u | https://fl7.moveonjoy.com/BET_GOSPEL/index.m3u8 |
+| BET HER (EAST) | USA | channel playlist.m3u | https://fl7.moveonjoy.com/BET_HER/index.m3u8 |
+| BET JAMS | USA | channel playlist.m3u | https://fl7.moveonjoy.com/BET_Jams/index.m3u8 |
+| BET SOUL | USA | channel playlist.m3u | https://fl7.moveonjoy.com/BET_SOUL/index.m3u8 |
+| BRAVO (EAST) | USA | channel playlist.m3u | https://fl7.moveonjoy.com/BRAVO/index.m3u8 |
+| CBS SPORTS NETWORK | USA | channel playlist.m3u | https://fl7.moveonjoy.com/CBS_SPORTS_NETWORK/index.m3u8 |
+| CLEO TV | USA | channel playlist.m3u | https://fl7.moveonjoy.com/Cleo_TV/index.m3u8 |
+| CMT | USA | channel playlist.m3u | https://fl7.moveonjoy.com/CMT/index.m3u8 |
+| CNBC WORLD | USA | channel playlist.m3u | https://fl7.moveonjoy.com/CNBC_World/index.m3u8 |
+| COMET | USA | channel playlist.m3u | https://fl7.moveonjoy.com/COMET/index.m3u8 |
+*... and 737 more VOD files*
 
-### 🌐 DNS Resolution Failures (1 streams)
-*Domain name cannot be resolved*
+### 🥊 PPV/Event Channels (3 skipped)
+*Enable "Check PPV" in workflow dispatch to test these*
 
-| Channel Name | Group | File | Error Details | Geo Block Hint | Runner Country | Runner IP | Runner Org | Code |
-|--------------|-------|------|--------------|---------------|---------------|-----------|------------|------|
-| Sportsnet 360 | CA | channel playlist.m3u | DNS resolution failed |  | US | 172.172.87.87 | AS8075 Microsoft Corporation | N/A |
+| Channel Name | Group | File | URL Preview |
+|-------------|-------|------|-------------|
+| BLOOMBERG TV EMEA LIVE EVENT | UK EVENTS | channel playlist.m3u | https://bloomberg.com/media-manifest/streams/eu-event.m3u8 |
+| UFC | USA FAST | channel playlist.m3u | https://live-manifest.production-public.tubi.io/live/dd6d627 |
+| PEACOCK PPV | USA EVENTS | channel playlist.m3u | http://user.scalecdn.co:8080/live/26725074/92867131/696539.t |
 
-### ❓ Not Found (404) (11 streams)
+
+## 📋 Failure Analysis (28 total failures)
+
+### 🚫 Access Denied (14 streams)
+*Geo-blocked or authentication required*
+
+| Channel | Group | Type | Error | Code | File |
+|---------|-------|------|-------|------|------|
+| BLAZE | UK | Live | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
+| TV WAREHOUSE | UK | Live | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
+| INSIDE CRIME | UK FAST | Live | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
+| TG 4 | IE | Live | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
+| AL MASHHAD | AE | Live | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
+| ALARABIYA | AE | Live | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
+| MBC 1 | AE | Live | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
+| MBC 4 | AE | Live | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
+| MBC 5 | AE | Live | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
+| MBC BOLLYWOOD | AE | Live | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
+| MBC DRAMA | AE | Live | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
+| MBC PERSIA | AE | Live | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
+| SPACETOON ARABIC | AE | Live | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
+| WANASAH | AE | Live | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
+
+### ⏱️ Connection Timeouts (13 streams)
+*Server slow/overloaded or PPV preparing*
+
+| Channel | Group | Type | Error | Code | File |
+|---------|-------|------|-------|------|------|
+| CHALLENGE | UK | Live | Timeout after 5s | None | channel playlist.m3u |
+| SKY SPORTS CRICKET | UK | Live | Timeout after 5s | None | channel playlist.m3u |
+| TNT SPORTS 2 | UK | Live | Timeout after 5s | None | channel playlist.m3u |
+| TNT SPORTS 3 | UK | Live | Timeout after 5s | None | channel playlist.m3u |
+| VIRGIN MEDIA FOUR | UK | Live | Timeout after 5s | None | channel playlist.m3u |
+| VIRGIN MEDIA THREE | UK | Live | Timeout after 5s | None | channel playlist.m3u |
+| RTÈ JR. | IE | Live | Timeout after 5s | None | channel playlist.m3u |
+| RTÈ ONE | IE | Live | Timeout after 5s | None | channel playlist.m3u |
+| ESPN | USA | Live | Timeout after 5s | None | channel playlist.m3u |
+| ESPN 2 | USA | Live | Timeout after 5s | None | channel playlist.m3u |
+| FS1 | USA | Live | Timeout after 5s | None | channel playlist.m3u |
+| FS2 | USA | Live | Timeout after 5s | None | channel playlist.m3u |
+| 24/7 FAMILY GUY | INT | Live | Timeout after 5s | None | channel playlist.m3u |
+
+### ❓ Not Found (404) (1 streams)
 *Stream URL no longer exists*
 
-| Channel Name | Group | File | Error Details | Geo Block Hint | Runner Country | Runner IP | Runner Org | Code |
-|--------------|-------|------|--------------|---------------|---------------|-----------|------------|------|
-| NHL 2 | USA EVENTS | channel playlist.m3u | Stream not found |  | US | 172.172.87.87 | AS8075 Microsoft Corporation | 404 |
-| NHL 3 | USA EVENTS | channel playlist.m3u | Stream not found |  | US | 172.172.87.87 | AS8075 Microsoft Corporation | 404 |
-| CTB PERTH | AUS | channel playlist.m3u | Stream not found |  | US | 172.172.87.87 | AS8075 Microsoft Corporation | 404 |
-| BEATS RADIO | AR | channel playlist.m3u | Stream not found |  | US | 172.172.87.87 | AS8075 Microsoft Corporation | 404 |
-| CABLE IMAGEN ARMSTRONG | AR | channel playlist.m3u | Stream not found |  | US | 172.172.87.87 | AS8075 Microsoft Corporation | 404 |
-| CANAL 3 LAS HERAS | AR | channel playlist.m3u | Stream not found |  | US | 172.172.87.87 | AS8075 Microsoft Corporation | 404 |
-| CANAL 4 SAN JUAN | AR | channel playlist.m3u | Stream not found |  | US | 172.172.87.87 | AS8075 Microsoft Corporation | 404 |
-| CANAL 5 PICO TRUNCADO | AR | channel playlist.m3u | Stream not found |  | US | 172.172.87.87 | AS8075 Microsoft Corporation | 404 |
-| CANAL 5 SANTA FE | AR | channel playlist.m3u | Stream not found |  | US | 172.172.87.87 | AS8075 Microsoft Corporation | 404 |
-| ANYTIME TV | ZA | channel playlist.m3u | Stream not found |  | US | 172.172.87.87 | AS8075 Microsoft Corporation | 404 |
-| YEMEN SHABAB CHANNEL | YE | channel playlist.m3u | Stream not found |  | US | 172.172.87.87 | AS8075 Microsoft Corporation | 404 |
+| Channel | Group | Type | Error | Code | File |
+|---------|-------|------|-------|------|------|
+| USA Network | CA | Live | Stream not found | 404 | channel playlist.m3u |
 
 
-## 📈 Geographic Notes
+## 📋 Configuration Notes
 
-- Tests run from **GitHub Actions infrastructure** (current runner country: US)
-- "Access Denied" errors may indicate geo-restrictions for this region
-- Some streams may work from different geographic locations
-- DNS errors suggest the streaming service may be down entirely
-- Timeout errors often indicate server overload or slow response
+- **VOD Checking:** Disabled - Files ending with .mkv, .mp4, etc. were not tested
+- **PPV/Event Checking:** Disabled - UK EVENTS & USA EVENTS groups were not tested  
+- **Timeout:** 5 seconds per stream (PPV channels get 2x timeout)
+- **Detection:** VODs detected by file extensions anywhere in URL (including after #)
+- **Event Groups:** Automatically detects "UK EVENTS", "USA EVENTS", and similar groups
 
-## 📝 Technical Details
+## 📈 Geographic & Technical Notes
 
-- **User-Agent:** Modern browser simulation for better compatibility
-- **Timeout:** 15 seconds per stream
-- **Method:** HEAD request first, then GET with stream verification
-- **Retry Logic:** Single attempt per stream to avoid rate limiting
-- **Headers:** Include Accept-Language and Referer for better success rates
+- Tests run from **GitHub Actions** global infrastructure
+- "Access Denied" (403) errors typically indicate geo-restrictions
+- PPV channels may be offline between events (normal behavior)
+- VOD files are static content and should be consistently available
+- Timeout errors may indicate server overload or preparation time
+- DNS errors suggest the streaming service domain is down
+
+## 🔧 Technical Details
+
+- **User-Agent:** Chrome 120 simulation for maximum compatibility
+- **Method:** HEAD for VODs, GET with stream verification for live content
+- **Headers:** Enhanced with security headers and proper content type
+- **Rate Limiting:** Dynamic delays based on success rate
+- **Retry Logic:** Single attempt per stream to avoid overwhelming servers
+
+## 🎛️ Manual Testing Options
+
+To test specific content types:
+1. Go to **Actions** → **Check M3U Streams** → **Run workflow**
+2. Toggle **Check VODs** to test .mkv/.mp4 files
+3. Toggle **Check PPV** to test Pay-Per-View channels
+4. Adjust **Timeout** for slower connections
 
 ---
-*Last updated: 2025-09-25 21:15:52 UTC*
-*Report generated automatically by GitHub Actions*
+*Last updated: 2025-09-26 02:10:16 UTC*  
+*Report generated automatically by Enhanced GitHub Actions*

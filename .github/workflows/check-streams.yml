@@ -439,49 +439,43 @@ jobs:
           """
                   
                   if skipped_categories['vods'] and not CHECK_VODS:
-                      print(f"📝 Adding {len(skipped_categories['vods'])} VOD entries")
+                      print(f"📝 Adding VOD summary")
+                      
+                      # Count VODs by group
+                      vod_groups = {}
+                      for item in skipped_categories['vods']:
+                          group = item.get('group', 'No Group')
+                          vod_groups[group] = vod_groups.get(group, 0) + 1
+                      
                       report += f"""### 🎬 VOD Files ({len(skipped_categories['vods'])} skipped)
           *Enable "Check VODs" in workflow dispatch to test these*
           
-          | Channel Name | Group | File | URL Preview |
-          |-------------|-------|------|-------------|
+          | Group | Count |
+          |-------|-------|
           """
-                      for item in skipped_categories['vods'][:15]:  # Limit to first 15
-                          try:
-                              name = str(item.get('name', 'Unknown')).replace('|', '\\|')[:50]
-                              group = str(item.get('group', 'No Group')).replace('|', '\\|')[:30]
-                              url_preview = str(item.get('url', 'N/A')).replace('|', '\\|')[:60]
-                              file_name = str(item.get('file', 'Unknown')).replace('|', '\\|')
-                              report += f"| {name} | {group} | {file_name} | {url_preview} |\n"
-                          except Exception as e:
-                              print(f"⚠️ Error adding VOD entry: {str(e)}")
-                              continue
-                      
-                      if len(skipped_categories['vods']) > 15:
-                          report += f"*... and {len(skipped_categories['vods']) - 15} more VOD files*\n"
+                      for group, count in sorted(vod_groups.items()):
+                          group_safe = str(group).replace('|', '\\|')
+                          report += f"| {group_safe} | {count} |\n"
                       report += "\n"
                   
                   if skipped_categories['ppv'] and not CHECK_PPV:
-                      print(f"📝 Adding {len(skipped_categories['ppv'])} PPV entries")
+                      print(f"📝 Adding PPV summary")
+                      
+                      # Count PPV by group
+                      ppv_groups = {}
+                      for item in skipped_categories['ppv']:
+                          group = item.get('group', 'No Group')
+                          ppv_groups[group] = ppv_groups.get(group, 0) + 1
+                      
                       report += f"""### 🥊 PPV/Event Channels ({len(skipped_categories['ppv'])} skipped)
           *Enable "Check PPV" in workflow dispatch to test these*
           
-          | Channel Name | Group | File | URL Preview |
-          |-------------|-------|------|-------------|
+          | Group | Count |
+          |-------|-------|
           """
-                      for item in skipped_categories['ppv'][:15]:  # Limit to first 15
-                          try:
-                              name = str(item.get('name', 'Unknown')).replace('|', '\\|')[:50]
-                              group = str(item.get('group', 'No Group')).replace('|', '\\|')[:30]
-                              url_preview = str(item.get('url', 'N/A')).replace('|', '\\|')[:60]
-                              file_name = str(item.get('file', 'Unknown')).replace('|', '\\|')
-                              report += f"| {name} | {group} | {file_name} | {url_preview} |\n"
-                          except Exception as e:
-                              print(f"⚠️ Error adding PPV entry: {str(e)}")
-                              continue
-                      
-                      if len(skipped_categories['ppv']) > 15:
-                          report += f"*... and {len(skipped_categories['ppv']) - 15} more event channels*\n"
+                      for group, count in sorted(ppv_groups.items()):
+                          group_safe = str(group).replace('|', '\\|')
+                          report += f"| {group_safe} | {count} |\n"
                       report += "\n"
               
               print("📝 Skipped streams section completed")

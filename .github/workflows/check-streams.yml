@@ -64,9 +64,9 @@ jobs:
           CHECK_PPV = os.getenv('CHECK_PPV', 'false').lower() == 'true' 
           TIMEOUT_SECONDS = int(os.getenv('TIMEOUT_SECONDS', '10'))
           
-          print(f"🔧 Configuration: VODs={CHECK_VODS}, PPV={CHECK_PPV}, Timeout={TIMEOUT_SECONDS}s")
-          print(f"📁 Current directory: {os.getcwd()}")
-          print(f"📋 Files in directory: {os.listdir('.')}")
+          print(f"Configuration: VODs={CHECK_VODS}, PPV={CHECK_PPV}, Timeout={TIMEOUT_SECONDS}s")
+          print(f"Current directory: {os.getcwd()}")
+          print(f"Files in directory: {os.listdir('.')}")
           
           def is_vod_url(url):
               """Simple VOD detection - only URLs ending with /#.mkv"""
@@ -82,6 +82,11 @@ jobs:
               url_lower = url.lower()
               return '.ts' in url_lower and not is_vod_url(url) and not is_m3u8_stream(url)
           
+          def is_a1xs_url(url):
+              """Check if URL is an a1xs channel URL"""
+              url_lower = url.lower()
+              return 'a1xs.vip' in url_lower and not is_vod_url(url) and not is_m3u8_stream(url) and not is_ts_stream(url)
+          
           def classify_stream_type(url):
               """Classify stream type for reporting"""
               url_lower = url.lower()
@@ -92,6 +97,8 @@ jobs:
                   return 'M3U8'
               elif is_ts_stream(url):
                   return 'TS'
+              elif is_a1xs_url(url):
+                  return 'A1XS Channel'
               elif 'token=' in url_lower:
                   return 'Token URL'
               elif 'profile=pass' in url_lower or 'profile=' in url_lower:
@@ -255,6 +262,7 @@ jobs:
           total_m3u8_streams = 0
           total_vod_files = 0
           total_ts_streams = 0
+          total_a1xs_channels = 0
           total_token_urls = 0
           total_profile_urls = 0
           total_other_streams = 0
@@ -263,8 +271,8 @@ jobs:
           skipped_streams = 0
           
           # Track working/failed counts by type
-          working_by_type = {'M3U8': 0, 'VOD (#.mkv)': 0, 'TS': 0, 'Token URL': 0, 'Profile URL': 0, 'Other': 0}
-          failed_by_type = {'M3U8': 0, 'VOD (#.mkv)': 0, 'TS': 0, 'Token URL': 0, 'Profile URL': 0, 'Other': 0}
+          working_by_type = {'M3U8': 0, 'VOD (#.mkv)': 0, 'TS': 0, 'A1XS Channel': 0, 'Token URL': 0, 'Profile URL': 0, 'Other': 0}
+          failed_by_type = {'M3U8': 0, 'VOD (#.mkv)': 0, 'TS': 0, 'A1XS Channel': 0, 'Token URL': 0, 'Profile URL': 0, 'Other': 0}
           
           # Enhanced failure categorization
           categorized_failures = {
@@ -293,11 +301,11 @@ jobs:
               'channel playlist.m3u'
           ]
           
-          print("🚀 Starting enhanced stream check...")
+          print("Starting enhanced stream check...")
           start_time = datetime.now(timezone.utc)
           
           for m3u_file in m3u_files:
-              print(f"📁 Processing {m3u_file}...")
+              print(f"Processing {m3u_file}...")
               
               try:
                   streams = parse_m3u(m3u_file)
@@ -308,6 +316,7 @@ jobs:
                   file_m3u8_count = 0
                   file_vod_count = 0
                   file_ts_count = 0
+                  file_a1xs_count = 0
                   file_token_count = 0
                   file_profile_count = 0
                   file_other_count = 0
@@ -323,6 +332,9 @@ jobs:
                       elif stream_type == 'TS':
                           file_ts_count += 1
                           total_ts_streams += 1
+                      elif stream_type == 'A1XS Channel':
+                          file_a1xs_count += 1
+                          total_a1xs_channels += 1
                       elif stream_type == 'Token URL':
                           file_token_count += 1
                           total_token_urls += 1
@@ -334,12 +346,13 @@ jobs:
                           total_other_streams += 1
                   
                   print(f"Found {file_total} total streams in {m3u_file}:")
-                  print(f"  📺 M3U8 Streams: {file_m3u8_count}")
-                  print(f"  🎬 VOD Files: {file_vod_count}")
-                  print(f"  📡 TS Streams: {file_ts_count}")
-                  print(f"  🔑 Token URLs: {file_token_count}")
-                  print(f"  ⚙️ Profile URLs: {file_profile_count}")
-                  print(f"  🔗 Other Streams: {file_other_count}")
+                  print(f"  M3U8 Streams: {file_m3u8_count}")
+                  print(f"  VOD Files: {file_vod_count}")
+                  print(f"  TS Streams: {file_ts_count}")
+                  print(f"  A1XS Channels: {file_a1xs_count}")
+                  print(f"  Token URLs: {file_token_count}")
+                  print(f"  Profile URLs: {file_profile_count}")
+                  print(f"  Other Streams: {file_other_count}")
                   
                   file_working = 0
                   file_skipped = 0
@@ -351,12 +364,6 @@ jobs:
                       if should_skip:
                           skipped_streams += 1
                           file_skipped += 1
-                          
-                          # Show what's being skipped for debugging
-                          if "VOD" in skip_reason:
-                              print(f"⭕ Skipping VOD: {stream['name'][:40]} - {stream['url'][:60]}...")
-                          elif "PPV" in skip_reason:
-                              print(f"⭕ Skipping PPV: {stream['name'][:40]} (Group: {stream['group']})")
                           
                           # Categorize skipped streams
                           if "VOD" in skip_reason:
@@ -374,22 +381,20 @@ jobs:
                                   'url': stream['url'][:60] + '...' if len(stream['url']) > 60 else stream['url']
                               })
                           
-                          if (i + 1) % 100 == 0:  # Progress update every 100 items
-                              print(f"Progress: {i+1}/{file_total} processed, {file_skipped} skipped, {checked_streams} checked")
                           continue
                       
                       checked_streams += 1
                       stream_type = classify_stream_type(stream['url'])
                       
-                      # Collect examples of "Other" streams (limit to 20 examples)
-                      if stream_type == 'Other' and len(other_stream_examples) < 20:
+                      # Collect examples of "Other" streams (limit to 50 examples)
+                      if stream_type == 'Other' and len(other_stream_examples) < 50:
                           other_stream_examples.append({
                               'name': stream['name'],
                               'url': stream['url'],
                               'group': stream['group']
                           })
                       
-                      print(f"🔍 Checking {checked_streams}/{total_streams-skipped_streams}: {stream['name'][:40]}... ({stream_type})")
+                      print(f"Checking {checked_streams}/{total_streams-skipped_streams}: {stream['name'][:40]}... ({stream_type})")
                       
                       # Determine if this is a PPV channel for special handling
                       is_ppv = is_ppv_channel(stream['name'], stream['group'])
@@ -400,9 +405,9 @@ jobs:
                           working_streams += 1
                           file_working += 1
                           working_by_type[stream_type] += 1
-                          print(f"  ✅ Working ({result.get('type', stream_type)})")
+                          print(f"  Working ({result.get('type', stream_type)})")
                       else:
-                          print(f"  ❌ Failed: {result['error']}")
+                          print(f"  Failed: {result['error']}")
                           failed_by_type[stream_type] += 1
                           
                           # Categorize the failure
@@ -429,11 +434,10 @@ jobs:
                       else:
                           time.sleep(0.05)
                   
-                  print(f"📊 File {m3u_file}: {file_working}/{file_total-file_skipped} working, {file_skipped} skipped")
+                  print(f"File {m3u_file}: {file_working}/{file_total-file_skipped} working, {file_skipped} skipped")
                   
               except Exception as e:
-                  print(f"❌ Error processing {m3u_file}: {str(e)}")
-                  # Continue processing other files instead of failing
+                  print(f"Error processing {m3u_file}: {str(e)}")
                   continue
           
           # Calculate final statistics
@@ -443,26 +447,26 @@ jobs:
           end_time = datetime.now(timezone.utc)
           duration = end_time - start_time
           
-          print(f"⏱️ Check completed in {duration.total_seconds():.1f} seconds")
-          print(f"📊 Stream Type Summary:")
-          print(f"  📺 Total M3U8 Streams: {total_m3u8_streams}")
-          print(f"  🎬 Total VOD Files: {total_vod_files}")
-          print(f"  📡 Total TS Streams: {total_ts_streams}")
-          print(f"  🔑 Total Token URLs: {total_token_urls}")
-          print(f"  ⚙️ Total Profile URLs: {total_profile_urls}")
-          print(f"  🔗 Total Other Streams: {total_other_streams}")
-          print(f"📊 Results: {working_streams} working, {total_failures} failed, {skipped_streams} skipped")
+          print(f"Check completed in {duration.total_seconds():.1f} seconds")
+          print(f"Stream Type Summary:")
+          print(f"  Total M3U8 Streams: {total_m3u8_streams}")
+          print(f"  Total VOD Files: {total_vod_files}")
+          print(f"  Total TS Streams: {total_ts_streams}")
+          print(f"  Total A1XS Channels: {total_a1xs_channels}")
+          print(f"  Total Token URLs: {total_token_urls}")
+          print(f"  Total Profile URLs: {total_profile_urls}")
+          print(f"  Total Other Streams: {total_other_streams}")
+          print(f"Results: {working_streams} working, {total_failures} failed, {skipped_streams} skipped")
           
-          # Validate results before proceeding
           if total_streams == 0:
-              print("❌ No streams found to process!")
+              print("No streams found to process!")
               import sys
               sys.exit(1)
           
-          print("✅ Stream checking completed successfully")
+          print("Stream checking completed successfully")
           
-          # Generate enhanced report
-          print("📝 Generating report...")
+          # Generate report with requested layout
+          print("Generating report...")
           
           try:
               # Calculate percentages safely
@@ -470,170 +474,84 @@ jobs:
               failure_percentage = (total_failures/total_checked*100) if total_checked > 0 else 0
               skipped_percentage = (skipped_streams/total_streams*100) if total_streams > 0 else 0
               
-              # Build cleaner report
-              vod_config = '✅' if CHECK_VODS else '❌'
-              ppv_config = '✅' if CHECK_PPV else '❌'
+              vod_config = 'Enabled' if CHECK_VODS else 'Disabled'
+              ppv_config = 'Enabled' if CHECK_PPV else 'Disabled'
               
               # Calculate total channel streams (everything except VOD)
               total_channel_streams = total_streams - total_vod_files
               
-              # Calculate success rates by type
-              type_success_rates = {}
-              for stream_type in working_by_type.keys():
-                  total_type = working_by_type[stream_type] + failed_by_type[stream_type]
-                  if total_type > 0:
-                      type_success_rates[stream_type] = (working_by_type[stream_type] / total_type * 100)
-                  else:
-                      type_success_rates[stream_type] = 0
-              
-              report = "# 📺 Enhanced M3U Stream Status Report\n\n"
+              report = "# M3U Stream Status Report\n\n"
               report += f"**Generated on:** {end_time.strftime('%Y-%m-%d %H:%M:%S')} UTC  \n"
               report += f"**Duration:** {duration.total_seconds():.1f} seconds  \n"
-              report += "**Runner Location:** GitHub Actions (global infrastructure)  \n"
               report += f"**Configuration:** VODs: {vod_config}, PPV: {ppv_config}, Timeout: {TIMEOUT_SECONDS}s\n\n"
               
-              report += "## 📊 Summary\n\n"
-              report += "| Metric | Count | Percentage |\n"
-              report += "|--------|-------|-----------|\n"
-              report += f"| **Total Streams Found** | {total_streams} | 100% |\n"
-              report += f"| **Total Channel Streams** | {total_channel_streams} | {((total_channel_streams/total_streams)*100):.1f}% |\n"
-              report += f"| **Total VOD Streams** | {total_vod_files} | {((total_vod_files/total_streams)*100):.1f}% |\n"
-              report += f"| **🔍 Checked Streams** | {total_checked} | {checked_percentage:.1f}% |\n"
-              report += f"| **✅ Working Streams** | {working_streams} | {working_percentage:.1f}% |\n"
-              report += f"| **❌ Failed Streams** | {total_failures} | {failure_percentage:.1f}% |\n"
-              report += f"| **⭕ Skipped Streams** | {skipped_streams} | {skipped_percentage:.1f}% |\n\n"
-              
-              report += "## 📊 Stream Type Breakdown\n\n"
-              report += "| Type | Working | Failed | Total Checked | Success Rate |\n"
-              report += "|------|---------|--------|---------------|-------------|\n"
-              
-              # Define stream types with icons and descriptions
-              stream_types_info = [
-                  ('M3U8', '📺 .M3U8'),
-                  ('TS', '📡 .TS'),
-                  ('Token URL', '🔑 Token URLs'),
-                  ('Profile URL', '⚙️ Profile URLs'), 
-                  ('VOD (#.mkv)', '🎬 .mkv URLs'),
-                  ('Other', '🔗 Other')
-              ]
-              
-              for stream_type, display_name in stream_types_info:
-                  working_count = working_by_type[stream_type]
-                  failed_count = failed_by_type[stream_type]
-                  total_type = working_count + failed_count
-                  success_rate = type_success_rates[stream_type]
-                  
-                  if total_type > 0:
-                      report += f"| **{display_name}** | {working_count} | {failed_count} | {total_type} | {success_rate:.1f}% |\n"
-              
-              report += "\n## 📁 Files Processed\n\n"
-              
-              print("📝 Report header generated successfully")
-              
-          except Exception as e:
-              print(f"❌ Error generating report header: {str(e)}")
-              import traceback
-              traceback.print_exc()
-              import sys
-              sys.exit(1)
-          
-          try:
+              # Files Processed section (first as requested)
+              report += "## Files Processed\n\n"
               for m3u_file in m3u_files:
                   if os.path.exists(m3u_file):
                       file_streams = parse_m3u(m3u_file)
                       file_m3u8 = sum(1 for s in file_streams if classify_stream_type(s['url']) == 'M3U8')
                       file_vod = sum(1 for s in file_streams if classify_stream_type(s['url']) == 'VOD (#.mkv)')
                       file_ts = sum(1 for s in file_streams if classify_stream_type(s['url']) == 'TS')
+                      file_a1xs = sum(1 for s in file_streams if classify_stream_type(s['url']) == 'A1XS Channel')
                       file_token = sum(1 for s in file_streams if classify_stream_type(s['url']) == 'Token URL')
                       file_profile = sum(1 for s in file_streams if classify_stream_type(s['url']) == 'Profile URL')
-                      file_other = len(file_streams) - file_m3u8 - file_vod - file_ts - file_token - file_profile
-                      report += f"- `{m3u_file}`: {len(file_streams)} streams ({file_m3u8} M3U8, {file_vod} VOD, {file_ts} TS, {file_token} Token, {file_profile} Profile, {file_other} Other)\n"
+                      file_other = len(file_streams) - file_m3u8 - file_vod - file_ts - file_a1xs - file_token - file_profile
+                      report += f"- `{m3u_file}`: {len(file_streams)} streams ({file_m3u8} M3U8, {file_vod} VOD, {file_ts} TS, {file_a1xs} A1XS, {file_token} Token, {file_profile} Profile, {file_other} Other)\n"
               
-              print("📁 Files section added")
+              # Summary section
+              report += "\n## Summary\n\n"
+              report += "| Metric | Count | Percentage |\n"
+              report += "|--------|-------|-----------|\n"
+              report += f"| **Total Streams Found** | {total_streams} | 100% |\n"
+              report += f"| **Total Channel Streams** | {total_channel_streams} | {((total_channel_streams/total_streams)*100):.1f}% |\n"
+              report += f"| **Total VOD Streams** | {total_vod_files} | {((total_vod_files/total_streams)*100):.1f}% |\n"
+              report += f"| **Checked Streams** | {total_checked} | {checked_percentage:.1f}% |\n"
+              report += f"| **Working Streams** | {working_streams} | {working_percentage:.1f}% |\n"
+              report += f"| **Failed Streams** | {total_failures} | {failure_percentage:.1f}% |\n"
+              report += f"| **Skipped Streams** | {skipped_streams} | {skipped_percentage:.1f}% |\n\n"
               
-          except Exception as e:
-              print(f"❌ Error adding files section: {str(e)}")
-              import traceback
-              traceback.print_exc()
-              import sys
-              sys.exit(1)
-          
-          # Skipped streams section
-          try:
-              if skipped_streams > 0:
-                  print("📝 Adding skipped streams section")
-                  report += f"\n## ⭕ Skipped Streams ({skipped_streams} total)\n\n"
+              # Stream Type Breakdown section
+              report += "## Stream Type Breakdown\n\n"
+              report += "| Type | Working | Failed | Total Checked | Success Rate |\n"
+              report += "|------|---------|--------|---------------|-------------|\n"
+              
+              stream_types_info = [
+                  ('M3U8', 'M3U8 Streams'),
+                  ('TS', 'TS Streams'),
+                  ('A1XS Channel', 'A1XS Channels'),
+                  ('Token URL', 'Token URLs'),
+                  ('Profile URL', 'Profile URLs'), 
+                  ('VOD (#.mkv)', 'VOD Files'),
+                  ('Other', 'Other')
+              ]
+              
+              for stream_type, display_name in stream_types_info:
+                  working_count = working_by_type[stream_type]
+                  failed_count = failed_by_type[stream_type]
+                  total_type = working_count + failed_count
+                  success_rate = (working_count / total_type * 100) if total_type > 0 else 0
                   
-                  if skipped_categories['vods'] and not CHECK_VODS:
-                      print(f"📝 Adding VOD summary")
-                      
-                      # Count VODs by group
-                      vod_groups = {}
-                      for item in skipped_categories['vods']:
-                          group = item.get('group', 'No Group')
-                          vod_groups[group] = vod_groups.get(group, 0) + 1
-                      
-                      report += f"### 🎬 VOD Files ({len(skipped_categories['vods'])} skipped)\n"
-                      report += "*Enable \"Check VODs\" in workflow dispatch to test these*\n\n"
-                      report += "| Group | Count |\n"
-                      report += "|-------|---------|\n"
-                      
-                      for group, count in sorted(vod_groups.items()):
-                          group_safe = str(group).replace('|', '\\|')
-                          report += f"| {group_safe} | {count} |\n"
-                      report += "\n"
-                  
-                  if skipped_categories['ppv'] and not CHECK_PPV:
-                      print(f"📝 Adding PPV summary")
-                      
-                      # Count PPV by group
-                      ppv_groups = {}
-                      for item in skipped_categories['ppv']:
-                          group = item.get('group', 'No Group')
-                          ppv_groups[group] = ppv_groups.get(group, 0) + 1
-                      
-                      report += f"### 🥊 PPV/Event Channels ({len(skipped_categories['ppv'])} skipped)\n"
-                      report += "*Enable \"Check PPV\" in workflow dispatch to test these*\n\n"
-                      report += "| Group | Count |\n"
-                      report += "|-------|---------|\n"
-                      
-                      for group, count in sorted(ppv_groups.items()):
-                          group_safe = str(group).replace('|', '\\|')
-                          report += f"| {group_safe} | {count} |\n"
-                      report += "\n"
+                  if total_type > 0:
+                      report += f"| **{display_name}** | {working_count} | {failed_count} | {total_type} | {success_rate:.1f}% |\n"
               
-              print("📝 Skipped streams section completed")
-              
-          except Exception as e:
-              print(f"❌ Error generating skipped streams section: {str(e)}")
-              import traceback
-              traceback.print_exc()
-              # Continue anyway - this is not critical
-              report += "\n*Error generating skipped streams details*\n"
-          
-          # Enhanced failure analysis
-          try:
+              # Failure Analysis section with requested order
               if total_failures > 0:
-                  print(f"📝 Adding failure analysis for {total_failures} failures")
-                  failure_categories = {
-                      'access_denied': ('🚫 Access Denied', 'Geo-blocked or authentication required'),
-                      'timeout': ('⏱️ Connection Timeouts', 'Server slow/overloaded or PPV preparing'),
-                      'dns_error': ('🌐 DNS Failures', 'Domain name resolution failed'),
-                      'not_found': ('❓ Not Found (404)', 'Stream URL no longer exists'),
-                      'server_error': ('💥 Server Errors (5xx)', 'Server-side technical issues'),
-                      'connection_error': ('🔗 Connection Errors', 'Network connectivity problems'),
-                      'stream_error': ('📺 Stream Errors', 'Stream exists but unreadable'),
-                      'rate_limited': ('🚫 Rate Limited', 'Too many requests'),
-                      'http_error': ('🌐 HTTP Errors', 'Other HTTP status codes'),
-                      'unknown_error': ('❓ Unknown Errors', 'Unexpected errors')
-                  }
+                  report += f"\n## Failure Analysis ({total_failures} total failures)\n\n"
                   
-                  report += f"\n## 📋 Failure Analysis ({total_failures} total failures)\n\n"
+                  # Define failure categories in requested order
+                  failure_order = [
+                      ('unknown_error', 'Unknown Errors', 'Unexpected errors'),
+                      ('not_found', 'Not Found (404)', 'Stream URL no longer exists'),
+                      ('server_error', 'Server Errors', 'Server-side technical issues'),
+                      ('dns_error', 'DNS Failures', 'Domain name resolution failed'),
+                      ('timeout', 'Connection Timeouts', 'Server slow/overloaded or PPV preparing'),
+                      ('access_denied', 'Access Denied', 'Geo-blocked or authentication required')
+                  ]
                   
-                  for category, failures in categorized_failures.items():
+                  for category, title, description in failure_order:
+                      failures = categorized_failures.get(category, [])
                       if failures:
-                          title, description = failure_categories.get(category, (f'❓ {category}', 'Unknown error type'))
-                          print(f"📝 Adding {len(failures)} failures for {category}")
                           report += f"### {title} ({len(failures)} streams)\n"
                           report += f"*{description}*\n\n"
                           report += "| Channel | Group | Type | Error | Code | File |\n"
@@ -650,31 +568,52 @@ jobs:
                                   
                                   report += f"| {name} | {group} | {stream_type} | {error} | {code} | {file_name} |\n"
                               except Exception as e:
-                                  print(f"⚠️ Error adding failure entry: {str(e)}")
                                   continue
                           
                           report += "\n"
               
-              else:
-                  print("📝 No failures to report - adding success message")
-                  report += "\n## 🎉 All Checked Streams Working!\n\n"
-                  report += "All tested streams are currently accessible from GitHub's infrastructure.\n"
+              # Skipped Streams section with requested order
+              if skipped_streams > 0:
+                  report += f"\n## Skipped Streams ({skipped_streams} total)\n\n"
+                  
+                  # PPV/Event Channels first (as requested)
+                  if skipped_categories['ppv'] and not CHECK_PPV:
+                      ppv_groups = {}
+                      for item in skipped_categories['ppv']:
+                          group = item.get('group', 'No Group')
+                          ppv_groups[group] = ppv_groups.get(group, 0) + 1
+                      
+                      report += f"### PPV/Event Channels ({len(skipped_categories['ppv'])} skipped)\n"
+                      report += "*Enable \"Check PPV\" in workflow dispatch to test these*\n\n"
+                      report += "| Group | Count |\n"
+                      report += "|-------|---------|\n"
+                      
+                      for group, count in sorted(ppv_groups.items()):
+                          group_safe = str(group).replace('|', '\\|')
+                          report += f"| {group_safe} | {count} |\n"
+                      report += "\n"
+                  
+                  # VOD Files second (as requested)
+                  if skipped_categories['vods'] and not CHECK_VODS:
+                      vod_groups = {}
+                      for item in skipped_categories['vods']:
+                          group = item.get('group', 'No Group')
+                          vod_groups[group] = vod_groups.get(group, 0) + 1
+                      
+                      report += f"### VOD Files ({len(skipped_categories['vods'])} skipped)\n"
+                      report += "*Enable \"Check VODs\" in workflow dispatch to test these*\n\n"
+                      report += "| Group | Count |\n"
+                      report += "|-------|---------|\n"
+                      
+                      for group, count in sorted(vod_groups.items()):
+                          group_safe = str(group).replace('|', '\\|')
+                          report += f"| {group_safe} | {count} |\n"
+                      report += "\n"
               
-              print("📝 Failure analysis section completed")
-              
-          except Exception as e:
-              print(f"❌ Error generating failure analysis: {str(e)}")
-              import traceback
-              traceback.print_exc()
-              # Add a simple fallback
-              report += f"\n## 📋 Failure Analysis\n\n*Error generating detailed failure analysis. {total_failures} streams failed.*\n"
-          
-          # Add "Other" streams examples section
-          try:
+              # Other Stream Examples section (last as requested)
               if other_stream_examples:
-                  print(f"📝 Adding Other streams examples section")
-                  report += f"\n## 🔗 Other Stream Examples ({len(other_stream_examples)} shown)\n\n"
-                  report += "*These URLs don't match standard patterns (M3U8, TS, Token, Profile, VOD)*\n\n"
+                  report += f"\n## Other Stream Examples ({len(other_stream_examples)} shown)\n\n"
+                  report += "*These URLs don't match standard patterns (M3U8, TS, A1XS, Token, Profile, VOD)*\n\n"
                   report += "| Channel | Group | URL |\n"
                   report += "|---------|-------|-----|\n"
                   
@@ -688,57 +627,28 @@ jobs:
                           
                           report += f"| {name} | {group} | {url} |\n"
                       except Exception as e:
-                          print(f"⚠️ Error adding other stream example: {str(e)}")
                           continue
                   
                   report += "\n"
-                  print("📝 Other streams examples section completed")
               
-          except Exception as e:
-              print(f"❌ Error generating other streams examples: {str(e)}")
-              import traceback
-              traceback.print_exc()
-              # Continue anyway - this is not critical
-              report += "\n*Error generating other streams examples*\n"
-          
-          # Add final sections
-          try:
-              print("📝 Adding final configuration and notes sections")
-              vod_status = 'Enabled' if CHECK_VODS else 'Disabled'
-              ppv_status = 'Enabled' if CHECK_PPV else 'Disabled'
-              vod_tested = 'were' if CHECK_VODS else 'were not'
-              ppv_tested = 'were' if CHECK_PPV else 'were not'
-              
-              report += f"\n## 📋 Configuration Notes\n\n"
-              report += f"- **VOD Checking:** {vod_status} - Only URLs ending with /#.mkv are considered VOD files\n"
-              report += f"- **PPV/Event Checking:** {ppv_status} - UK EVENTS & USA EVENTS groups {ppv_tested} tested\n"
+              # Configuration Notes
+              report += f"\n## Configuration Notes\n\n"
+              report += f"- **VOD Checking:** {vod_config} - Only URLs ending with /#.mkv are considered VOD files\n"
+              report += f"- **PPV/Event Checking:** {ppv_config} - UK EVENTS & USA EVENTS groups are automatically detected\n"
+              report += f"- **A1XS Detection:** URLs containing 'a1xs.vip' are classified as A1XS Channel URLs\n"
               report += f"- **Timeout:** {TIMEOUT_SECONDS} seconds per stream (PPV channels get 2x timeout)\n"
-              report += "- **VOD Detection:** Simple pattern matching - only URLs ending exactly with /#.mkv\n"
               report += "- **M3U8 Detection:** Matches URLs containing .m3u8 anywhere (handles tokens/parameters)\n"
-              report += "- **TS Detection:** Identifies .ts stream URLs as separate category\n"
-              report += "- **Event Groups:** Automatically detects \"UK EVENTS\", \"USA EVENTS\", and similar groups\n\n"
+              report += "- **TS Detection:** Identifies .ts stream URLs as separate category\n\n"
               
-              report += "## 📈 Geographic & Technical Notes\n\n"
-              report += "- Tests run from **GitHub Actions** global infrastructure\n"
-              report += "- \"Access Denied\" (403) errors typically indicate geo-restrictions\n"
-              report += "- PPV channels may be offline between events (normal behavior)\n"
-              report += "- VOD files are static content and should be consistently available\n"
-              report += "- M3U8 streams are adaptive bitrate live streams\n"
-              report += "- TS streams are transport stream format (often live TV)\n"
-              report += "- Timeout errors may indicate server overload or preparation time\n"
-              report += "- DNS errors suggest the streaming service domain is down\n\n"
-              
-              report += "## 🔧 Technical Details\n\n"
+              report += "## Technical Details\n\n"
               report += "- **User-Agent:** Chrome 120 simulation for maximum compatibility\n"
               report += "- **Method:** HEAD for direct video files, GET with stream verification for live content\n"
-              report += "- **VOD Detection:** Only URLs ending with /#.mkv are classified as VOD files\n"
-              report += "- **M3U8 Detection:** Identifies adaptive streaming URLs (.m3u8) with token support\n"
-              report += "- **TS Detection:** Recognizes transport stream URLs (.ts)\n"
+              report += "- **A1XS Channels:** Detected by 'a1xs.vip' domain pattern\n"
               report += "- **Headers:** Enhanced with security headers and proper content type\n"
               report += "- **Rate Limiting:** Dynamic delays based on success rate\n"
-              report += "- **Retry Logic:** Single attempt per stream to avoid overwhelming servers\n\n"
+              report += "- **Geographic Testing:** Tests run from GitHub Actions global infrastructure\n\n"
               
-              report += "## 🎛️ Manual Testing Options\n\n"
+              report += "## Manual Testing Options\n\n"
               report += "To test specific content types:\n"
               report += "1. Go to **Actions** → **Check M3U Streams** → **Run workflow**\n"
               report += "2. Toggle **Check VODs** to test video-on-demand content\n"
@@ -747,70 +657,70 @@ jobs:
               
               report += "---\n"
               report += f"*Last updated: {end_time.strftime('%Y-%m-%d %H:%M:%S')} UTC*\n"
-              report += "*Report generated automatically by Enhanced GitHub Actions*\n"
+              report += "*Report generated automatically by GitHub Actions*\n"
               
-              print("📝 Report generation completed successfully")
-              
-          except Exception as e:
-              print(f"❌ Error adding final sections: {str(e)}")
-              import traceback
-              traceback.print_exc()
-              # Add minimal footer
-              report += f"\n---\n*Last updated: {end_time.strftime('%Y-%m-%d %H:%M:%S')} UTC*\n"
-          
-          # Write report
-          print("💾 Writing report to file...")
-          try:
-              with open('report.md', 'w', encoding='utf-8') as f:
-                  f.write(report)
-              print("📊 Enhanced report generated successfully!")
-              print(f"📈 Final Summary: {working_streams}/{total_checked} streams working ({working_percentage:.1f}%), {skipped_streams} skipped")
-              
-              # Define the icon mapping outside the f-string to avoid syntax issues
-              type_icons = {'M3U8': '📺', 'VOD (#.mkv)': '🎬', 'TS': '📡', 'Token URL': '🔑', 'Profile URL': '⚙️', 'Other': '🔗'}
-              
-              for stream_type in ['M3U8', 'VOD (#.mkv)', 'TS', 'Token URL', 'Profile URL', 'Other']:
-                  working_count = working_by_type[stream_type]
-                  failed_count = failed_by_type[stream_type]
-                  if working_count > 0 or failed_count > 0:
-                      icon = type_icons[stream_type]
-                      print(f"{icon} {stream_type}: {working_count} working, {failed_count} failed")
-              
-              # Verify file was written
-              if os.path.exists('report.md'):
-                  file_size = os.path.getsize('report.md')
-                  print(f"✅ Report file created: {file_size} bytes")
-              else:
-                  print("❌ Report file was not created!")
-                  import sys
-                  sys.exit(1)
+              print("Report generation completed successfully")
               
           except Exception as e:
-              print(f"❌ Error writing report: {str(e)}")
+              print(f"Error generating report: {str(e)}")
               import traceback
               traceback.print_exc()
               import sys
               sys.exit(1)
           
-          print("🎉 Script completed successfully!")
+          # Write report
+          print("Writing report to file...")
+          try:
+              with open('report.md', 'w', encoding='utf-8') as f:
+                  f.write(report)
+              print("Enhanced report generated successfully!")
+              print(f"Final Summary: {working_streams}/{total_checked} streams working ({working_percentage:.1f}%), {skipped_streams} skipped")
+              
+              # Type breakdown summary
+              type_icons = {'M3U8': 'M3U8', 'VOD (#.mkv)': 'VOD', 'TS': 'TS', 'A1XS Channel': 'A1XS', 'Token URL': 'Token', 'Profile URL': 'Profile', 'Other': 'Other'}
+              
+              for stream_type in ['M3U8', 'VOD (#.mkv)', 'TS', 'A1XS Channel', 'Token URL', 'Profile URL', 'Other']:
+                  working_count = working_by_type[stream_type]
+                  failed_count = failed_by_type[stream_type]
+                  if working_count > 0 or failed_count > 0:
+                      icon = type_icons[stream_type]
+                      print(f"{icon}: {working_count} working, {failed_count} failed")
+              
+              # Verify file was written
+              if os.path.exists('report.md'):
+                  file_size = os.path.getsize('report.md')
+                  print(f"Report file created: {file_size} bytes")
+              else:
+                  print("Report file was not created!")
+                  import sys
+                  sys.exit(1)
+              
+          except Exception as e:
+              print(f"Error writing report: {str(e)}")
+              import traceback
+              traceback.print_exc()
+              import sys
+              sys.exit(1)
+          
+          print("Script completed successfully!")
           EOF
           
           # Verify Python script succeeded
           if [ $? -eq 0 ]; then
-            echo "✅ Python script completed successfully"
+            echo "Python script completed successfully"
           else
-            echo "❌ Python script failed with exit code $?"
+            echo "Python script failed with exit code $?"
             exit 1
           fi
           
           # Double-check report file exists
           if [ -f "report.md" ]; then
-            echo "✅ Report file confirmed"
-            echo "📊 Report size: $(wc -c < report.md) bytes"
-            echo "📋 First few lines of report:"
+            echo "Report file confirmed"
+            echo "Report size: $(wc -c < report.md) bytes"
+            echo "First few lines of report:"
             head -5 report.md
           else
-            echo "❌ Report file missing after Python execution!"
+            echo "Report file missing after Python execution!"
             ls -la
             exit 1
           fi
@@ -822,28 +732,28 @@ jobs:
           
           # Check if report was generated
           if [[ -f "report.md" ]]; then
-            echo "✅ Report file found"
+            echo "Report file found"
             ls -la report.md
           else
-            echo "❌ Report file not found!"
+            echo "Report file not found!"
             ls -la
             exit 1
           fi
           
           # Pull latest changes first to avoid conflicts
-          echo "🔄 Pulling latest changes..."
+          echo "Pulling latest changes..."
           git pull origin main || {
-            echo "⚠️ Pull failed, trying to resolve conflicts..."
+            echo "Pull failed, trying to resolve conflicts..."
             git reset --hard HEAD
             git pull origin main
           }
           
           git add report.md
           if git diff --staged --quiet; then
-            echo "📝 No changes to commit"
+            echo "No changes to commit"
           else
             # Enhanced commit message with configuration info
-            COMMIT_MSG="📊 Stream report"
+            COMMIT_MSG="Stream report"
             if [[ "${CHECK_VODS:-false}" == "true" ]]; then
               COMMIT_MSG="$COMMIT_MSG +VODs"
             fi
@@ -852,22 +762,22 @@ jobs:
             fi
             COMMIT_MSG="$COMMIT_MSG - $(date -u '+%Y-%m-%d %H:%M UTC')"
             
-            echo "💾 Committing: $COMMIT_MSG"
+            echo "Committing: $COMMIT_MSG"
             git commit -m "$COMMIT_MSG"
             
             # Push with retry logic
-            echo "🚀 Pushing changes..."
+            echo "Pushing changes..."
             for i in {1..3}; do
               if git push origin main; then
-                echo "✅ Report pushed successfully"
+                echo "Report pushed successfully"
                 break
               else
-                echo "⚠️ Push attempt $i failed, retrying..."
+                echo "Push attempt $i failed, retrying..."
                 if [ $i -lt 3 ]; then
                   sleep 2
                   git pull --rebase origin main
                 else
-                  echo "❌ Failed to push after 3 attempts"
+                  echo "Failed to push after 3 attempts"
                   exit 1
                 fi
               fi

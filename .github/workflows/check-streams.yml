@@ -369,6 +369,11 @@ jobs:
           print("📝 Generating report...")
           
           try:
+              # Calculate percentages safely
+              checked_percentage = (total_checked/total_streams*100) if total_streams > 0 else 0
+              failure_percentage = (total_failures/total_checked*100) if total_checked > 0 else 0
+              skipped_percentage = (skipped_streams/total_streams*100) if total_streams > 0 else 0
+              
               report = f"""# 📺 Enhanced M3U Stream Status Report
           
           **Generated on:** {end_time.strftime('%Y-%m-%d %H:%M:%S')} UTC  
@@ -381,10 +386,10 @@ jobs:
           | Metric | Count | Percentage |
           |--------|-------|------------|
           | **Total Streams Found** | {total_streams} | 100% |
-          | **🔍 Checked Streams** | {total_checked} | {(total_checked/total_streams*100):.1f}% |
+          | **🔍 Checked Streams** | {total_checked} | {checked_percentage:.1f}% |
           | **✅ Working Streams** | {working_streams} | {working_percentage:.1f}% |
-          | **❌ Failed Streams** | {total_failures} | {(total_failures/total_checked*100):.1f if total_checked > 0 else 0:.1f}% |
-          | **⏭️ Skipped Streams** | {skipped_streams} | {(skipped_streams/total_streams*100):.1f}% |
+          | **❌ Failed Streams** | {total_failures} | {failure_percentage:.1f}% |
+          | **⏭️ Skipped Streams** | {skipped_streams} | {skipped_percentage:.1f}% |
           
           ## 📁 Files Processed
           

@@ -318,6 +318,12 @@ jobs:
                           continue
                       
                       checked_streams += 1
+                      
+                      # Debug: Show URL for movie-like titles to understand the format
+                      movie_keywords = ['matrix', 'home alone', 'iron man', 'batman', 'spider', 'avengers', 'superman']
+                      if any(keyword in stream['name'].lower() for keyword in movie_keywords):
+                          print(f"🎬 Movie URL debug - {stream['name'][:30]}: {stream['url'][:100]}...")
+                      
                       print(f"🔍 Checking {checked_streams}/{total_streams-skipped_streams}: {stream['name'][:40]}...")
                       
                       # Determine if this is a PPV channel for special handling

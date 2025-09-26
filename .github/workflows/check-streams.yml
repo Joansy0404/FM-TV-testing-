@@ -70,25 +70,56 @@ jobs:
               """Enhanced VOD detection for multiple patterns"""
               url_lower = url.lower()
               
-              # VOD file extensions with various separators
-              vod_patterns = [
-                  # Hash-based patterns (original)
-                  '#.mkv', '#.mp4', '#.avi', '#.mov', '#.wmv', '#.flv', '#.webm', '#.m4v',
-                  # Slash-based patterns
-                  '.mkv/', '.mp4/', '.avi/', '.mov/', '.wmv/', '.flv/', '.webm/', '.m4v/',
-                  # Query parameter patterns
-                  '.mkv?', '.mp4?', '.avi?', '.mov?', '.wmv?', '.flv?', '.webm?', '.m4v?'
+              # First, exclude obvious live streaming patterns that should never be VOD
+              live_stream_indicators = [
+                  '/live/',           # Live stream paths
+                  '/stream/',         # Stream paths
+                  '/hls/',           # HLS live streams
+                  'channelid',       # Channel ID parameters
+                  'profile=',        # Streaming profiles
+                  'token=',          # Authentication tokens (usually live)
+                  '/tracks-v1a1/',   # HLS track indicators
+                  'index.m3u8',      # HLS index files (live streams)
+                  'mono.m3u8',       # HLS audio tracks
+                  '.ts?',            # Transport stream with parameters
+                  '.m3u8?',          # M3U8 with parameters (usually live)
+                  ':8080/',          # Common streaming server ports
+                  ':9981/'           # TVHeadend default port
               ]
               
-              # Path-based VOD indicators
-              vod_paths = ['/movie/', '/film/', '/vod/', '/videos/', '/content/', '/media/']
+              # If URL contains live streaming indicators, it's definitely not VOD
+              for indicator in live_stream_indicators:
+                  if indicator in url_lower:
+                      return False
               
-              # Check file extension patterns
-              for pattern in vod_patterns:
-                  if pattern in url_lower:
+              # VOD file extensions - must be at the END of the path or followed by specific separators
+              vod_extensions = ['.mkv', '.mp4', '.avi', '.mov', '.wmv', '.flv', '.webm', '.m4v']
+              
+              # Parse URL to get the path part (before query parameters)
+              from urllib.parse import urlparse
+              try:
+                  parsed_url = urlparse(url)
+                  path = parsed_url.path.lower()
+                  
+                  # Check for VOD extensions at the end of the path
+                  for ext in vod_extensions:
+                      if path.endswith(ext):
+                          return True
+                      # Check for extension followed by slash (directory-like)
+                      if f"{ext}/" in path and path.find(f"{ext}/") > path.rfind('/'):
+                          return True
+              except:
+                  # Fallback to simple string matching if URL parsing fails
+                  pass
+              
+              # Check for hash-based VOD patterns (like #.mkv at the end)
+              hash_vod_patterns = ['#.mkv', '#.mp4', '#.avi', '#.mov', '#.wmv', '#.flv', '#.webm', '#.m4v']
+              for pattern in hash_vod_patterns:
+                  if url_lower.endswith(pattern):
                       return True
               
-              # Check path indicators
+              # Path-based VOD indicators (but not if they contain live indicators)
+              vod_paths = ['/movie/', '/film/', '/vod/', '/videos/', '/content/', '/media/']
               for path in vod_paths:
                   if path in url_lower:
                       return True
@@ -115,6 +146,8 @@ jobs:
                   return 'TS'
               elif 'rtmp' in url.lower():
                   return 'RTMP'
+              elif any(pattern in url.lower() for pattern in [':8080/', ':9981/', '/stream/', '/live/']):
+                  return 'HTTP'  # Generic HTTP streaming
               else:
                   return 'Other'
           
@@ -274,14 +307,15 @@ jobs:
           total_m3u8_streams = 0
           total_vod_files = 0
           total_ts_streams = 0
+          total_http_streams = 0
           total_other_streams = 0
           checked_streams = 0
           working_streams = 0
           skipped_streams = 0
           
           # Track working/failed counts by type
-          working_by_type = {'M3U8': 0, 'VOD': 0, 'TS': 0, 'RTMP': 0, 'Other': 0}
-          failed_by_type = {'M3U8': 0, 'VOD': 0, 'TS': 0, 'RTMP': 0, 'Other': 0}
+          working_by_type = {'M3U8': 0, 'VOD': 0, 'TS': 0, 'RTMP': 0, 'HTTP': 0, 'Other': 0}
+          failed_by_type = {'M3U8': 0, 'VOD': 0, 'TS': 0, 'RTMP': 0, 'HTTP': 0, 'Other': 0}
           
           # Enhanced failure categorization
           categorized_failures = {
@@ -322,6 +356,7 @@ jobs:
                   file_m3u8_count = 0
                   file_vod_count = 0
                   file_ts_count = 0
+                  file_http_count = 0
                   file_other_count = 0
                   
                   for stream in streams:
@@ -335,6 +370,9 @@ jobs:
                       elif stream_type == 'TS':
                           file_ts_count += 1
                           total_ts_streams += 1
+                      elif stream_type == 'HTTP':
+                          file_http_count += 1
+                          total_http_streams += 1
                       else:
                           file_other_count += 1
                           total_other_streams += 1
@@ -343,6 +381,7 @@ jobs:
                   print(f"  📺 M3U8 Streams: {file_m3u8_count}")
                   print(f"  🎬 VOD Files: {file_vod_count}")
                   print(f"  📡 TS Streams: {file_ts_count}")
+                  print(f"  🌐 HTTP Streams: {file_http_count}")
                   print(f"  🔗 Other Streams: {file_other_count}")
                   
                   file_working = 0
@@ -444,6 +483,7 @@ jobs:
           print(f"  📺 Total M3U8 Streams: {total_m3u8_streams}")
           print(f"  🎬 Total VOD Files: {total_vod_files}")
           print(f"  📡 Total TS Streams: {total_ts_streams}")
+          print(f"  🌐 Total HTTP Streams: {total_http_streams}")
           print(f"  🔗 Total Other Streams: {total_other_streams}")
           print(f"📊 Results: {working_streams} working, {total_failures} failed, {skipped_streams} skipped")
           
@@ -466,6 +506,7 @@ jobs:
               m3u8_percentage = (total_m3u8_streams/total_streams*100) if total_streams > 0 else 0
               vod_percentage = (total_vod_files/total_streams*100) if total_streams > 0 else 0
               ts_percentage = (total_ts_streams/total_streams*100) if total_streams > 0 else 0
+              http_percentage = (total_http_streams/total_streams*100) if total_streams > 0 else 0
               other_percentage = (total_other_streams/total_streams*100) if total_streams > 0 else 0
               
               # Build report
@@ -494,6 +535,7 @@ jobs:
               report += f"| **📺 M3U8 Streams** | {total_m3u8_streams} | {m3u8_percentage:.1f}% |\n"
               report += f"| **🎬 VOD Files** | {total_vod_files} | {vod_percentage:.1f}% |\n"
               report += f"| **📡 TS Streams** | {total_ts_streams} | {ts_percentage:.1f}% |\n"
+              report += f"| **🌐 HTTP Streams** | {total_http_streams} | {http_percentage:.1f}% |\n"
               report += f"| **🔗 Other Streams** | {total_other_streams} | {other_percentage:.1f}% |\n"
               report += f"| **🔍 Checked Streams** | {total_checked} | {checked_percentage:.1f}% |\n"
               report += f"| **✅ Working Streams** | {working_streams} | {working_percentage:.1f}% |\n"
@@ -504,14 +546,14 @@ jobs:
               report += "| Type | Working | Failed | Total Checked | Success Rate |\n"
               report += "|------|---------|--------|---------------|-------------|\n"
               
-              for stream_type in ['M3U8', 'VOD', 'TS', 'RTMP', 'Other']:
+              for stream_type in ['M3U8', 'VOD', 'TS', 'RTMP', 'HTTP', 'Other']:
                   working_count = working_by_type[stream_type]
                   failed_count = failed_by_type[stream_type]
                   total_type = working_count + failed_count
                   success_rate = type_success_rates[stream_type]
                   
                   if total_type > 0:
-                      type_icon = {'M3U8': '📺', 'VOD': '🎬', 'TS': '📡', 'RTMP': '🔴', 'Other': '🔗'}[stream_type]
+                      type_icon = {'M3U8': '📺', 'VOD': '🎬', 'TS': '📡', 'RTMP': '🔴', 'HTTP': '🌐', 'Other': '🔗'}[stream_type]
                       report += f"| **{type_icon} {stream_type}** | {working_count} | {failed_count} | {total_type} | {success_rate:.1f}% |\n"
               
               report += "\n## 📁 Files Processed\n\n"
@@ -532,8 +574,9 @@ jobs:
                       file_m3u8 = sum(1 for s in file_streams if classify_stream_type(s['url']) == 'M3U8')
                       file_vod = sum(1 for s in file_streams if classify_stream_type(s['url']) == 'VOD')
                       file_ts = sum(1 for s in file_streams if classify_stream_type(s['url']) == 'TS')
-                      file_other = len(file_streams) - file_m3u8 - file_vod - file_ts
-                      report += f"- `{m3u_file}`: {len(file_streams)} streams ({file_m3u8} M3U8, {file_vod} VOD, {file_ts} TS, {file_other} Other)\n"
+                      file_http = sum(1 for s in file_streams if classify_stream_type(s['url']) == 'HTTP')
+                      file_other = len(file_streams) - file_m3u8 - file_vod - file_ts - file_http
+                      report += f"- `{m3u_file}`: {len(file_streams)} streams ({file_m3u8} M3U8, {file_vod} VOD, {file_ts} TS, {file_http} HTTP, {file_other} Other)\n"
               
               print("📁 Files section added")
               
@@ -721,9 +764,9 @@ jobs:
               print(f"📈 Final Summary: {working_streams}/{total_checked} streams working ({working_percentage:.1f}%), {skipped_streams} skipped")
               
               # Define the icon mapping outside the f-string to avoid syntax issues
-              type_icons = {'M3U8': '📺', 'VOD': '🎬', 'TS': '📡', 'RTMP': '🔴', 'Other': '🔗'}
+              type_icons = {'M3U8': '📺', 'VOD': '🎬', 'TS': '📡', 'RTMP': '🔴', 'HTTP': '🌐', 'Other': '🔗'}
               
-              for stream_type in ['M3U8', 'VOD', 'TS', 'RTMP', 'Other']:
+              for stream_type in ['M3U8', 'VOD', 'TS', 'RTMP', 'HTTP', 'Other']:
                   working_count = working_by_type[stream_type]
                   failed_count = failed_by_type[stream_type]
                   if working_count > 0 or failed_count > 0:

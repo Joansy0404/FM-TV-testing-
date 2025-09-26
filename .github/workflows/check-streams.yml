@@ -77,12 +77,19 @@ jobs:
               if '.m3u8/#' in url_lower:
                   # Extract everything after .m3u8/#
                   fragment_part = url_lower.split('.m3u8/#', 1)[1]
-                  return any(fragment_part.startswith(ext[1:]) for ext in vod_extensions)  # Remove the '.' from extension
+                  # Check if fragment starts with any video extension (without the dot)
+                  is_vod = any(fragment_part.startswith(ext[1:]) for ext in vod_extensions)
+                  if is_vod:
+                      print(f"🎬 VOD detected: {url[:80]}...")
+                  return is_vod
               
               # Also check for direct video file URLs (fallback)
               parsed_url = urllib.parse.urlparse(url)
               path = parsed_url.path.lower()
-              return any(path.endswith(ext) for ext in vod_extensions)
+              is_direct_vod = any(path.endswith(ext) for ext in vod_extensions)
+              if is_direct_vod:
+                  print(f"🎬 Direct VOD detected: {url[:80]}...")
+              return is_direct_vod
           
           def is_ppv_channel(name, group):
               """Check if channel is PPV (Pay-Per-View) or Event channel"""
@@ -283,6 +290,12 @@ jobs:
                       if should_skip:
                           skipped_streams += 1
                           file_skipped += 1
+                          
+                          # Show what's being skipped for debugging
+                          if "VOD" in skip_reason:
+                              print(f"⏭️ Skipping VOD: {stream['name'][:40]}")
+                          elif "PPV" in skip_reason:
+                              print(f"⏭️ Skipping PPV: {stream['name'][:40]} (Group: {stream['group']})")
                           
                           # Categorize skipped streams
                           if "VOD" in skip_reason:

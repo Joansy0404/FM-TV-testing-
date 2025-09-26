@@ -1,7 +1,7 @@
 # 📺 Enhanced M3U Stream Status Report
 
-**Generated on:** 2025-09-26 07:54:10 UTC  
-**Duration:** 511.1 seconds  
+**Generated on:** 2025-09-26 12:53:09 UTC  
+**Duration:** 454.2 seconds  
 **Runner Location:** GitHub Actions (global infrastructure)  
 **Configuration:** VODs: ❌, PPV: ❌, Timeout: 10s
 
@@ -69,7 +69,7 @@
 
 ## 📋 Failure Analysis (21 total failures)
 
-### 🚫 Access Denied (15 streams)
+### 🚫 Access Denied (14 streams)
 *Geo-blocked or authentication required*
 
 | Channel | Group | Type | Error | Code | File |
@@ -78,7 +78,6 @@
 | TV WAREHOUSE | UK | M3U8 | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
 | INSIDE CRIME | UK FAST | M3U8 | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
 | TG 4 | IE | M3U8 | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
-| FOX SPORTS 506 | AUS | Other | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
 | AL MASHHAD | AE | M3U8 | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
 | ALARABIYA | AE | M3U8 | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
 | MBC 1 | AE | M3U8 | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
@@ -90,12 +89,13 @@
 | SPACETOON ARABIC | AE | M3U8 | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
 | WANASAH | AE | M3U8 | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
 
-### ⏱️ Connection Timeouts (1 streams)
+### ⏱️ Connection Timeouts (2 streams)
 *Server slow/overloaded or PPV preparing*
 
 | Channel | Group | Type | Error | Code | File |
 |---------|-------|------|-------|------|---------|
-| QVC | USA | M3U8 | Timeout after 10s | None | channel playlist.m3u |
+| PEACOCK PREMIER LEAGUE TV | USA | Other | Timeout after 10s | None | channel playlist.m3u |
+| FOX SPORTS 504 | AUS | Other | Timeout after 10s | None | channel playlist.m3u |
 
 ### 🌐 DNS Failures (1 streams)
 *Domain name resolution failed*
@@ -104,21 +104,15 @@
 |---------|-------|------|-------|------|---------|
 | ABC AUSTRALIA VIETNAM | AUS | M3U8 | DNS resolution failed | None | channel playlist.m3u |
 
-### ❓ Not Found (404) (3 streams)
+### ❓ Not Found (404) (4 streams)
 *Stream URL no longer exists*
 
 | Channel | Group | Type | Error | Code | File |
 |---------|-------|------|-------|------|---------|
-| BIG TEN NETWORK | USA | M3U8 | Stream not found | 404 | channel playlist.m3u |
+| SKY SPORTS CRICKET | UK | Other | Stream not found | 404 | channel playlist.m3u |
+| HALLMARK DRAMA | USA | M3U8 | Stream not found | 404 | channel playlist.m3u |
+| CTB PERTH | AUS | M3U8 | Stream not found | 404 | channel playlist.m3u |
 | USA Network | CA | Other | Stream not found | 404 | channel playlist.m3u |
-| CANAL 4 SAN JUAN | AR | M3U8 | Stream not found | 404 | channel playlist.m3u |
-
-### 💥 Server Errors (5xx) (1 streams)
-*Server-side technical issues*
-
-| Channel | Group | Type | Error | Code | File |
-|---------|-------|------|-------|------|---------|
-| SKY SPORT 1 | NZ | Other | Server error (502) | 502 | channel playlist.m3u |
 
 
 ## 📋 Configuration Notes
@@ -159,5 +153,5 @@ To test specific content types:
 4. Adjust **Timeout** for slower connections
 
 ---
-*Last updated: 2025-09-26 07:54:10 UTC*
+*Last updated: 2025-09-26 12:53:09 UTC*
 *Report generated automatically by Enhanced GitHub Actions*

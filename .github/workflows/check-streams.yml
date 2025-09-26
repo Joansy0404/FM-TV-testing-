@@ -433,35 +433,37 @@ jobs:
               m3u8_percentage = (total_m3u8_streams/total_streams*100) if total_streams > 0 else 0
               vod_percentage = (total_vod_files/total_streams*100) if total_streams > 0 else 0
               
-              report = f"""# 📺 Enhanced M3U Stream Status Report
-
-**Generated on:** {end_time.strftime('%Y-%m-%d %H:%M:%S')} UTC  
-**Duration:** {duration.total_seconds():.1f} seconds  
-**Runner Location:** GitHub Actions (global infrastructure)  
-**Configuration:** VODs: {'✅' if CHECK_VODS else '❌'}, PPV: {'✅' if CHECK_PPV else '❌'}, Timeout: {TIMEOUT_SECONDS}s
-
-## 📊 Summary
-
-| Metric | Count | Percentage |
-|--------|-------|------------|
-| **Total Streams Found** | {total_streams} | 100% |
-| **📺 M3U8/Live Streams** | {total_m3u8_streams} | {m3u8_percentage:.1f}% |
-| **🎬 VOD Files** | {total_vod_files} | {vod_percentage:.1f}% |
-| **🔍 Checked Streams** | {total_checked} | {checked_percentage:.1f}% |
-| **✅ Working Streams** | {working_streams} | {working_percentage:.1f}% |
-| **❌ Failed Streams** | {total_failures} | {failure_percentage:.1f}% |
-| **⭐ Skipped Streams** | {skipped_streams} | {skipped_percentage:.1f}% |
-
-## 📊 Stream Type Breakdown
-
-| Type | Working | Failed | Total Checked | Success Rate |
-|------|---------|--------|---------------|--------------|
-| **📺 M3U8/Live** | {working_m3u8} | {failed_m3u8} | {working_m3u8 + failed_m3u8} | {(working_m3u8/(working_m3u8 + failed_m3u8)*100) if (working_m3u8 + failed_m3u8) > 0 else 0:.1f}% |
-| **🎬 VOD Files** | {working_vod} | {failed_vod} | {working_vod + failed_vod} | {(working_vod/(working_vod + failed_vod)*100) if (working_vod + failed_vod) > 0 else 0:.1f}% |
-
-## 📁 Files Processed
-
-"""
+              # Build report using string concatenation to avoid f-string issues in YAML
+              vod_config = '✅' if CHECK_VODS else '❌'
+              ppv_config = '✅' if CHECK_PPV else '❌'
+              
+              m3u8_success_rate = (working_m3u8/(working_m3u8 + failed_m3u8)*100) if (working_m3u8 + failed_m3u8) > 0 else 0
+              vod_success_rate = (working_vod/(working_vod + failed_vod)*100) if (working_vod + failed_vod) > 0 else 0
+              
+              report = "# 📺 Enhanced M3U Stream Status Report\n\n"
+              report += f"**Generated on:** {end_time.strftime('%Y-%m-%d %H:%M:%S')} UTC  \n"
+              report += f"**Duration:** {duration.total_seconds():.1f} seconds  \n"
+              report += "**Runner Location:** GitHub Actions (global infrastructure)  \n"
+              report += f"**Configuration:** VODs: {vod_config}, PPV: {ppv_config}, Timeout: {TIMEOUT_SECONDS}s\n\n"
+              
+              report += "## 📊 Summary\n\n"
+              report += "| Metric | Count | Percentage |\n"
+              report += "|--------|-------|-----------|\n"
+              report += f"| **Total Streams Found** | {total_streams} | 100% |\n"
+              report += f"| **📺 M3U8/Live Streams** | {total_m3u8_streams} | {m3u8_percentage:.1f}% |\n"
+              report += f"| **🎬 VOD Files** | {total_vod_files} | {vod_percentage:.1f}% |\n"
+              report += f"| **🔍 Checked Streams** | {total_checked} | {checked_percentage:.1f}% |\n"
+              report += f"| **✅ Working Streams** | {working_streams} | {working_percentage:.1f}% |\n"
+              report += f"| **❌ Failed Streams** | {total_failures} | {failure_percentage:.1f}% |\n"
+              report += f"| **⭐ Skipped Streams** | {skipped_streams} | {skipped_percentage:.1f}% |\n\n"
+              
+              report += "## 📊 Stream Type Breakdown\n\n"
+              report += "| Type | Working | Failed | Total Checked | Success Rate |\n"
+              report += "|------|---------|--------|---------------|-------------|\n"
+              report += f"| **📺 M3U8/Live** | {working_m3u8} | {failed_m3u8} | {working_m3u8 + failed_m3u8} | {m3u8_success_rate:.1f}% |\n"
+              report += f"| **🎬 VOD Files** | {working_vod} | {failed_vod} | {working_vod + failed_vod} | {vod_success_rate:.1f}% |\n\n"
+              
+              report += "## 📁 Files Processed\n\n"
               
               print("📝 Report header generated successfully")
               
@@ -493,10 +495,7 @@ jobs:
           try:
               if skipped_streams > 0:
                   print("📝 Adding skipped streams section")
-                  report += f"""
-## ⭐ Skipped Streams ({skipped_streams} total)
-
-"""
+                  report += f"\n## ⭐ Skipped Streams ({skipped_streams} total)\n\n"
                   
                   if skipped_categories['vods'] and not CHECK_VODS:
                       print(f"📝 Adding VOD summary")
@@ -507,12 +506,11 @@ jobs:
                           group = item.get('group', 'No Group')
                           vod_groups[group] = vod_groups.get(group, 0) + 1
                       
-                      report += f"""### 🎬 VOD Files ({len(skipped_categories['vods'])} skipped)
-*Enable "Check VODs" in workflow dispatch to test these*
-
-| Group | Count |
-|-------|-------|
-"""
+                      report += f"### 🎬 VOD Files ({len(skipped_categories['vods'])} skipped)\n"
+                      report += "*Enable \"Check VODs\" in workflow dispatch to test these*\n\n"
+                      report += "| Group | Count |\n"
+                      report += "|-------|---------|\n"
+                      
                       for group, count in sorted(vod_groups.items()):
                           group_safe = str(group).replace('|', '\\|')
                           report += f"| {group_safe} | {count} |\n"
@@ -527,12 +525,11 @@ jobs:
                           group = item.get('group', 'No Group')
                           ppv_groups[group] = ppv_groups.get(group, 0) + 1
                       
-                      report += f"""### 🥊 PPV/Event Channels ({len(skipped_categories['ppv'])} skipped)
-*Enable "Check PPV" in workflow dispatch to test these*
-
-| Group | Count |
-|-------|-------|
-"""
+                      report += f"### 🥊 PPV/Event Channels ({len(skipped_categories['ppv'])} skipped)\n"
+                      report += "*Enable \"Check PPV\" in workflow dispatch to test these*\n\n"
+                      report += "| Group | Count |\n"
+                      report += "|-------|---------|\n"
+                      
                       for group, count in sorted(ppv_groups.items()):
                           group_safe = str(group).replace('|', '\\|')
                           report += f"| {group_safe} | {count} |\n"
@@ -564,21 +561,16 @@ jobs:
                       'unknown_error': ('❓ Unknown Errors', 'Unexpected errors')
                   }
                   
-                  report += f"""
-## 📋 Failure Analysis ({total_failures} total failures)
-
-"""
+                  report += f"\n## 📋 Failure Analysis ({total_failures} total failures)\n\n"
                   
                   for category, failures in categorized_failures.items():
                       if failures:
                           title, description = failure_categories.get(category, (f'❓ {category}', 'Unknown error type'))
                           print(f"📝 Adding {len(failures)} failures for {category}")
-                          report += f"""### {title} ({len(failures)} streams)
-*{description}*
-
-| Channel | Group | Type | Error | Code | File |
-|---------|-------|------|-------|------|------|
-"""
+                          report += f"### {title} ({len(failures)} streams)\n"
+                          report += f"*{description}*\n\n"
+                          report += "| Channel | Group | Type | Error | Code | File |\n"
+                          report += "|---------|-------|------|-------|------|---------|\n"
                           
                           for stream in failures:
                               try:
@@ -598,11 +590,8 @@ jobs:
               
               else:
                   print("📝 No failures to report - adding success message")
-                  report += """
-## 🎉 All Checked Streams Working!
-
-All tested streams are currently accessible from GitHub's infrastructure.
-"""
+                  report += "\n## 🎉 All Checked Streams Working!\n\n"
+                  report += "All tested streams are currently accessible from GitHub's infrastructure.\n"
               
               print("📝 Failure analysis section completed")
               
@@ -611,57 +600,52 @@ All tested streams are currently accessible from GitHub's infrastructure.
               import traceback
               traceback.print_exc()
               # Add a simple fallback
-              report += f"""
-## 📋 Failure Analysis
-
-*Error generating detailed failure analysis. {total_failures} streams failed.*
-"""
+              report += f"\n## 📋 Failure Analysis\n\n*Error generating detailed failure analysis. {total_failures} streams failed.*\n"
           
           # Add final sections
           try:
               print("📝 Adding final configuration and notes sections")
-              report += f"""
-## 📋 Configuration Notes
-
-- **VOD Checking:** {'Enabled' if CHECK_VODS else 'Disabled'} - URLs with .m3u8/#.mkv format {'were' if CHECK_VODS else 'were not'} tested
-- **PPV/Event Checking:** {'Enabled' if CHECK_PPV else 'Disabled'} - UK EVENTS & USA EVENTS groups {'were' if CHECK_PPV else 'were not'} tested  
-- **Timeout:** {TIMEOUT_SECONDS} seconds per stream (PPV channels get 2x timeout)
-- **VOD Detection:** Matches URLs ending with .m3u8/#.mkv, .m3u8/#.mp4, etc.
-- **M3U8 Detection:** Matches URLs containing .m3u8 (excluding VOD formats)
-- **Event Groups:** Automatically detects "UK EVENTS", "USA EVENTS", and similar groups
-
-## 📈 Geographic & Technical Notes
-
-- Tests run from **GitHub Actions** global infrastructure
-- "Access Denied" (403) errors typically indicate geo-restrictions
-- PPV channels may be offline between events (normal behavior)
-- VOD files are static content and should be consistently available
-- M3U8 streams are adaptive bitrate live streams
-- Timeout errors may indicate server overload or preparation time
-- DNS errors suggest the streaming service domain is down
-
-## 🔧 Technical Details
-
-- **User-Agent:** Chrome 120 simulation for maximum compatibility
-- **Method:** HEAD for direct video files, GET with stream verification for live content
-- **VOD Detection:** Specifically matches .m3u8/#.mkv, .m3u8/#.mp4 format URLs
-- **M3U8 Detection:** Identifies adaptive streaming URLs (.m3u8)
-- **Headers:** Enhanced with security headers and proper content type
-- **Rate Limiting:** Dynamic delays based on success rate
-- **Retry Logic:** Single attempt per stream to avoid overwhelming servers
-
-## 🎛️ Manual Testing Options
-
-To test specific content types:
-1. Go to **Actions** → **Check M3U Streams** → **Run workflow**
-2. Toggle **Check VODs** to test .m3u8/#.mkv files (video-on-demand)
-3. Toggle **Check PPV** to test Pay-Per-View channels
-4. Adjust **Timeout** for slower connections
-
----
-*Last updated: {end_time.strftime('%Y-%m-%d %H:%M:%S')} UTC*  
-*Report generated automatically by Enhanced GitHub Actions*
-"""
+              vod_status = 'Enabled' if CHECK_VODS else 'Disabled'
+              ppv_status = 'Enabled' if CHECK_PPV else 'Disabled'
+              vod_tested = 'were' if CHECK_VODS else 'were not'
+              ppv_tested = 'were' if CHECK_PPV else 'were not'
+              
+              report += f"\n## 📋 Configuration Notes\n\n"
+              report += f"- **VOD Checking:** {vod_status} - URLs with .m3u8/#.mkv format {vod_tested} tested\n"
+              report += f"- **PPV/Event Checking:** {ppv_status} - UK EVENTS & USA EVENTS groups {ppv_tested} tested\n"
+              report += f"- **Timeout:** {TIMEOUT_SECONDS} seconds per stream (PPV channels get 2x timeout)\n"
+              report += "- **VOD Detection:** Matches URLs ending with .m3u8/#.mkv, .m3u8/#.mp4, etc.\n"
+              report += "- **M3U8 Detection:** Matches URLs containing .m3u8 (excluding VOD formats)\n"
+              report += "- **Event Groups:** Automatically detects \"UK EVENTS\", \"USA EVENTS\", and similar groups\n\n"
+              
+              report += "## 📈 Geographic & Technical Notes\n\n"
+              report += "- Tests run from **GitHub Actions** global infrastructure\n"
+              report += "- \"Access Denied\" (403) errors typically indicate geo-restrictions\n"
+              report += "- PPV channels may be offline between events (normal behavior)\n"
+              report += "- VOD files are static content and should be consistently available\n"
+              report += "- M3U8 streams are adaptive bitrate live streams\n"
+              report += "- Timeout errors may indicate server overload or preparation time\n"
+              report += "- DNS errors suggest the streaming service domain is down\n\n"
+              
+              report += "## 🔧 Technical Details\n\n"
+              report += "- **User-Agent:** Chrome 120 simulation for maximum compatibility\n"
+              report += "- **Method:** HEAD for direct video files, GET with stream verification for live content\n"
+              report += "- **VOD Detection:** Specifically matches .m3u8/#.mkv, .m3u8/#.mp4 format URLs\n"
+              report += "- **M3U8 Detection:** Identifies adaptive streaming URLs (.m3u8)\n"
+              report += "- **Headers:** Enhanced with security headers and proper content type\n"
+              report += "- **Rate Limiting:** Dynamic delays based on success rate\n"
+              report += "- **Retry Logic:** Single attempt per stream to avoid overwhelming servers\n\n"
+              
+              report += "## 🎛️ Manual Testing Options\n\n"
+              report += "To test specific content types:\n"
+              report += "1. Go to **Actions** → **Check M3U Streams** → **Run workflow**\n"
+              report += "2. Toggle **Check VODs** to test .m3u8/#.mkv files (video-on-demand)\n"
+              report += "3. Toggle **Check PPV** to test Pay-Per-View channels\n"
+              report += "4. Adjust **Timeout** for slower connections\n\n"
+              
+              report += "---\n"
+              report += f"*Last updated: {end_time.strftime('%Y-%m-%d %H:%M:%S')} UTC*\n"
+              report += "*Report generated automatically by Enhanced GitHub Actions*\n"
               
               print("📝 Report generation completed successfully")
               
@@ -670,10 +654,7 @@ To test specific content types:
               import traceback
               traceback.print_exc()
               # Add minimal footer
-              report += f"""
----
-*Last updated: {end_time.strftime('%Y-%m-%d %H:%M:%S')} UTC*
-"""
+              report += f"\n---\n*Last updated: {end_time.strftime('%Y-%m-%d %H:%M:%S')} UTC*\n"
           
           # Write report
           print("💾 Writing report to file...")

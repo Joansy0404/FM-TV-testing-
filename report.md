@@ -1,7 +1,7 @@
 # 📺 Enhanced M3U Stream Status Report
 
-**Generated on:** 2025-09-26 12:53:09 UTC  
-**Duration:** 454.2 seconds  
+**Generated on:** 2025-09-26 18:21:26 UTC  
+**Duration:** 453.7 seconds  
 **Runner Location:** GitHub Actions (global infrastructure)  
 **Configuration:** VODs: ❌, PPV: ❌, Timeout: 10s
 
@@ -9,53 +9,61 @@
 
 | Metric | Count | Percentage |
 |--------|-------|-----------|
-| **Total Streams Found** | 1349 | 100% |
-| **📺 M3U8/Live Streams** | 656 | 48.6% |
-| **🎬 VOD Files** | 693 | 51.4% |
-| **🔍 Checked Streams** | 604 | 44.8% |
-| **✅ Working Streams** | 583 | 96.5% |
-| **❌ Failed Streams** | 21 | 3.5% |
-| **⭐ Skipped Streams** | 745 | 55.2% |
+| **Total Streams Found** | 1483 | 100% |
+| **📺 M3U8 Streams** | 467 | 31.5% |
+| **🎬 VOD Files** | 838 | 56.5% |
+| **📡 TS Streams** | 3 | 0.2% |
+| **🔗 Other Streams** | 175 | 11.8% |
+| **🔍 Checked Streams** | 593 | 40.0% |
+| **✅ Working Streams** | 571 | 96.3% |
+| **❌ Failed Streams** | 22 | 3.7% |
+| **⭕ Skipped Streams** | 890 | 60.0% |
 
 ## 📊 Stream Type Breakdown
 
 | Type | Working | Failed | Total Checked | Success Rate |
 |------|---------|--------|---------------|-------------|
-| **📺 M3U8/Live** | 583 | 21 | 604 | 96.5% |
-| **🎬 VOD Files** | 0 | 0 | 0 | 0.0% |
+| **📺 M3U8** | 395 | 21 | 416 | 95.0% |
+| **📡 TS** | 2 | 0 | 2 | 100.0% |
+| **🔗 Other** | 174 | 1 | 175 | 99.4% |
 
 ## 📁 Files Processed
 
-- `channel playlist.m3u`: 1349 streams (479 M3U8, 693 VOD)
+- `channel playlist.m3u`: 1483 streams (467 M3U8, 838 VOD, 3 TS, 175 Other)
 
-## ⭐ Skipped Streams (745 total)
+## ⭕ Skipped Streams (890 total)
 
-### 🎬 VOD Files (693 skipped)
+### 🎬 VOD Files (838 skipped)
 *Enable "Check VODs" in workflow dispatch to test these*
 
 | Group | Count |
 |-------|---------|
-| AMC+ | 3 |
+| AE | 5 |
+| AF | 4 |
+| AMC+ | 4 |
 | Angel Studios | 1 |
-| Apple TV+ | 5 |
-| BritBox | 3 |
+| Apple TV+ | 7 |
+| BritBox | 4 |
+| CBC Gem | 1 |
 | DOCPLAY | 1 |
-| Disney+ | 178 |
-| FMTV+ | 1 |
-| HBO MAX | 94 |
+| Disney+ | 199 |
+| FMTV+ | 3 |
+| HBO MAX | 107 |
 | Hallmark+ | 1 |
-| NETFLIX | 20 |
-| Others | 51 |
-| PBS | 1 |
-| PRIME VIDEO | 29 |
-| Paramount+ | 84 |
-| Peacock TV | 104 |
+| NETFLIX | 22 |
+| Others | 83 |
+| PBS | 2 |
+| PRIME VIDEO | 40 |
+| Paramount+ | 89 |
+| Peacock TV | 132 |
 | RTÈ PLAYER | 3 |
-| SONY Pictures Core | 65 |
+| SONY Pictures Core | 75 |
 | SONY Pictures Core (Shows) | 12 |
-| STARZ | 33 |
+| STARZ | 35 |
 | Stan. | 2 |
-| Studiocanal Presents | 2 |
+| Studiocanal Presents | 3 |
+| UK | 2 |
+| USA FAST | 1 |
 
 ### 🥊 PPV/Event Channels (52 skipped)
 *Enable "Check PPV" in workflow dispatch to test these*
@@ -67,7 +75,7 @@
 | USA FAST | 1 |
 
 
-## 📋 Failure Analysis (21 total failures)
+## 📋 Failure Analysis (22 total failures)
 
 ### 🚫 Access Denied (14 streams)
 *Geo-blocked or authentication required*
@@ -95,7 +103,7 @@
 | Channel | Group | Type | Error | Code | File |
 |---------|-------|------|-------|------|---------|
 | PEACOCK PREMIER LEAGUE TV | USA | Other | Timeout after 10s | None | channel playlist.m3u |
-| FOX SPORTS 504 | AUS | Other | Timeout after 10s | None | channel playlist.m3u |
+| ALTERNA TV | AR | M3U8 | Timeout after 10s | None | channel playlist.m3u |
 
 ### 🌐 DNS Failures (1 streams)
 *Domain name resolution failed*
@@ -104,24 +112,26 @@
 |---------|-------|------|-------|------|---------|
 | ABC AUSTRALIA VIETNAM | AUS | M3U8 | DNS resolution failed | None | channel playlist.m3u |
 
-### ❓ Not Found (404) (4 streams)
+### ❓ Not Found (404) (5 streams)
 *Stream URL no longer exists*
 
 | Channel | Group | Type | Error | Code | File |
 |---------|-------|------|-------|------|---------|
-| SKY SPORTS CRICKET | UK | Other | Stream not found | 404 | channel playlist.m3u |
+| BOOMERANG | USA | M3U8 | Stream not found | 404 | channel playlist.m3u |
+| FOOD NETWORK | USA | M3U8 | Stream not found | 404 | channel playlist.m3u |
 | HALLMARK DRAMA | USA | M3U8 | Stream not found | 404 | channel playlist.m3u |
-| CTB PERTH | AUS | M3U8 | Stream not found | 404 | channel playlist.m3u |
-| USA Network | CA | Other | Stream not found | 404 | channel playlist.m3u |
+| INDO OZ TV | AUS | M3U8 | Stream not found | 404 | channel playlist.m3u |
+| CANAL 3 LAS HERAS | AR | M3U8 | Stream not found | 404 | channel playlist.m3u |
 
 
 ## 📋 Configuration Notes
 
-- **VOD Checking:** Disabled - URLs with .m3u8/#.mkv format were not tested
+- **VOD Checking:** Disabled - VOD files with various formats were not tested
 - **PPV/Event Checking:** Disabled - UK EVENTS & USA EVENTS groups were not tested
 - **Timeout:** 10 seconds per stream (PPV channels get 2x timeout)
-- **VOD Detection:** Matches URLs ending with .m3u8/#.mkv, .m3u8/#.mp4, etc.
-- **M3U8 Detection:** Matches URLs containing .m3u8 (excluding VOD formats)
+- **VOD Detection:** Enhanced to detect #.mkv, .mkv/, .mkv?, /movie/, /film/, /vod/ patterns
+- **M3U8 Detection:** Matches URLs containing .m3u8 anywhere (handles tokens/parameters)
+- **TS Detection:** Identifies .ts stream URLs as separate category
 - **Event Groups:** Automatically detects "UK EVENTS", "USA EVENTS", and similar groups
 
 ## 📈 Geographic & Technical Notes
@@ -131,6 +141,7 @@
 - PPV channels may be offline between events (normal behavior)
 - VOD files are static content and should be consistently available
 - M3U8 streams are adaptive bitrate live streams
+- TS streams are transport stream format (often live TV)
 - Timeout errors may indicate server overload or preparation time
 - DNS errors suggest the streaming service domain is down
 
@@ -138,8 +149,9 @@
 
 - **User-Agent:** Chrome 120 simulation for maximum compatibility
 - **Method:** HEAD for direct video files, GET with stream verification for live content
-- **VOD Detection:** Specifically matches .m3u8/#.mkv, .m3u8/#.mp4 format URLs
-- **M3U8 Detection:** Identifies adaptive streaming URLs (.m3u8)
+- **VOD Detection:** Enhanced patterns including hash (#), slash (/), and query (?) separators
+- **M3U8 Detection:** Identifies adaptive streaming URLs (.m3u8) with token support
+- **TS Detection:** Recognizes transport stream URLs (.ts)
 - **Headers:** Enhanced with security headers and proper content type
 - **Rate Limiting:** Dynamic delays based on success rate
 - **Retry Logic:** Single attempt per stream to avoid overwhelming servers
@@ -148,10 +160,10 @@
 
 To test specific content types:
 1. Go to **Actions** → **Check M3U Streams** → **Run workflow**
-2. Toggle **Check VODs** to test .m3u8/#.mkv files (video-on-demand)
+2. Toggle **Check VODs** to test video-on-demand content
 3. Toggle **Check PPV** to test Pay-Per-View channels
 4. Adjust **Timeout** for slower connections
 
 ---
-*Last updated: 2025-09-26 12:53:09 UTC*
+*Last updated: 2025-09-26 18:21:26 UTC*
 *Report generated automatically by Enhanced GitHub Actions*

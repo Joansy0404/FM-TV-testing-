@@ -84,16 +84,18 @@ jobs:
           
           def classify_stream_type(url):
               """Classify stream type for reporting"""
+              url_lower = url.lower()
+              
               if is_vod_url(url):
-                  return 'VOD'
+                  return 'VOD (#.mkv)'
               elif is_m3u8_stream(url):
                   return 'M3U8'
               elif is_ts_stream(url):
                   return 'TS'
-              elif 'rtmp' in url.lower():
-                  return 'RTMP'
-              elif any(pattern in url.lower() for pattern in [':8080/', ':9981/', '/stream/', '/live/']):
-                  return 'HTTP'  # Generic HTTP streaming
+              elif 'token=' in url_lower:
+                  return 'Token URL'
+              elif 'profile=pass' in url_lower or 'profile=' in url_lower:
+                  return 'Profile URL'
               else:
                   return 'Other'
           
@@ -118,7 +120,7 @@ jobs:
               """Determine if stream should be skipped based on configuration"""
               stream_type = classify_stream_type(stream['url'])
               
-              if stream_type == 'VOD' and not CHECK_VODS:
+              if stream_type == 'VOD (#.mkv)' and not CHECK_VODS:
                   return True, "VOD file (skipped)"
               
               if is_ppv_channel(stream['name'], stream['group']) and not CHECK_PPV:
@@ -253,15 +255,16 @@ jobs:
           total_m3u8_streams = 0
           total_vod_files = 0
           total_ts_streams = 0
-          total_http_streams = 0
+          total_token_urls = 0
+          total_profile_urls = 0
           total_other_streams = 0
           checked_streams = 0
           working_streams = 0
           skipped_streams = 0
           
           # Track working/failed counts by type
-          working_by_type = {'M3U8': 0, 'VOD': 0, 'TS': 0, 'RTMP': 0, 'HTTP': 0, 'Other': 0}
-          failed_by_type = {'M3U8': 0, 'VOD': 0, 'TS': 0, 'RTMP': 0, 'HTTP': 0, 'Other': 0}
+          working_by_type = {'M3U8': 0, 'VOD (#.mkv)': 0, 'TS': 0, 'Token URL': 0, 'Profile URL': 0, 'Other': 0}
+          failed_by_type = {'M3U8': 0, 'VOD (#.mkv)': 0, 'TS': 0, 'Token URL': 0, 'Profile URL': 0, 'Other': 0}
           
           # Enhanced failure categorization
           categorized_failures = {
@@ -281,6 +284,9 @@ jobs:
               'vods': [],
               'ppv': []
           }
+          
+          # Track examples of "Other" stream URLs
+          other_stream_examples = []
           
           # M3U files to process
           m3u_files = [
@@ -302,12 +308,13 @@ jobs:
                   file_m3u8_count = 0
                   file_vod_count = 0
                   file_ts_count = 0
-                  file_http_count = 0
+                  file_token_count = 0
+                  file_profile_count = 0
                   file_other_count = 0
                   
                   for stream in streams:
                       stream_type = classify_stream_type(stream['url'])
-                      if stream_type == 'VOD':
+                      if stream_type == 'VOD (#.mkv)':
                           file_vod_count += 1
                           total_vod_files += 1
                       elif stream_type == 'M3U8':
@@ -316,9 +323,12 @@ jobs:
                       elif stream_type == 'TS':
                           file_ts_count += 1
                           total_ts_streams += 1
-                      elif stream_type == 'HTTP':
-                          file_http_count += 1
-                          total_http_streams += 1
+                      elif stream_type == 'Token URL':
+                          file_token_count += 1
+                          total_token_urls += 1
+                      elif stream_type == 'Profile URL':
+                          file_profile_count += 1
+                          total_profile_urls += 1
                       else:
                           file_other_count += 1
                           total_other_streams += 1
@@ -327,7 +337,8 @@ jobs:
                   print(f"  📺 M3U8 Streams: {file_m3u8_count}")
                   print(f"  🎬 VOD Files: {file_vod_count}")
                   print(f"  📡 TS Streams: {file_ts_count}")
-                  print(f"  🌐 HTTP Streams: {file_http_count}")
+                  print(f"  🔑 Token URLs: {file_token_count}")
+                  print(f"  ⚙️ Profile URLs: {file_profile_count}")
                   print(f"  🔗 Other Streams: {file_other_count}")
                   
                   file_working = 0
@@ -369,6 +380,14 @@ jobs:
                       
                       checked_streams += 1
                       stream_type = classify_stream_type(stream['url'])
+                      
+                      # Collect examples of "Other" streams (limit to 20 examples)
+                      if stream_type == 'Other' and len(other_stream_examples) < 20:
+                          other_stream_examples.append({
+                              'name': stream['name'],
+                              'url': stream['url'],
+                              'group': stream['group']
+                          })
                       
                       print(f"🔍 Checking {checked_streams}/{total_streams-skipped_streams}: {stream['name'][:40]}... ({stream_type})")
                       
@@ -429,7 +448,8 @@ jobs:
           print(f"  📺 Total M3U8 Streams: {total_m3u8_streams}")
           print(f"  🎬 Total VOD Files: {total_vod_files}")
           print(f"  📡 Total TS Streams: {total_ts_streams}")
-          print(f"  🌐 Total HTTP Streams: {total_http_streams}")
+          print(f"  🔑 Total Token URLs: {total_token_urls}")
+          print(f"  ⚙️ Total Profile URLs: {total_profile_urls}")
           print(f"  🔗 Total Other Streams: {total_other_streams}")
           print(f"📊 Results: {working_streams} working, {total_failures} failed, {skipped_streams} skipped")
           
@@ -449,15 +469,13 @@ jobs:
               checked_percentage = (total_checked/total_streams*100) if total_streams > 0 else 0
               failure_percentage = (total_failures/total_checked*100) if total_checked > 0 else 0
               skipped_percentage = (skipped_streams/total_streams*100) if total_streams > 0 else 0
-              m3u8_percentage = (total_m3u8_streams/total_streams*100) if total_streams > 0 else 0
-              vod_percentage = (total_vod_files/total_streams*100) if total_streams > 0 else 0
-              ts_percentage = (total_ts_streams/total_streams*100) if total_streams > 0 else 0
-              http_percentage = (total_http_streams/total_streams*100) if total_streams > 0 else 0
-              other_percentage = (total_other_streams/total_streams*100) if total_streams > 0 else 0
               
-              # Build report
+              # Build cleaner report
               vod_config = '✅' if CHECK_VODS else '❌'
               ppv_config = '✅' if CHECK_PPV else '❌'
+              
+              # Calculate total channel streams (everything except VOD)
+              total_channel_streams = total_streams - total_vod_files
               
               # Calculate success rates by type
               type_success_rates = {}
@@ -478,11 +496,8 @@ jobs:
               report += "| Metric | Count | Percentage |\n"
               report += "|--------|-------|-----------|\n"
               report += f"| **Total Streams Found** | {total_streams} | 100% |\n"
-              report += f"| **📺 M3U8 Streams** | {total_m3u8_streams} | {m3u8_percentage:.1f}% |\n"
-              report += f"| **🎬 VOD Files** | {total_vod_files} | {vod_percentage:.1f}% |\n"
-              report += f"| **📡 TS Streams** | {total_ts_streams} | {ts_percentage:.1f}% |\n"
-              report += f"| **🌐 HTTP Streams** | {total_http_streams} | {http_percentage:.1f}% |\n"
-              report += f"| **🔗 Other Streams** | {total_other_streams} | {other_percentage:.1f}% |\n"
+              report += f"| **Total Channel Streams** | {total_channel_streams} | {((total_channel_streams/total_streams)*100):.1f}% |\n"
+              report += f"| **Total VOD Streams** | {total_vod_files} | {((total_vod_files/total_streams)*100):.1f}% |\n"
               report += f"| **🔍 Checked Streams** | {total_checked} | {checked_percentage:.1f}% |\n"
               report += f"| **✅ Working Streams** | {working_streams} | {working_percentage:.1f}% |\n"
               report += f"| **❌ Failed Streams** | {total_failures} | {failure_percentage:.1f}% |\n"
@@ -492,15 +507,24 @@ jobs:
               report += "| Type | Working | Failed | Total Checked | Success Rate |\n"
               report += "|------|---------|--------|---------------|-------------|\n"
               
-              for stream_type in ['M3U8', 'VOD', 'TS', 'RTMP', 'HTTP', 'Other']:
+              # Define stream types with icons and descriptions
+              stream_types_info = [
+                  ('M3U8', '📺 .M3U8'),
+                  ('TS', '📡 .TS'),
+                  ('Token URL', '🔑 Token URLs'),
+                  ('Profile URL', '⚙️ Profile URLs'), 
+                  ('VOD (#.mkv)', '🎬 .mkv URLs'),
+                  ('Other', '🔗 Other')
+              ]
+              
+              for stream_type, display_name in stream_types_info:
                   working_count = working_by_type[stream_type]
                   failed_count = failed_by_type[stream_type]
                   total_type = working_count + failed_count
                   success_rate = type_success_rates[stream_type]
                   
                   if total_type > 0:
-                      type_icon = {'M3U8': '📺', 'VOD': '🎬', 'TS': '📡', 'RTMP': '🔴', 'HTTP': '🌐', 'Other': '🔗'}[stream_type]
-                      report += f"| **{type_icon} {stream_type}** | {working_count} | {failed_count} | {total_type} | {success_rate:.1f}% |\n"
+                      report += f"| **{display_name}** | {working_count} | {failed_count} | {total_type} | {success_rate:.1f}% |\n"
               
               report += "\n## 📁 Files Processed\n\n"
               
@@ -518,11 +542,12 @@ jobs:
                   if os.path.exists(m3u_file):
                       file_streams = parse_m3u(m3u_file)
                       file_m3u8 = sum(1 for s in file_streams if classify_stream_type(s['url']) == 'M3U8')
-                      file_vod = sum(1 for s in file_streams if classify_stream_type(s['url']) == 'VOD')
+                      file_vod = sum(1 for s in file_streams if classify_stream_type(s['url']) == 'VOD (#.mkv)')
                       file_ts = sum(1 for s in file_streams if classify_stream_type(s['url']) == 'TS')
-                      file_http = sum(1 for s in file_streams if classify_stream_type(s['url']) == 'HTTP')
-                      file_other = len(file_streams) - file_m3u8 - file_vod - file_ts - file_http
-                      report += f"- `{m3u_file}`: {len(file_streams)} streams ({file_m3u8} M3U8, {file_vod} VOD, {file_ts} TS, {file_http} HTTP, {file_other} Other)\n"
+                      file_token = sum(1 for s in file_streams if classify_stream_type(s['url']) == 'Token URL')
+                      file_profile = sum(1 for s in file_streams if classify_stream_type(s['url']) == 'Profile URL')
+                      file_other = len(file_streams) - file_m3u8 - file_vod - file_ts - file_token - file_profile
+                      report += f"- `{m3u_file}`: {len(file_streams)} streams ({file_m3u8} M3U8, {file_vod} VOD, {file_ts} TS, {file_token} Token, {file_profile} Profile, {file_other} Other)\n"
               
               print("📁 Files section added")
               
@@ -643,6 +668,38 @@ jobs:
               traceback.print_exc()
               # Add a simple fallback
               report += f"\n## 📋 Failure Analysis\n\n*Error generating detailed failure analysis. {total_failures} streams failed.*\n"
+          
+          # Add "Other" streams examples section
+          try:
+              if other_stream_examples:
+                  print(f"📝 Adding Other streams examples section")
+                  report += f"\n## 🔗 Other Stream Examples ({len(other_stream_examples)} shown)\n\n"
+                  report += "*These URLs don't match standard patterns (M3U8, TS, Token, Profile, VOD)*\n\n"
+                  report += "| Channel | Group | URL |\n"
+                  report += "|---------|-------|-----|\n"
+                  
+                  for stream in other_stream_examples:
+                      try:
+                          name = str(stream.get('name', 'Unknown'))[:40].replace('|', '\\|')
+                          group = str(stream.get('group', 'No Group'))[:20].replace('|', '\\|')
+                          url = str(stream.get('url', ''))[:80].replace('|', '\\|')
+                          if len(stream.get('url', '')) > 80:
+                              url += '...'
+                          
+                          report += f"| {name} | {group} | {url} |\n"
+                      except Exception as e:
+                          print(f"⚠️ Error adding other stream example: {str(e)}")
+                          continue
+                  
+                  report += "\n"
+                  print("📝 Other streams examples section completed")
+              
+          except Exception as e:
+              print(f"❌ Error generating other streams examples: {str(e)}")
+              import traceback
+              traceback.print_exc()
+              # Continue anyway - this is not critical
+              report += "\n*Error generating other streams examples*\n"
           
           # Add final sections
           try:

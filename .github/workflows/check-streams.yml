@@ -31,6 +31,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch full history to avoid conflicts
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -67,64 +69,8 @@ jobs:
           print(f"📋 Files in directory: {os.listdir('.')}")
           
           def is_vod_url(url):
-              """Enhanced VOD detection for multiple patterns"""
-              url_lower = url.lower()
-              
-              # First, exclude obvious live streaming patterns that should never be VOD
-              live_stream_indicators = [
-                  '/live/',           # Live stream paths
-                  '/stream/',         # Stream paths
-                  '/hls/',           # HLS live streams
-                  'channelid',       # Channel ID parameters
-                  'profile=',        # Streaming profiles
-                  'token=',          # Authentication tokens (usually live)
-                  '/tracks-v1a1/',   # HLS track indicators
-                  'index.m3u8',      # HLS index files (live streams)
-                  'mono.m3u8',       # HLS audio tracks
-                  '.ts?',            # Transport stream with parameters
-                  '.m3u8?',          # M3U8 with parameters (usually live)
-                  ':8080/',          # Common streaming server ports
-                  ':9981/'           # TVHeadend default port
-              ]
-              
-              # If URL contains live streaming indicators, it's definitely not VOD
-              for indicator in live_stream_indicators:
-                  if indicator in url_lower:
-                      return False
-              
-              # VOD file extensions - must be at the END of the path or followed by specific separators
-              vod_extensions = ['.mkv', '.mp4', '.avi', '.mov', '.wmv', '.flv', '.webm', '.m4v']
-              
-              # Parse URL to get the path part (before query parameters)
-              from urllib.parse import urlparse
-              try:
-                  parsed_url = urlparse(url)
-                  path = parsed_url.path.lower()
-                  
-                  # Check for VOD extensions at the end of the path
-                  for ext in vod_extensions:
-                      if path.endswith(ext):
-                          return True
-                      # Check for extension followed by slash (directory-like)
-                      if f"{ext}/" in path and path.find(f"{ext}/") > path.rfind('/'):
-                          return True
-              except:
-                  # Fallback to simple string matching if URL parsing fails
-                  pass
-              
-              # Check for hash-based VOD patterns (like #.mkv at the end)
-              hash_vod_patterns = ['#.mkv', '#.mp4', '#.avi', '#.mov', '#.wmv', '#.flv', '#.webm', '#.m4v']
-              for pattern in hash_vod_patterns:
-                  if url_lower.endswith(pattern):
-                      return True
-              
-              # Path-based VOD indicators (but not if they contain live indicators)
-              vod_paths = ['/movie/', '/film/', '/vod/', '/videos/', '/content/', '/media/']
-              for path in vod_paths:
-                  if path in url_lower:
-                      return True
-              
-              return False
+              """Simple VOD detection - only URLs ending with /#.mkv"""
+              return url.endswith('/#.mkv')
           
           def is_m3u8_stream(url):
               """Check if URL is an M3U8 stream (handles tokens/parameters)"""
@@ -397,7 +343,7 @@ jobs:
                           
                           # Show what's being skipped for debugging
                           if "VOD" in skip_reason:
-                              print(f"⭕ Skipping VOD: {stream['name'][:40]}")
+                              print(f"⭕ Skipping VOD: {stream['name'][:40]} - {stream['url'][:60]}...")
                           elif "PPV" in skip_reason:
                               print(f"⭕ Skipping PPV: {stream['name'][:40]} (Group: {stream['group']})")
                           
@@ -707,10 +653,10 @@ jobs:
               ppv_tested = 'were' if CHECK_PPV else 'were not'
               
               report += f"\n## 📋 Configuration Notes\n\n"
-              report += f"- **VOD Checking:** {vod_status} - VOD files with various formats {vod_tested} tested\n"
+              report += f"- **VOD Checking:** {vod_status} - Only URLs ending with /#.mkv are considered VOD files\n"
               report += f"- **PPV/Event Checking:** {ppv_status} - UK EVENTS & USA EVENTS groups {ppv_tested} tested\n"
               report += f"- **Timeout:** {TIMEOUT_SECONDS} seconds per stream (PPV channels get 2x timeout)\n"
-              report += "- **VOD Detection:** Enhanced to detect #.mkv, .mkv/, .mkv?, /movie/, /film/, /vod/ patterns\n"
+              report += "- **VOD Detection:** Simple pattern matching - only URLs ending exactly with /#.mkv\n"
               report += "- **M3U8 Detection:** Matches URLs containing .m3u8 anywhere (handles tokens/parameters)\n"
               report += "- **TS Detection:** Identifies .ts stream URLs as separate category\n"
               report += "- **Event Groups:** Automatically detects \"UK EVENTS\", \"USA EVENTS\", and similar groups\n\n"
@@ -728,7 +674,7 @@ jobs:
               report += "## 🔧 Technical Details\n\n"
               report += "- **User-Agent:** Chrome 120 simulation for maximum compatibility\n"
               report += "- **Method:** HEAD for direct video files, GET with stream verification for live content\n"
-              report += "- **VOD Detection:** Enhanced patterns including hash (#), slash (/), and query (?) separators\n"
+              report += "- **VOD Detection:** Only URLs ending with /#.mkv are classified as VOD files\n"
               report += "- **M3U8 Detection:** Identifies adaptive streaming URLs (.m3u8) with token support\n"
               report += "- **TS Detection:** Recognizes transport stream URLs (.ts)\n"
               report += "- **Headers:** Enhanced with security headers and proper content type\n"
@@ -827,6 +773,14 @@ jobs:
             exit 1
           fi
           
+          # Pull latest changes first to avoid conflicts
+          echo "🔄 Pulling latest changes..."
+          git pull origin main || {
+            echo "⚠️ Pull failed, trying to resolve conflicts..."
+            git reset --hard HEAD
+            git pull origin main
+          }
+          
           git add report.md
           if git diff --staged --quiet; then
             echo "📝 No changes to commit"
@@ -843,6 +797,22 @@ jobs:
             
             echo "💾 Committing: $COMMIT_MSG"
             git commit -m "$COMMIT_MSG"
-            git push
-            echo "🚀 Report pushed successfully"
+            
+            # Push with retry logic
+            echo "🚀 Pushing changes..."
+            for i in {1..3}; do
+              if git push origin main; then
+                echo "✅ Report pushed successfully"
+                break
+              else
+                echo "⚠️ Push attempt $i failed, retrying..."
+                if [ $i -lt 3 ]; then
+                  sleep 2
+                  git pull --rebase origin main
+                else
+                  echo "❌ Failed to push after 3 attempts"
+                  exit 1
+                fi
+              fi
+            done
           fi

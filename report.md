@@ -1,7 +1,7 @@
 # 📺 Enhanced M3U Stream Status Report
 
-**Generated on:** 2025-09-26 19:26:13 UTC  
-**Duration:** 480.9 seconds  
+**Generated on:** 2025-09-26 20:44:53 UTC  
+**Duration:** 523.9 seconds  
 **Runner Location:** GitHub Actions (global infrastructure)  
 **Configuration:** VODs: ❌, PPV: ❌, Timeout: 10s
 
@@ -10,28 +10,25 @@
 | Metric | Count | Percentage |
 |--------|-------|-----------|
 | **Total Streams Found** | 1488 | 100% |
-| **📺 M3U8 Streams** | 485 | 32.6% |
-| **🎬 VOD Files** | 825 | 55.4% |
-| **📡 TS Streams** | 3 | 0.2% |
-| **🌐 HTTP Streams** | 35 | 2.4% |
-| **🔗 Other Streams** | 140 | 9.4% |
+| **Total Channel Streams** | 663 | 44.6% |
+| **Total VOD Streams** | 825 | 55.4% |
 | **🔍 Checked Streams** | 611 | 41.1% |
-| **✅ Working Streams** | 514 | 84.1% |
-| **❌ Failed Streams** | 97 | 15.9% |
+| **✅ Working Streams** | 504 | 82.5% |
+| **❌ Failed Streams** | 107 | 17.5% |
 | **⭕ Skipped Streams** | 877 | 58.9% |
 
 ## 📊 Stream Type Breakdown
 
 | Type | Working | Failed | Total Checked | Success Rate |
 |------|---------|--------|---------------|-------------|
-| **📺 M3U8** | 337 | 97 | 434 | 77.6% |
-| **📡 TS** | 2 | 0 | 2 | 100.0% |
-| **🌐 HTTP** | 35 | 0 | 35 | 100.0% |
-| **🔗 Other** | 140 | 0 | 140 | 100.0% |
+| **📺 .M3U8** | 334 | 100 | 434 | 77.0% |
+| **📡 .TS** | 2 | 0 | 2 | 100.0% |
+| **⚙️ Profile URLs** | 35 | 0 | 35 | 100.0% |
+| **🔗 Other** | 133 | 7 | 140 | 95.0% |
 
 ## 📁 Files Processed
 
-- `channel playlist.m3u`: 1488 streams (485 M3U8, 825 VOD, 3 TS, 35 HTTP, 140 Other)
+- `channel playlist.m3u`: 1488 streams (485 M3U8, 825 VOD, 3 TS, 0 Token, 35 Profile, 140 Other)
 
 ## ⭕ Skipped Streams (877 total)
 
@@ -73,7 +70,7 @@
 | USA FAST | 1 |
 
 
-## 📋 Failure Analysis (97 total failures)
+## 📋 Failure Analysis (107 total failures)
 
 ### 🚫 Access Denied (14 streams)
 *Geo-blocked or authentication required*
@@ -95,6 +92,17 @@
 | SPACETOON ARABIC | AE | M3U8 | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
 | WANASAH | AE | M3U8 | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
 
+### ⏱️ Connection Timeouts (5 streams)
+*Server slow/overloaded or PPV preparing*
+
+| Channel | Group | Type | Error | Code | File |
+|---------|-------|------|-------|------|---------|
+| SKY SPORTS CRICKET | UK | Other | Timeout after 10s | None | channel playlist.m3u |
+| SKY SPORTS NFL | UK | Other | Timeout after 10s | None | channel playlist.m3u |
+| ESPN | USA | Other | Timeout after 10s | None | channel playlist.m3u |
+| REVOLT | USA | M3U8 | Timeout after 10s | None | channel playlist.m3u |
+| PEACOCK PREMIER LEAGUE TV | USA | Other | Timeout after 10s | None | channel playlist.m3u |
+
 ### 🌐 DNS Failures (1 streams)
 *Domain name resolution failed*
 
@@ -102,15 +110,25 @@
 |---------|-------|------|-------|------|---------|
 | ABC AUSTRALIA VIETNAM | AUS | M3U8 | DNS resolution failed | None | channel playlist.m3u |
 
-### ❓ Not Found (404) (2 streams)
+### ❓ Not Found (404) (4 streams)
 *Stream URL no longer exists*
 
 | Channel | Group | Type | Error | Code | File |
 |---------|-------|------|-------|------|---------|
+| CTB PERTH | AUS | M3U8 | Stream not found | 404 | channel playlist.m3u |
 | INDO OZ TV | AUS | M3U8 | Stream not found | 404 | channel playlist.m3u |
+| BEATS RADIO | AR | M3U8 | Stream not found | 404 | channel playlist.m3u |
 | CANAL 3 LAS HERAS | AR | M3U8 | Stream not found | 404 | channel playlist.m3u |
 
-### ❓ Unknown Errors (80 streams)
+### 💥 Server Errors (5xx) (2 streams)
+*Server-side technical issues*
+
+| Channel | Group | Type | Error | Code | File |
+|---------|-------|------|-------|------|---------|
+| SKY SPORT 1 | NZ | Other | Server error (502) | 502 | channel playlist.m3u |
+| Fubo sports 1 | CA | Other | Server error (502) | 502 | channel playlist.m3u |
+
+### ❓ Unknown Errors (81 streams)
 *Unexpected errors*
 
 | Channel | Group | Type | Error | Code | File |
@@ -193,8 +211,37 @@
 | TV ONE | USA | M3U8 | Connection refused | None | channel playlist.m3u |
 | UP TV | USA | M3U8 | Connection refused | None | channel playlist.m3u |
 | USA NETWORK | USA | M3U8 | Connection refused | None | channel playlist.m3u |
+| WILLOW 2 | USA | Other | Connection refused | None | channel playlist.m3u |
 | ANTENNA TV | USA | M3U8 | Connection refused | None | channel playlist.m3u |
 | FANDUEL SPORTS NETWORK ARIZONA | USA | M3U8 | Connection refused | None | channel playlist.m3u |
+
+
+## 🔗 Other Stream Examples (20 shown)
+
+*These URLs don't match standard patterns (M3U8, TS, Token, Profile, VOD)*
+
+| Channel | Group | URL |
+|---------|-------|-----|
+| ITV 3 | UK | https://a1xs.vip/1000013 |
+| NICK JR. | UK | https://a1xs.vip/1000052 |
+| SKY SPORTS CRICKET | UK | https://a1xs.vip/2000006 |
+| SKY SPORTS GOLF | UK | https://a1xs.vip/2000009 |
+| SKY SPORTS MAIN EVENT | UK | https://a1xs.vip/2000001 |
+| SKY SPORTS MAIN EVENT UHD | UK | https://a1xs.vip/2000015 |
+| SKY SPORTS NFL | UK | https://a1xs.vip/2000011 |
+| SKY SPORTS PREMIER LEAGUE | UK | https://a1xs.vip/2000002 |
+| SKY SPORTS RACING | UK | https://a1xs.vip/2000010 |
+| SKY SPORTS TENNIS | UK | https://a1xs.vip/2000013 |
+| SKY SPORTS+ | UK | https://a1xs.vip/2000012 |
+| TNT SPORTS 1 | UK | https://a1xs.vip/2000021 |
+| TNT SPORTS 2 | UK | https://a1xs.vip/2000022 |
+| TNT SPORTS 3 | UK | https://a1xs.vip/2000023 |
+| TNT SPORTS 4 | UK | https://a1xs.vip/2000024 |
+| NOW 90'S & 00'S | UK | https://jmp2.uk/stvp-GB300033HI |
+| TNT SPORTS ULTIMATE | UK | https://a1xs.vip/2000031 |
+| DISCOVERY | UK | https://a1xs.vip/1000033 |
+| MTV | UK | https://a1xs.vip/1000037 |
+| &TV | UK FAST | https://jmp2.uk/stvp-GB3700007OZ |
 
 
 ## 📋 Configuration Notes
@@ -238,5 +285,5 @@ To test specific content types:
 4. Adjust **Timeout** for slower connections
 
 ---
-*Last updated: 2025-09-26 19:26:13 UTC*
+*Last updated: 2025-09-26 20:44:53 UTC*
 *Report generated automatically by Enhanced GitHub Actions*

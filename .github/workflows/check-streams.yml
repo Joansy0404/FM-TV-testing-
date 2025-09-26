@@ -87,6 +87,18 @@ jobs:
               url_lower = url.lower()
               return 'a1xs.vip' in url_lower and not is_vod_url(url) and not is_m3u8_stream(url) and not is_ts_stream(url)
           
+          def is_fast_channel(url):
+              """Check if URL is a FAST (Free Ad-Supported TV) channel URL"""
+              url_lower = url.lower()
+              fast_patterns = [
+                  'jmp2.uk/stvp-',  # Samsung/Pluto/Plex/LG redirect URLs
+                  'pluto.tv',
+                  'plex.tv',
+                  'samsung.tv',
+                  'lgchannels.com'
+              ]
+              return any(pattern in url_lower for pattern in fast_patterns) and not is_vod_url(url) and not is_m3u8_stream(url) and not is_ts_stream(url) and not is_a1xs_url(url)
+          
           def classify_stream_type(url):
               """Classify stream type for reporting"""
               url_lower = url.lower()
@@ -99,6 +111,8 @@ jobs:
                   return 'TS'
               elif is_a1xs_url(url):
                   return 'A1XS Channel'
+              elif is_fast_channel(url):
+                  return 'FAST Channel'
               elif 'token=' in url_lower:
                   return 'Token URL'
               elif 'profile=pass' in url_lower or 'profile=' in url_lower:
@@ -263,6 +277,7 @@ jobs:
           total_vod_files = 0
           total_ts_streams = 0
           total_a1xs_channels = 0
+          total_fast_channels = 0
           total_token_urls = 0
           total_profile_urls = 0
           total_other_streams = 0
@@ -271,8 +286,8 @@ jobs:
           skipped_streams = 0
           
           # Track working/failed counts by type
-          working_by_type = {'M3U8': 0, 'VOD (#.mkv)': 0, 'TS': 0, 'A1XS Channel': 0, 'Token URL': 0, 'Profile URL': 0, 'Other': 0}
-          failed_by_type = {'M3U8': 0, 'VOD (#.mkv)': 0, 'TS': 0, 'A1XS Channel': 0, 'Token URL': 0, 'Profile URL': 0, 'Other': 0}
+          working_by_type = {'M3U8': 0, 'VOD (#.mkv)': 0, 'TS': 0, 'A1XS Channel': 0, 'FAST Channel': 0, 'Token URL': 0, 'Profile URL': 0, 'Other': 0}
+          failed_by_type = {'M3U8': 0, 'VOD (#.mkv)': 0, 'TS': 0, 'A1XS Channel': 0, 'FAST Channel': 0, 'Token URL': 0, 'Profile URL': 0, 'Other': 0}
           
           # Enhanced failure categorization
           categorized_failures = {
@@ -317,6 +332,7 @@ jobs:
                   file_vod_count = 0
                   file_ts_count = 0
                   file_a1xs_count = 0
+                  file_fast_count = 0
                   file_token_count = 0
                   file_profile_count = 0
                   file_other_count = 0
@@ -335,6 +351,9 @@ jobs:
                       elif stream_type == 'A1XS Channel':
                           file_a1xs_count += 1
                           total_a1xs_channels += 1
+                      elif stream_type == 'FAST Channel':
+                          file_fast_count += 1
+                          total_fast_channels += 1
                       elif stream_type == 'Token URL':
                           file_token_count += 1
                           total_token_urls += 1
@@ -350,6 +369,7 @@ jobs:
                   print(f"  VOD Files: {file_vod_count}")
                   print(f"  TS Streams: {file_ts_count}")
                   print(f"  A1XS Channels: {file_a1xs_count}")
+                  print(f"  FAST Channels: {file_fast_count}")
                   print(f"  Token URLs: {file_token_count}")
                   print(f"  Profile URLs: {file_profile_count}")
                   print(f"  Other Streams: {file_other_count}")
@@ -453,6 +473,7 @@ jobs:
           print(f"  Total VOD Files: {total_vod_files}")
           print(f"  Total TS Streams: {total_ts_streams}")
           print(f"  Total A1XS Channels: {total_a1xs_channels}")
+          print(f"  Total FAST Channels: {total_fast_channels}")
           print(f"  Total Token URLs: {total_token_urls}")
           print(f"  Total Profile URLs: {total_profile_urls}")
           print(f"  Total Other Streams: {total_other_streams}")
@@ -494,10 +515,11 @@ jobs:
                       file_vod = sum(1 for s in file_streams if classify_stream_type(s['url']) == 'VOD (#.mkv)')
                       file_ts = sum(1 for s in file_streams if classify_stream_type(s['url']) == 'TS')
                       file_a1xs = sum(1 for s in file_streams if classify_stream_type(s['url']) == 'A1XS Channel')
+                      file_fast = sum(1 for s in file_streams if classify_stream_type(s['url']) == 'FAST Channel')
                       file_token = sum(1 for s in file_streams if classify_stream_type(s['url']) == 'Token URL')
                       file_profile = sum(1 for s in file_streams if classify_stream_type(s['url']) == 'Profile URL')
-                      file_other = len(file_streams) - file_m3u8 - file_vod - file_ts - file_a1xs - file_token - file_profile
-                      report += f"- `{m3u_file}`: {len(file_streams)} streams ({file_m3u8} M3U8, {file_vod} VOD, {file_ts} TS, {file_a1xs} A1XS, {file_token} Token, {file_profile} Profile, {file_other} Other)\n"
+                      file_other = len(file_streams) - file_m3u8 - file_vod - file_ts - file_a1xs - file_fast - file_token - file_profile
+                      report += f"- `{m3u_file}`: {len(file_streams)} streams ({file_m3u8} M3U8, {file_vod} VOD, {file_ts} TS, {file_a1xs} A1XS, {file_fast} FAST, {file_token} Token, {file_profile} Profile, {file_other} Other)\n"
               
               # Summary section
               report += "\n## Summary\n\n"
@@ -520,6 +542,7 @@ jobs:
                   ('M3U8', 'M3U8 Streams'),
                   ('TS', 'TS Streams'),
                   ('A1XS Channel', 'A1XS Channels'),
+                  ('FAST Channel', 'FAST Channels'),
                   ('Token URL', 'Token URLs'),
                   ('Profile URL', 'Profile URLs'), 
                   ('VOD (#.mkv)', 'VOD Files'),
@@ -636,6 +659,7 @@ jobs:
               report += f"- **VOD Checking:** {vod_config} - Only URLs ending with /#.mkv are considered VOD files\n"
               report += f"- **PPV/Event Checking:** {ppv_config} - UK EVENTS & USA EVENTS groups are automatically detected\n"
               report += f"- **A1XS Detection:** URLs containing 'a1xs.vip' are classified as A1XS Channel URLs\n"
+              report += f"- **FAST Detection:** URLs with 'jmp2.uk/stvp-', 'pluto.tv', 'plex.tv', etc. are FAST channels\n"
               report += f"- **Timeout:** {TIMEOUT_SECONDS} seconds per stream (PPV channels get 2x timeout)\n"
               report += "- **M3U8 Detection:** Matches URLs containing .m3u8 anywhere (handles tokens/parameters)\n"
               report += "- **TS Detection:** Identifies .ts stream URLs as separate category\n\n"
@@ -644,6 +668,7 @@ jobs:
               report += "- **User-Agent:** Chrome 120 simulation for maximum compatibility\n"
               report += "- **Method:** HEAD for direct video files, GET with stream verification for live content\n"
               report += "- **A1XS Channels:** Detected by 'a1xs.vip' domain pattern\n"
+              report += "- **FAST Channels:** Free Ad-Supported TV services (Pluto, Plex, Samsung, LG)\n"
               report += "- **Headers:** Enhanced with security headers and proper content type\n"
               report += "- **Rate Limiting:** Dynamic delays based on success rate\n"
               report += "- **Geographic Testing:** Tests run from GitHub Actions global infrastructure\n\n"
@@ -677,9 +702,9 @@ jobs:
               print(f"Final Summary: {working_streams}/{total_checked} streams working ({working_percentage:.1f}%), {skipped_streams} skipped")
               
               # Type breakdown summary
-              type_icons = {'M3U8': 'M3U8', 'VOD (#.mkv)': 'VOD', 'TS': 'TS', 'A1XS Channel': 'A1XS', 'Token URL': 'Token', 'Profile URL': 'Profile', 'Other': 'Other'}
+              type_icons = {'M3U8': 'M3U8', 'VOD (#.mkv)': 'VOD', 'TS': 'TS', 'A1XS Channel': 'A1XS', 'FAST Channel': 'FAST', 'Token URL': 'Token', 'Profile URL': 'Profile', 'Other': 'Other'}
               
-              for stream_type in ['M3U8', 'VOD (#.mkv)', 'TS', 'A1XS Channel', 'Token URL', 'Profile URL', 'Other']:
+              for stream_type in ['M3U8', 'VOD (#.mkv)', 'TS', 'A1XS Channel', 'FAST Channel', 'Token URL', 'Profile URL', 'Other']:
                   working_count = working_by_type[stream_type]
                   failed_count = failed_by_type[stream_type]
                   if working_count > 0 or failed_count > 0:

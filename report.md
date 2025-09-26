@@ -1,7 +1,7 @@
 # 📺 Enhanced M3U Stream Status Report
 
-**Generated on:** 2025-09-26 18:21:26 UTC  
-**Duration:** 453.7 seconds  
+**Generated on:** 2025-09-26 18:37:11 UTC  
+**Duration:** 469.9 seconds  
 **Runner Location:** GitHub Actions (global infrastructure)  
 **Configuration:** VODs: ❌, PPV: ❌, Timeout: 10s
 
@@ -15,8 +15,8 @@
 | **📡 TS Streams** | 3 | 0.2% |
 | **🔗 Other Streams** | 175 | 11.8% |
 | **🔍 Checked Streams** | 593 | 40.0% |
-| **✅ Working Streams** | 571 | 96.3% |
-| **❌ Failed Streams** | 22 | 3.7% |
+| **✅ Working Streams** | 572 | 96.5% |
+| **❌ Failed Streams** | 21 | 3.5% |
 | **⭕ Skipped Streams** | 890 | 60.0% |
 
 ## 📊 Stream Type Breakdown
@@ -25,7 +25,7 @@
 |------|---------|--------|---------------|-------------|
 | **📺 M3U8** | 395 | 21 | 416 | 95.0% |
 | **📡 TS** | 2 | 0 | 2 | 100.0% |
-| **🔗 Other** | 174 | 1 | 175 | 99.4% |
+| **🔗 Other** | 175 | 0 | 175 | 100.0% |
 
 ## 📁 Files Processed
 
@@ -75,7 +75,7 @@
 | USA FAST | 1 |
 
 
-## 📋 Failure Analysis (22 total failures)
+## 📋 Failure Analysis (21 total failures)
 
 ### 🚫 Access Denied (14 streams)
 *Geo-blocked or authentication required*
@@ -102,7 +102,7 @@
 
 | Channel | Group | Type | Error | Code | File |
 |---------|-------|------|-------|------|---------|
-| PEACOCK PREMIER LEAGUE TV | USA | Other | Timeout after 10s | None | channel playlist.m3u |
+| RACER TV | USA | M3U8 | Timeout after 10s | None | channel playlist.m3u |
 | ALTERNA TV | AR | M3U8 | Timeout after 10s | None | channel playlist.m3u |
 
 ### 🌐 DNS Failures (1 streams)
@@ -112,14 +112,13 @@
 |---------|-------|------|-------|------|---------|
 | ABC AUSTRALIA VIETNAM | AUS | M3U8 | DNS resolution failed | None | channel playlist.m3u |
 
-### ❓ Not Found (404) (5 streams)
+### ❓ Not Found (404) (4 streams)
 *Stream URL no longer exists*
 
 | Channel | Group | Type | Error | Code | File |
 |---------|-------|------|-------|------|---------|
-| BOOMERANG | USA | M3U8 | Stream not found | 404 | channel playlist.m3u |
-| FOOD NETWORK | USA | M3U8 | Stream not found | 404 | channel playlist.m3u |
 | HALLMARK DRAMA | USA | M3U8 | Stream not found | 404 | channel playlist.m3u |
+| CTB PERTH | AUS | M3U8 | Stream not found | 404 | channel playlist.m3u |
 | INDO OZ TV | AUS | M3U8 | Stream not found | 404 | channel playlist.m3u |
 | CANAL 3 LAS HERAS | AR | M3U8 | Stream not found | 404 | channel playlist.m3u |
 
@@ -165,5 +164,5 @@ To test specific content types:
 4. Adjust **Timeout** for slower connections
 
 ---
-*Last updated: 2025-09-26 18:21:26 UTC*
+*Last updated: 2025-09-26 18:37:11 UTC*
 *Report generated automatically by Enhanced GitHub Actions*

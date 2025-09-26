@@ -358,9 +358,9 @@ jobs:
                           
                           # Show what's being skipped for debugging
                           if "VOD" in skip_reason:
-                              print(f"⭐ Skipping VOD: {stream['name'][:40]}")
+                              print(f"⭕ Skipping VOD: {stream['name'][:40]}")
                           elif "PPV" in skip_reason:
-                              print(f"⭐ Skipping PPV: {stream['name'][:40]} (Group: {stream['group']})")
+                              print(f"⭕ Skipping PPV: {stream['name'][:40]} (Group: {stream['group']})")
                           
                           # Categorize skipped streams
                           if "VOD" in skip_reason:
@@ -498,7 +498,7 @@ jobs:
               report += f"| **🔍 Checked Streams** | {total_checked} | {checked_percentage:.1f}% |\n"
               report += f"| **✅ Working Streams** | {working_streams} | {working_percentage:.1f}% |\n"
               report += f"| **❌ Failed Streams** | {total_failures} | {failure_percentage:.1f}% |\n"
-              report += f"| **⭐ Skipped Streams** | {skipped_streams} | {skipped_percentage:.1f}% |\n\n"
+              report += f"| **⭕ Skipped Streams** | {skipped_streams} | {skipped_percentage:.1f}% |\n\n"
               
               report += "## 📊 Stream Type Breakdown\n\n"
               report += "| Type | Working | Failed | Total Checked | Success Rate |\n"
@@ -548,7 +548,7 @@ jobs:
           try:
               if skipped_streams > 0:
                   print("📝 Adding skipped streams section")
-                  report += f"\n## ⭐ Skipped Streams ({skipped_streams} total)\n\n"
+                  report += f"\n## ⭕ Skipped Streams ({skipped_streams} total)\n\n"
                   
                   if skipped_categories['vods'] and not CHECK_VODS:
                       print(f"📝 Adding VOD summary")
@@ -720,11 +720,15 @@ jobs:
               print("📊 Enhanced report generated successfully!")
               print(f"📈 Final Summary: {working_streams}/{total_checked} streams working ({working_percentage:.1f}%), {skipped_streams} skipped")
               
+              # Define the icon mapping outside the f-string to avoid syntax issues
+              type_icons = {'M3U8': '📺', 'VOD': '🎬', 'TS': '📡', 'RTMP': '🔴', 'Other': '🔗'}
+              
               for stream_type in ['M3U8', 'VOD', 'TS', 'RTMP', 'Other']:
                   working_count = working_by_type[stream_type]
                   failed_count = failed_by_type[stream_type]
                   if working_count > 0 or failed_count > 0:
-                      print(f"{{'M3U8': '📺', 'VOD': '🎬', 'TS': '📡', 'RTMP': '🔴', 'Other': '🔗'}[stream_type]} {stream_type}: {working_count} working, {failed_count} failed")
+                      icon = type_icons[stream_type]
+                      print(f"{icon} {stream_type}: {working_count} working, {failed_count} failed")
               
               # Verify file was written
               if os.path.exists('report.md'):

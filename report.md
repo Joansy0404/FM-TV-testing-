@@ -1,36 +1,37 @@
 # M3U Stream Status Report
 
-**Generated on:** 2025-09-26 21:38:44 UTC  
-**Duration:** 409.0 seconds  
+**Generated on:** 2025-09-26 22:33:02 UTC  
+**Duration:** 446.7 seconds  
 **Configuration:** VODs: Disabled, PPV: Disabled, Timeout: 10s
 
 ## Files Processed
 
-- `channel playlist.m3u`: 1533 streams (486 M3U8, 869 VOD, 3 TS, 59 A1XS, 0 Token, 35 Profile, 81 Other)
+- `channel playlist.m3u`: 1537 streams (486 M3U8, 869 VOD, 3 TS, 59 A1XS, 75 FAST, 0 Token, 35 Profile, 10 Other)
 
 ## Summary
 
 | Metric | Count | Percentage |
 |--------|-------|-----------|
-| **Total Streams Found** | 1533 | 100% |
-| **Total Channel Streams** | 664 | 43.3% |
-| **Total VOD Streams** | 869 | 56.7% |
-| **Checked Streams** | 612 | 39.9% |
-| **Working Streams** | 508 | 83.0% |
-| **Failed Streams** | 104 | 17.0% |
-| **Skipped Streams** | 921 | 60.1% |
+| **Total Streams Found** | 1537 | 100% |
+| **Total Channel Streams** | 668 | 43.5% |
+| **Total VOD Streams** | 869 | 56.5% |
+| **Checked Streams** | 616 | 40.1% |
+| **Working Streams** | 511 | 83.0% |
+| **Failed Streams** | 105 | 17.0% |
+| **Skipped Streams** | 921 | 59.9% |
 
 ## Stream Type Breakdown
 
 | Type | Working | Failed | Total Checked | Success Rate |
 |------|---------|--------|---------------|-------------|
-| **M3U8 Streams** | 333 | 102 | 435 | 76.6% |
+| **M3U8 Streams** | 335 | 100 | 435 | 77.0% |
 | **TS Streams** | 2 | 0 | 2 | 100.0% |
-| **A1XS Channels** | 57 | 2 | 59 | 96.6% |
+| **A1XS Channels** | 54 | 5 | 59 | 91.5% |
+| **FAST Channels** | 75 | 0 | 75 | 100.0% |
 | **Profile URLs** | 35 | 0 | 35 | 100.0% |
-| **Other** | 81 | 0 | 81 | 100.0% |
+| **Other** | 10 | 0 | 10 | 100.0% |
 
-## Failure Analysis (104 total failures)
+## Failure Analysis (105 total failures)
 
 ### Unknown Errors (81 streams)
 *Unexpected errors*
@@ -119,24 +120,16 @@
 | ANTENNA TV | USA | M3U8 | Connection refused | None | channel playlist.m3u |
 | FANDUEL SPORTS NETWORK ARIZONA | USA | M3U8 | Connection refused | None | channel playlist.m3u |
 
-### Not Found (404) (6 streams)
+### Not Found (404) (5 streams)
 *Stream URL no longer exists*
 
 | Channel | Group | Type | Error | Code | File |
 |---------|-------|------|-------|------|---------|
+| SKY SPORTS NFL | UK | A1XS Cha | Stream not found | 404 | channel playlist.m3u |
 | CTB PERTH | AUS | M3U8 | Stream not found | 404 | channel playlist.m3u |
 | INDO OZ TV | AUS | M3U8 | Stream not found | 404 | channel playlist.m3u |
 | BEATS RADIO | AR | M3U8 | Stream not found | 404 | channel playlist.m3u |
-| CANAL 3 LAS HERAS | AR | M3U8 | Stream not found | 404 | channel playlist.m3u |
 | CANAL 5 PICO TRUNCADO | AR | M3U8 | Stream not found | 404 | channel playlist.m3u |
-| ANYTIME TV | ZA | M3U8 | Stream not found | 404 | channel playlist.m3u |
-
-### Server Errors (1 streams)
-*Server-side technical issues*
-
-| Channel | Group | Type | Error | Code | File |
-|---------|-------|------|-------|------|---------|
-| SKY SPORT 1 | NZ | A1XS Cha | Server error (502) | 502 | channel playlist.m3u |
 
 ### DNS Failures (1 streams)
 *Domain name resolution failed*
@@ -145,11 +138,14 @@
 |---------|-------|------|-------|------|---------|
 | ABC AUSTRALIA VIETNAM | AUS | M3U8 | DNS resolution failed | None | channel playlist.m3u |
 
-### Connection Timeouts (1 streams)
+### Connection Timeouts (4 streams)
 *Server slow/overloaded or PPV preparing*
 
 | Channel | Group | Type | Error | Code | File |
 |---------|-------|------|-------|------|---------|
+| SKY SPORTS CRICKET | UK | A1XS Cha | Timeout after 10s | None | channel playlist.m3u |
+| ESPN | USA | A1XS Cha | Timeout after 10s | None | channel playlist.m3u |
+| ESPN 2 | USA | A1XS Cha | Timeout after 10s | None | channel playlist.m3u |
 | ALTERNA TV | AR | M3U8 | Timeout after 10s | None | channel playlist.m3u |
 
 ### Access Denied (14 streams)
@@ -213,62 +209,22 @@
 | Studiocanal Presents | 4 |
 
 
-## Other Stream Examples (50 shown)
+## Other Stream Examples (10 shown)
 
 *These URLs don't match standard patterns (M3U8, TS, A1XS, Token, Profile, VOD)*
 
 | Channel | Group | URL |
 |---------|-------|-----|
-| NOW 90'S & 00'S | UK | https://jmp2.uk/stvp-GB300033HI |
-| &TV | UK FAST | https://jmp2.uk/stvp-GB3700007OZ |
-| 5 COPS | UK FAST | https://jmp2.uk/stvp-GBAK3504500A |
-| 5 EXPLORING BRITAIN | UK FAST | https://jmp2.uk/stvp-GBAK3504501A |
-| 8 OUT OF 10 CATS | UK FAST | https://jmp2.uk/stvp-GB1800002FA |
-| ADVENTURE EARTH | UK FAST | https://jmp2.uk/stvp-GBBC900015D3 |
-| AMERICA'S GOT TALENT | UK FAST | https://jmp2.uk/stvp-GBBC2300002GG |
-| AMERICAN IDOL | UK FAST | https://jmp2.uk/stvp-GBBC2300001X5 |
-| ANTIQUES ROAD TRIP | UK FAST | https://jmp2.uk/stvp-GB3000387J |
-| ARE WE THERE YET? | UK FAST | https://jmp2.uk/stvp-GBBB1600006RS |
-| ARTIST OF THE YEAR | UK FAST | https://jmp2.uk/stvp-GB2700016H5 |
-| AX MEN | UK FAST | https://jmp2.uk/stvp-GB2700011DR |
-| BAYWATCH | UK FAST | https://jmp2.uk/stvp-GBBD600002XT |
-| BRITISH SCREEN CLASSICS | UK FAST | https://jmp2.uk/stvp-GB32000024G |
-| CASH IN THE ATTIC | UK FAST | https://jmp2.uk/stvp-GB1200004J4 |
-| CATFISH | UK FAST | https://jmp2.uk/stvp-GBBA330003941 |
-| CNBC | UK FAST | https://jmp2.uk/stvp-GBBD3600001NO |
-| CNN | UK FAST | https://jmp2.uk/stvp-GBBD8000016N |
-| CNN HEADLINES | UK FAST | https://jmp2.uk/stvp-GBBD1900008O3 |
-| COLD SUMMER CHANNEL | UK FAST | https://jmp2.uk/stvp-GB2500002K0 |
-| COME DINE WITH ME | UK FAST | https://jmp2.uk/stvp-GBBC9000062G |
-| CONAN O'BRIEN TV | UK FAST | https://jmp2.uk/stvp-GB300001QO |
-| CRIME & JUSTICE | UK FAST | https://jmp2.uk/stvp-GBBD260000189 |
-| CURIOSITY NOW | UK FAST | https://jmp2.uk/stvp-GB1400001E4 |
-| DATELINE 24/7 | UK FAST | https://jmp2.uk/stvp-GBBD3700001AB |
-| DEADLY WOMEN: POWERED BY BANIJAY | UK FAST | https://jmp2.uk/stvp-GB4900001NW |
-| DEAL MASTERS | UK FAST | https://jmp2.uk/stvp-GB12000037Y |
-| DEAL OR NO DEAL US | UK FAST | https://jmp2.uk/stvp-GBBB38000068U |
-| DEF JAM | UK FAST | https://jmp2.uk/stvp-GBBD3000004VR |
-| DEMAND DRAMA | UK FAST | https://jmp2.uk/stvp-GB900005KI |
-| DENNIS AND GNASHER | UK FAST | https://jmp2.uk/stvp-GBBD1100011V3 |
-| DFB PLAY TV | UK FAST | https://jmp2.uk/stvp-GB26000118T |
-| DOG THE BOUNTY HUNTER | UK FAST | https://jmp2.uk/stvp-GB27000069E |
-| TRUE LIVES BY ITV STUDIOS | UK FAST | https://jmp2.uk/stvp-GBBD4100006KV |
-| YAAAS! | UK FAST | https://jmp2.uk/stvp-GB340000289 |
-| ICON FILM CHANNEL CLASSICS | UK FAST | https://jmp2.uk/stvp-GB12000052F |
-| KETCHUP TV | UK FAST | https://jmp2.uk/stvp-GB3400003A9 |
-| MASTERCHEF UK: POWERED BY BANIJAY | UK FAST | https://jmp2.uk/stvp-GBBD25000019N |
-| MOTORRACING | UK FAST | https://jmp2.uk/stvp-GBBA1500006H6 |
-| XITE HITS | UK FAST | https://jmp2.uk/stvp-GBBB3800005QO |
-| ZEE ONE | UK FAST | https://jmp2.uk/stvp-GBBD1100013BJ |
-| WORLD WAR TV | UK FAST | https://jmp2.uk/stvp-GBBD1100001UI |
-| WORLD POKER TOUR | UK FAST | https://jmp2.uk/stvp-GBBD2900001VD |
-| WIPEOUT XTRA POWERED BY BANIJAY | UK FAST | https://jmp2.uk/stvp-GBBD3000001QB |
-| WILD PLANET | UK FAST | https://jmp2.uk/stvp-GBBB5000002PL |
-| WEDO MOVIES | UK FAST | https://jmp2.uk/stvp-GBBA3300050RG |
-| WATERBEAR | UK FAST | https://jmp2.uk/stvp-GBBC300003UQ |
-| VIDEO GAME HEREOS | UK FAST | https://jmp2.uk/stvp-GB3400001ND |
-| VEVO 90'S & 00'S | UK FAST | https://jmp2.uk/stvp-GBBC2100002HP |
-| VEVO 70'S & 80'S | UK FAST | https://jmp2.uk/stvp-GBBD1900009UD |
+| TLC | UK | http://imediatv666.store:7777/lunarisports2913/sportsstuff29/112676 |
+| COMEDY CENTRAL | UK | http://imediatv666.store:7777/lunarisports2913/sportsstuff29/112640 |
+| COMEDY CENTRAL XTRA | UK | http://imediatv666.store:7777/lunarisports2913/sportsstuff29/112641 |
+| E4 | UK | http://imediatv666.store:7777/lunarisports2913/sportsstuff29/112646 |
+| Sportsnet 360 | CA | http://shpcafgj.mexamo.xyz/G36YB21A/FKVUQE5L/175777 |
+| Fubo sports 1 | CA | http://shpcafgj.mexamo.xyz/G36YB21A/FKVUQE5L/473384 |
+| Sportsnet Ontario HD | CA | http://shpcafgj.mexamo.xyz:80/G36YB21A/FKVUQE5L/175774 |
+| USA Network | CA | https://theariatv.github.io/channeldead.mp4 |
+| MBC ACTION | AE | http://213.57.91.138:8000/play/a05l |
+| NATIONAL GEOGRAPHIC ABU DHABI | AE | http://213.57.91.138:8000/play/a05a |
 
 
 ## Configuration Notes
@@ -276,6 +232,7 @@
 - **VOD Checking:** Disabled - Only URLs ending with /#.mkv are considered VOD files
 - **PPV/Event Checking:** Disabled - UK EVENTS & USA EVENTS groups are automatically detected
 - **A1XS Detection:** URLs containing 'a1xs.vip' are classified as A1XS Channel URLs
+- **FAST Detection:** URLs with 'jmp2.uk/stvp-', 'pluto.tv', 'plex.tv', etc. are FAST channels
 - **Timeout:** 10 seconds per stream (PPV channels get 2x timeout)
 - **M3U8 Detection:** Matches URLs containing .m3u8 anywhere (handles tokens/parameters)
 - **TS Detection:** Identifies .ts stream URLs as separate category
@@ -285,6 +242,7 @@
 - **User-Agent:** Chrome 120 simulation for maximum compatibility
 - **Method:** HEAD for direct video files, GET with stream verification for live content
 - **A1XS Channels:** Detected by 'a1xs.vip' domain pattern
+- **FAST Channels:** Free Ad-Supported TV services (Pluto, Plex, Samsung, LG)
 - **Headers:** Enhanced with security headers and proper content type
 - **Rate Limiting:** Dynamic delays based on success rate
 - **Geographic Testing:** Tests run from GitHub Actions global infrastructure
@@ -298,5 +256,5 @@ To test specific content types:
 4. Adjust **Timeout** for slower connections
 
 ---
-*Last updated: 2025-09-26 21:38:44 UTC*
+*Last updated: 2025-09-26 22:33:02 UTC*
 *Report generated automatically by GitHub Actions*

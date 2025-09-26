@@ -1,134 +1,38 @@
-# 📺 Enhanced M3U Stream Status Report
+# M3U Stream Status Report
 
-**Generated on:** 2025-09-26 20:44:53 UTC  
-**Duration:** 523.9 seconds  
-**Runner Location:** GitHub Actions (global infrastructure)  
-**Configuration:** VODs: ❌, PPV: ❌, Timeout: 10s
+**Generated on:** 2025-09-26 21:38:44 UTC  
+**Duration:** 409.0 seconds  
+**Configuration:** VODs: Disabled, PPV: Disabled, Timeout: 10s
 
-## 📊 Summary
+## Files Processed
+
+- `channel playlist.m3u`: 1533 streams (486 M3U8, 869 VOD, 3 TS, 59 A1XS, 0 Token, 35 Profile, 81 Other)
+
+## Summary
 
 | Metric | Count | Percentage |
 |--------|-------|-----------|
-| **Total Streams Found** | 1488 | 100% |
-| **Total Channel Streams** | 663 | 44.6% |
-| **Total VOD Streams** | 825 | 55.4% |
-| **🔍 Checked Streams** | 611 | 41.1% |
-| **✅ Working Streams** | 504 | 82.5% |
-| **❌ Failed Streams** | 107 | 17.5% |
-| **⭕ Skipped Streams** | 877 | 58.9% |
+| **Total Streams Found** | 1533 | 100% |
+| **Total Channel Streams** | 664 | 43.3% |
+| **Total VOD Streams** | 869 | 56.7% |
+| **Checked Streams** | 612 | 39.9% |
+| **Working Streams** | 508 | 83.0% |
+| **Failed Streams** | 104 | 17.0% |
+| **Skipped Streams** | 921 | 60.1% |
 
-## 📊 Stream Type Breakdown
+## Stream Type Breakdown
 
 | Type | Working | Failed | Total Checked | Success Rate |
 |------|---------|--------|---------------|-------------|
-| **📺 .M3U8** | 334 | 100 | 434 | 77.0% |
-| **📡 .TS** | 2 | 0 | 2 | 100.0% |
-| **⚙️ Profile URLs** | 35 | 0 | 35 | 100.0% |
-| **🔗 Other** | 133 | 7 | 140 | 95.0% |
+| **M3U8 Streams** | 333 | 102 | 435 | 76.6% |
+| **TS Streams** | 2 | 0 | 2 | 100.0% |
+| **A1XS Channels** | 57 | 2 | 59 | 96.6% |
+| **Profile URLs** | 35 | 0 | 35 | 100.0% |
+| **Other** | 81 | 0 | 81 | 100.0% |
 
-## 📁 Files Processed
+## Failure Analysis (104 total failures)
 
-- `channel playlist.m3u`: 1488 streams (485 M3U8, 825 VOD, 3 TS, 0 Token, 35 Profile, 140 Other)
-
-## ⭕ Skipped Streams (877 total)
-
-### 🎬 VOD Files (825 skipped)
-*Enable "Check VODs" in workflow dispatch to test these*
-
-| Group | Count |
-|-------|---------|
-| AMC+ | 4 |
-| Angel Studios | 1 |
-| Apple TV+ | 7 |
-| BritBox | 4 |
-| CBC Gem | 1 |
-| DOCPLAY | 1 |
-| Disney+ | 199 |
-| FMTV+ | 3 |
-| HBO MAX | 106 |
-| Hallmark+ | 1 |
-| NETFLIX | 22 |
-| Others | 83 |
-| PBS | 2 |
-| PRIME VIDEO | 40 |
-| Paramount+ | 89 |
-| Peacock TV | 132 |
-| RTÈ PLAYER | 3 |
-| SONY Pictures Core | 75 |
-| SONY Pictures Core (Shows) | 12 |
-| STARZ | 35 |
-| Stan. | 2 |
-| Studiocanal Presents | 3 |
-
-### 🥊 PPV/Event Channels (52 skipped)
-*Enable "Check PPV" in workflow dispatch to test these*
-
-| Group | Count |
-|-------|---------|
-| UK EVENTS | 1 |
-| USA EVENTS | 50 |
-| USA FAST | 1 |
-
-
-## 📋 Failure Analysis (107 total failures)
-
-### 🚫 Access Denied (14 streams)
-*Geo-blocked or authentication required*
-
-| Channel | Group | Type | Error | Code | File |
-|---------|-------|------|-------|------|---------|
-| BLAZE | UK | M3U8 | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
-| TV WAREHOUSE | UK | M3U8 | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
-| INSIDE CRIME | UK FAST | M3U8 | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
-| TG 4 | IE | M3U8 | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
-| AL MASHHAD | AE | M3U8 | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
-| ALARABIYA | AE | M3U8 | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
-| MBC 1 | AE | M3U8 | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
-| MBC 4 | AE | M3U8 | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
-| MBC 5 | AE | M3U8 | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
-| MBC BOLLYWOOD | AE | M3U8 | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
-| MBC DRAMA | AE | M3U8 | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
-| MBC PERSIA | AE | M3U8 | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
-| SPACETOON ARABIC | AE | M3U8 | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
-| WANASAH | AE | M3U8 | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
-
-### ⏱️ Connection Timeouts (5 streams)
-*Server slow/overloaded or PPV preparing*
-
-| Channel | Group | Type | Error | Code | File |
-|---------|-------|------|-------|------|---------|
-| SKY SPORTS CRICKET | UK | Other | Timeout after 10s | None | channel playlist.m3u |
-| SKY SPORTS NFL | UK | Other | Timeout after 10s | None | channel playlist.m3u |
-| ESPN | USA | Other | Timeout after 10s | None | channel playlist.m3u |
-| REVOLT | USA | M3U8 | Timeout after 10s | None | channel playlist.m3u |
-| PEACOCK PREMIER LEAGUE TV | USA | Other | Timeout after 10s | None | channel playlist.m3u |
-
-### 🌐 DNS Failures (1 streams)
-*Domain name resolution failed*
-
-| Channel | Group | Type | Error | Code | File |
-|---------|-------|------|-------|------|---------|
-| ABC AUSTRALIA VIETNAM | AUS | M3U8 | DNS resolution failed | None | channel playlist.m3u |
-
-### ❓ Not Found (404) (4 streams)
-*Stream URL no longer exists*
-
-| Channel | Group | Type | Error | Code | File |
-|---------|-------|------|-------|------|---------|
-| CTB PERTH | AUS | M3U8 | Stream not found | 404 | channel playlist.m3u |
-| INDO OZ TV | AUS | M3U8 | Stream not found | 404 | channel playlist.m3u |
-| BEATS RADIO | AR | M3U8 | Stream not found | 404 | channel playlist.m3u |
-| CANAL 3 LAS HERAS | AR | M3U8 | Stream not found | 404 | channel playlist.m3u |
-
-### 💥 Server Errors (5xx) (2 streams)
-*Server-side technical issues*
-
-| Channel | Group | Type | Error | Code | File |
-|---------|-------|------|-------|------|---------|
-| SKY SPORT 1 | NZ | Other | Server error (502) | 502 | channel playlist.m3u |
-| Fubo sports 1 | CA | Other | Server error (502) | 502 | channel playlist.m3u |
-
-### ❓ Unknown Errors (81 streams)
+### Unknown Errors (81 streams)
 *Unexpected errors*
 
 | Channel | Group | Type | Error | Code | File |
@@ -211,72 +115,181 @@
 | TV ONE | USA | M3U8 | Connection refused | None | channel playlist.m3u |
 | UP TV | USA | M3U8 | Connection refused | None | channel playlist.m3u |
 | USA NETWORK | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| WILLOW 2 | USA | Other | Connection refused | None | channel playlist.m3u |
+| WILLOW 2 | USA | A1XS Cha | Connection refused | None | channel playlist.m3u |
 | ANTENNA TV | USA | M3U8 | Connection refused | None | channel playlist.m3u |
 | FANDUEL SPORTS NETWORK ARIZONA | USA | M3U8 | Connection refused | None | channel playlist.m3u |
 
+### Not Found (404) (6 streams)
+*Stream URL no longer exists*
 
-## 🔗 Other Stream Examples (20 shown)
+| Channel | Group | Type | Error | Code | File |
+|---------|-------|------|-------|------|---------|
+| CTB PERTH | AUS | M3U8 | Stream not found | 404 | channel playlist.m3u |
+| INDO OZ TV | AUS | M3U8 | Stream not found | 404 | channel playlist.m3u |
+| BEATS RADIO | AR | M3U8 | Stream not found | 404 | channel playlist.m3u |
+| CANAL 3 LAS HERAS | AR | M3U8 | Stream not found | 404 | channel playlist.m3u |
+| CANAL 5 PICO TRUNCADO | AR | M3U8 | Stream not found | 404 | channel playlist.m3u |
+| ANYTIME TV | ZA | M3U8 | Stream not found | 404 | channel playlist.m3u |
 
-*These URLs don't match standard patterns (M3U8, TS, Token, Profile, VOD)*
+### Server Errors (1 streams)
+*Server-side technical issues*
+
+| Channel | Group | Type | Error | Code | File |
+|---------|-------|------|-------|------|---------|
+| SKY SPORT 1 | NZ | A1XS Cha | Server error (502) | 502 | channel playlist.m3u |
+
+### DNS Failures (1 streams)
+*Domain name resolution failed*
+
+| Channel | Group | Type | Error | Code | File |
+|---------|-------|------|-------|------|---------|
+| ABC AUSTRALIA VIETNAM | AUS | M3U8 | DNS resolution failed | None | channel playlist.m3u |
+
+### Connection Timeouts (1 streams)
+*Server slow/overloaded or PPV preparing*
+
+| Channel | Group | Type | Error | Code | File |
+|---------|-------|------|-------|------|---------|
+| ALTERNA TV | AR | M3U8 | Timeout after 10s | None | channel playlist.m3u |
+
+### Access Denied (14 streams)
+*Geo-blocked or authentication required*
+
+| Channel | Group | Type | Error | Code | File |
+|---------|-------|------|-------|------|---------|
+| BLAZE | UK | M3U8 | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
+| TV WAREHOUSE | UK | M3U8 | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
+| INSIDE CRIME | UK FAST | M3U8 | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
+| TG 4 | IE | M3U8 | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
+| AL MASHHAD | AE | M3U8 | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
+| ALARABIYA | AE | M3U8 | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
+| MBC 1 | AE | M3U8 | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
+| MBC 4 | AE | M3U8 | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
+| MBC 5 | AE | M3U8 | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
+| MBC BOLLYWOOD | AE | M3U8 | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
+| MBC DRAMA | AE | M3U8 | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
+| MBC PERSIA | AE | M3U8 | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
+| SPACETOON ARABIC | AE | M3U8 | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
+| WANASAH | AE | M3U8 | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
+
+
+## Skipped Streams (921 total)
+
+### PPV/Event Channels (52 skipped)
+*Enable "Check PPV" in workflow dispatch to test these*
+
+| Group | Count |
+|-------|---------|
+| UK EVENTS | 1 |
+| USA EVENTS | 50 |
+| USA FAST | 1 |
+
+### VOD Files (869 skipped)
+*Enable "Check VODs" in workflow dispatch to test these*
+
+| Group | Count |
+|-------|---------|
+| AMC+ | 4 |
+| Angel Studios | 1 |
+| Apple TV+ | 7 |
+| BritBox | 5 |
+| CBC Gem | 1 |
+| DOCPLAY | 1 |
+| Disney+ | 209 |
+| FMTV+ | 3 |
+| HBO MAX | 110 |
+| Hallmark+ | 1 |
+| NETFLIX | 22 |
+| Others | 84 |
+| PBS | 2 |
+| PRIME VIDEO | 41 |
+| Paramount+ | 96 |
+| Peacock TV | 140 |
+| RTÈ PLAYER | 3 |
+| SONY Pictures Core | 83 |
+| SONY Pictures Core (Shows) | 12 |
+| STARZ | 38 |
+| Stan. | 2 |
+| Studiocanal Presents | 4 |
+
+
+## Other Stream Examples (50 shown)
+
+*These URLs don't match standard patterns (M3U8, TS, A1XS, Token, Profile, VOD)*
 
 | Channel | Group | URL |
 |---------|-------|-----|
-| ITV 3 | UK | https://a1xs.vip/1000013 |
-| NICK JR. | UK | https://a1xs.vip/1000052 |
-| SKY SPORTS CRICKET | UK | https://a1xs.vip/2000006 |
-| SKY SPORTS GOLF | UK | https://a1xs.vip/2000009 |
-| SKY SPORTS MAIN EVENT | UK | https://a1xs.vip/2000001 |
-| SKY SPORTS MAIN EVENT UHD | UK | https://a1xs.vip/2000015 |
-| SKY SPORTS NFL | UK | https://a1xs.vip/2000011 |
-| SKY SPORTS PREMIER LEAGUE | UK | https://a1xs.vip/2000002 |
-| SKY SPORTS RACING | UK | https://a1xs.vip/2000010 |
-| SKY SPORTS TENNIS | UK | https://a1xs.vip/2000013 |
-| SKY SPORTS+ | UK | https://a1xs.vip/2000012 |
-| TNT SPORTS 1 | UK | https://a1xs.vip/2000021 |
-| TNT SPORTS 2 | UK | https://a1xs.vip/2000022 |
-| TNT SPORTS 3 | UK | https://a1xs.vip/2000023 |
-| TNT SPORTS 4 | UK | https://a1xs.vip/2000024 |
 | NOW 90'S & 00'S | UK | https://jmp2.uk/stvp-GB300033HI |
-| TNT SPORTS ULTIMATE | UK | https://a1xs.vip/2000031 |
-| DISCOVERY | UK | https://a1xs.vip/1000033 |
-| MTV | UK | https://a1xs.vip/1000037 |
 | &TV | UK FAST | https://jmp2.uk/stvp-GB3700007OZ |
+| 5 COPS | UK FAST | https://jmp2.uk/stvp-GBAK3504500A |
+| 5 EXPLORING BRITAIN | UK FAST | https://jmp2.uk/stvp-GBAK3504501A |
+| 8 OUT OF 10 CATS | UK FAST | https://jmp2.uk/stvp-GB1800002FA |
+| ADVENTURE EARTH | UK FAST | https://jmp2.uk/stvp-GBBC900015D3 |
+| AMERICA'S GOT TALENT | UK FAST | https://jmp2.uk/stvp-GBBC2300002GG |
+| AMERICAN IDOL | UK FAST | https://jmp2.uk/stvp-GBBC2300001X5 |
+| ANTIQUES ROAD TRIP | UK FAST | https://jmp2.uk/stvp-GB3000387J |
+| ARE WE THERE YET? | UK FAST | https://jmp2.uk/stvp-GBBB1600006RS |
+| ARTIST OF THE YEAR | UK FAST | https://jmp2.uk/stvp-GB2700016H5 |
+| AX MEN | UK FAST | https://jmp2.uk/stvp-GB2700011DR |
+| BAYWATCH | UK FAST | https://jmp2.uk/stvp-GBBD600002XT |
+| BRITISH SCREEN CLASSICS | UK FAST | https://jmp2.uk/stvp-GB32000024G |
+| CASH IN THE ATTIC | UK FAST | https://jmp2.uk/stvp-GB1200004J4 |
+| CATFISH | UK FAST | https://jmp2.uk/stvp-GBBA330003941 |
+| CNBC | UK FAST | https://jmp2.uk/stvp-GBBD3600001NO |
+| CNN | UK FAST | https://jmp2.uk/stvp-GBBD8000016N |
+| CNN HEADLINES | UK FAST | https://jmp2.uk/stvp-GBBD1900008O3 |
+| COLD SUMMER CHANNEL | UK FAST | https://jmp2.uk/stvp-GB2500002K0 |
+| COME DINE WITH ME | UK FAST | https://jmp2.uk/stvp-GBBC9000062G |
+| CONAN O'BRIEN TV | UK FAST | https://jmp2.uk/stvp-GB300001QO |
+| CRIME & JUSTICE | UK FAST | https://jmp2.uk/stvp-GBBD260000189 |
+| CURIOSITY NOW | UK FAST | https://jmp2.uk/stvp-GB1400001E4 |
+| DATELINE 24/7 | UK FAST | https://jmp2.uk/stvp-GBBD3700001AB |
+| DEADLY WOMEN: POWERED BY BANIJAY | UK FAST | https://jmp2.uk/stvp-GB4900001NW |
+| DEAL MASTERS | UK FAST | https://jmp2.uk/stvp-GB12000037Y |
+| DEAL OR NO DEAL US | UK FAST | https://jmp2.uk/stvp-GBBB38000068U |
+| DEF JAM | UK FAST | https://jmp2.uk/stvp-GBBD3000004VR |
+| DEMAND DRAMA | UK FAST | https://jmp2.uk/stvp-GB900005KI |
+| DENNIS AND GNASHER | UK FAST | https://jmp2.uk/stvp-GBBD1100011V3 |
+| DFB PLAY TV | UK FAST | https://jmp2.uk/stvp-GB26000118T |
+| DOG THE BOUNTY HUNTER | UK FAST | https://jmp2.uk/stvp-GB27000069E |
+| TRUE LIVES BY ITV STUDIOS | UK FAST | https://jmp2.uk/stvp-GBBD4100006KV |
+| YAAAS! | UK FAST | https://jmp2.uk/stvp-GB340000289 |
+| ICON FILM CHANNEL CLASSICS | UK FAST | https://jmp2.uk/stvp-GB12000052F |
+| KETCHUP TV | UK FAST | https://jmp2.uk/stvp-GB3400003A9 |
+| MASTERCHEF UK: POWERED BY BANIJAY | UK FAST | https://jmp2.uk/stvp-GBBD25000019N |
+| MOTORRACING | UK FAST | https://jmp2.uk/stvp-GBBA1500006H6 |
+| XITE HITS | UK FAST | https://jmp2.uk/stvp-GBBB3800005QO |
+| ZEE ONE | UK FAST | https://jmp2.uk/stvp-GBBD1100013BJ |
+| WORLD WAR TV | UK FAST | https://jmp2.uk/stvp-GBBD1100001UI |
+| WORLD POKER TOUR | UK FAST | https://jmp2.uk/stvp-GBBD2900001VD |
+| WIPEOUT XTRA POWERED BY BANIJAY | UK FAST | https://jmp2.uk/stvp-GBBD3000001QB |
+| WILD PLANET | UK FAST | https://jmp2.uk/stvp-GBBB5000002PL |
+| WEDO MOVIES | UK FAST | https://jmp2.uk/stvp-GBBA3300050RG |
+| WATERBEAR | UK FAST | https://jmp2.uk/stvp-GBBC300003UQ |
+| VIDEO GAME HEREOS | UK FAST | https://jmp2.uk/stvp-GB3400001ND |
+| VEVO 90'S & 00'S | UK FAST | https://jmp2.uk/stvp-GBBC2100002HP |
+| VEVO 70'S & 80'S | UK FAST | https://jmp2.uk/stvp-GBBD1900009UD |
 
 
-## 📋 Configuration Notes
+## Configuration Notes
 
 - **VOD Checking:** Disabled - Only URLs ending with /#.mkv are considered VOD files
-- **PPV/Event Checking:** Disabled - UK EVENTS & USA EVENTS groups were not tested
+- **PPV/Event Checking:** Disabled - UK EVENTS & USA EVENTS groups are automatically detected
+- **A1XS Detection:** URLs containing 'a1xs.vip' are classified as A1XS Channel URLs
 - **Timeout:** 10 seconds per stream (PPV channels get 2x timeout)
-- **VOD Detection:** Simple pattern matching - only URLs ending exactly with /#.mkv
 - **M3U8 Detection:** Matches URLs containing .m3u8 anywhere (handles tokens/parameters)
 - **TS Detection:** Identifies .ts stream URLs as separate category
-- **Event Groups:** Automatically detects "UK EVENTS", "USA EVENTS", and similar groups
 
-## 📈 Geographic & Technical Notes
-
-- Tests run from **GitHub Actions** global infrastructure
-- "Access Denied" (403) errors typically indicate geo-restrictions
-- PPV channels may be offline between events (normal behavior)
-- VOD files are static content and should be consistently available
-- M3U8 streams are adaptive bitrate live streams
-- TS streams are transport stream format (often live TV)
-- Timeout errors may indicate server overload or preparation time
-- DNS errors suggest the streaming service domain is down
-
-## 🔧 Technical Details
+## Technical Details
 
 - **User-Agent:** Chrome 120 simulation for maximum compatibility
 - **Method:** HEAD for direct video files, GET with stream verification for live content
-- **VOD Detection:** Only URLs ending with /#.mkv are classified as VOD files
-- **M3U8 Detection:** Identifies adaptive streaming URLs (.m3u8) with token support
-- **TS Detection:** Recognizes transport stream URLs (.ts)
+- **A1XS Channels:** Detected by 'a1xs.vip' domain pattern
 - **Headers:** Enhanced with security headers and proper content type
 - **Rate Limiting:** Dynamic delays based on success rate
-- **Retry Logic:** Single attempt per stream to avoid overwhelming servers
+- **Geographic Testing:** Tests run from GitHub Actions global infrastructure
 
-## 🎛️ Manual Testing Options
+## Manual Testing Options
 
 To test specific content types:
 1. Go to **Actions** → **Check M3U Streams** → **Run workflow**
@@ -285,5 +298,5 @@ To test specific content types:
 4. Adjust **Timeout** for slower connections
 
 ---
-*Last updated: 2025-09-26 20:44:53 UTC*
-*Report generated automatically by Enhanced GitHub Actions*
+*Last updated: 2025-09-26 21:38:44 UTC*
+*Report generated automatically by GitHub Actions*

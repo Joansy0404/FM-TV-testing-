@@ -48,6 +48,7 @@ jobs:
           CHECK_PPV: ${{ github.event.inputs.check_ppv || 'false' }}
           TIMEOUT_SECONDS: ${{ github.event.inputs.timeout_seconds || '10' }}
         run: |
+          set -e  # Exit on any error
           python - << 'EOF'
           import requests
           import os
@@ -356,7 +357,16 @@ jobs:
           print(f"⏱️ Check completed in {duration.total_seconds():.1f} seconds")
           print(f"📊 Totals: {working_streams} working, {total_failures} failed, {skipped_streams} skipped")
           
+          # Validate results before proceeding
+          if total_streams == 0:
+              print("❌ No streams found to process!")
+              import sys
+              sys.exit(1)
+          
+          print("✅ Stream checking completed successfully")
+          
           # Generate enhanced report
+          print("📝 Generating report...")
           report = f"""# 📺 Enhanced M3U Stream Status Report
           
           **Generated on:** {end_time.strftime('%Y-%m-%d %H:%M:%S')} UTC  
@@ -513,22 +523,51 @@ jobs:
           """
           
           # Write report
+          print("💾 Writing report to file...")
           try:
               with open('report.md', 'w', encoding='utf-8') as f:
                   f.write(report)
               print("📊 Enhanced report generated successfully!")
               print(f"📈 Final Summary: {working_streams}/{total_checked} streams working ({working_percentage:.1f}%), {skipped_streams} skipped")
               
-              # Exit successfully
-              import sys
-              sys.exit(0)
+              # Verify file was written
+              if os.path.exists('report.md'):
+                  file_size = os.path.getsize('report.md')
+                  print(f"✅ Report file created: {file_size} bytes")
+              else:
+                  print("❌ Report file was not created!")
+                  import sys
+                  sys.exit(1)
               
           except Exception as e:
               print(f"❌ Error writing report: {str(e)}")
+              import traceback
+              traceback.print_exc()
               import sys
               sys.exit(1)
           
+          print("🎉 Script completed successfully!")
           EOF
+          
+          # Verify Python script succeeded
+          if [ $? -eq 0 ]; then
+            echo "✅ Python script completed successfully"
+          else
+            echo "❌ Python script failed with exit code $?"
+            exit 1
+          fi
+          
+          # Double-check report file exists
+          if [ -f "report.md" ]; then
+            echo "✅ Report file confirmed"
+            echo "📊 Report size: $(wc -c < report.md) bytes"
+            echo "📋 First few lines of report:"
+            head -5 report.md
+          else
+            echo "❌ Report file missing after Python execution!"
+            ls -la
+            exit 1
+          fi
         
       - name: Commit and push report
         run: |

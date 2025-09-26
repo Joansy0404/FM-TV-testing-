@@ -767,9 +767,9 @@ jobs:
               print(f"📈 Final Summary: {working_streams}/{total_checked} streams working ({working_percentage:.1f}%), {skipped_streams} skipped")
               
               # Define the icon mapping outside the f-string to avoid syntax issues
-              type_icons = {'M3U8': '📺', 'VOD': '🎬', 'TS': '📡', 'RTMP': '🔴', 'HTTP': '🌐', 'Other': '🔗'}
+              type_icons = {'M3U8': '📺', 'VOD (#.mkv)': '🎬', 'TS': '📡', 'Token URL': '🔑', 'Profile URL': '⚙️', 'Other': '🔗'}
               
-              for stream_type in ['M3U8', 'VOD', 'TS', 'RTMP', 'HTTP', 'Other']:
+              for stream_type in ['M3U8', 'VOD (#.mkv)', 'TS', 'Token URL', 'Profile URL', 'Other']:
                   working_count = working_by_type[stream_type]
                   failed_count = failed_by_type[stream_type]
                   if working_count > 0 or failed_count > 0:

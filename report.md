@@ -1,40 +1,61 @@
 # M3U Stream Status Report
 
-**Generated on:** 2025-09-27 01:13:03 UTC  
-**Duration:** 502.5 seconds  
+**Generated on:** 2025-09-27 01:30:05 UTC  
+**Duration:** 605.6 seconds  
 **Configuration:** VODs: Disabled, PPV: Disabled, FAST: Disabled, Timeout: 10s
 
 ## Files Processed
 
-- `channel playlist.m3u`: 1567 streams (525 Channels, 870 VODs, 53 PPV, 119 FAST)
+- `channel playlist.m3u`: 1621 streams (578 Channels, 870 VODs, 53 PPV, 120 FAST)
 
 ## Summary
 
 | Metric | Count | Percentage |
 |--------|-------|-----------|
-| **Total Streams Found** | 1567 | 100.0% |
-| **Channels** | 525 | 33.5% |
-| **VODs** | 870 | 55.5% |
-| **PPV** | 53 | 3.4% |
-| **FAST** | 119 | 7.6% |
-| **Checked Streams** | 525 | 33.5% |
-| **Working Streams** | 353 | 67.2% |
-| **Failed Streams** | 172 | 32.8% |
-| **Skipped Streams** | 1042 | 66.5% |
+| **Total Streams Found** | 1621 | 100.0% |
+| **Channels** | 578 | 35.7% |
+| **VODs** | 870 | 53.7% |
+| **PPV** | 53 | 3.3% |
+| **FAST** | 120 | 7.4% |
+| **Checked Streams** | 578 | 35.7% |
+| **Working Streams** | 405 | 70.1% |
+| **Failed Streams** | 173 | 29.9% |
+| **Skipped Streams** | 1043 | 64.3% |
 
 ## Stream Type Breakdown
 
 | Type | Working | Failed | Total Checked | Success Rate |
 |------|---------|--------|---------------|-------------|
-| **Channels** | 353 | 172 | 525 | 67.2% |
+| **Channels** | 405 | 173 | 578 | 70.1% |
 
-## Failure Analysis (172 total failures)
+## Failure Analysis (173 total failures)
 
-### Unknown Errors (137 streams)
+### Unknown Errors (136 streams)
 *Unexpected errors*
 
 | Channel | Group | Type | Error | Code | File |
 |---------|-------|------|-------|------|---------|
+| FOX SPORTS 501 | AUS | Channel | Invalid URL 'https:/live//a1xs.vip/70000 | None | channel playlist.m3u |
+| FOX SPORTS 502 | AUS | Channel | Invalid URL 'https:/live//a1xs.vip/70000 | None | channel playlist.m3u |
+| FOX SPORTS 503 | AUS | Channel | Invalid URL 'https:/live//a1xs.vip/70000 | None | channel playlist.m3u |
+| FOX SPORTS 504 | AUS | Channel | Invalid URL 'https:/live//a1xs.vip/70000 | None | channel playlist.m3u |
+| FOX SPORTS 505 | AUS | Channel | Invalid URL 'https:/live//a1xs.vip/70000 | None | channel playlist.m3u |
+| FOX SPORTS 506 | AUS | Channel | Invalid URL 'https:/live//a1xs.vip/70000 | None | channel playlist.m3u |
+| TSN 2 | CA | Channel | Invalid URL 'https:/live//a1xs.vip/60000 | None | channel playlist.m3u |
+| TSN 3 | CA | Channel | Invalid URL 'https:/live//a1xs.vip/60000 | None | channel playlist.m3u |
+| TSN 4 | CA | Channel | Invalid URL 'https:/live//a1xs.vip/60000 | None | channel playlist.m3u |
+| STAR SPORTS SELECT 1 | IN | Channel | Invalid URL 'https:/live//a1xs.vip/80000 | None | channel playlist.m3u |
+| STAR SPORTS SELECT 2 | IN | Channel | Invalid URL 'https:/live//a1xs.vip/80000 | None | channel playlist.m3u |
+| HUB PREMIER 1 | INT | Channel | Invalid URL 'https:/live//a1xs.vip/11000 | None | channel playlist.m3u |
+| HUB PREMIER 2 | INT | Channel | Invalid URL 'https:/live//a1xs.vip/11000 | None | channel playlist.m3u |
+| SKY SPORT PREMIER LEAGUE | NZ | Channel | Invalid URL 'https:/live//a1xs.vip/70000 | None | channel playlist.m3u |
+| SKY SPORT 1 | NZ | Channel | Invalid URL 'https:/live//a1xs.vip/70003 | None | channel playlist.m3u |
+| SKY SPORT 2 | NZ | Channel | Invalid URL 'https:/live//a1xs.vip/70003 | None | channel playlist.m3u |
+| SKY SPORT 3 | NZ | Channel | Invalid URL 'https:/live//a1xs.vip/70003 | None | channel playlist.m3u |
+| SKY SPORT 4 | NZ | Channel | Invalid URL 'https:/live//a1xs.vip/70003 | None | channel playlist.m3u |
+| SKY SPORT 5 | NZ | Channel | Invalid URL 'https:/live//a1xs.vip/70003 | None | channel playlist.m3u |
+| SKY SPORT 6 | NZ | Channel | Invalid URL 'https:/live//a1xs.vip/70003 | None | channel playlist.m3u |
+| SKY SPORT 7 | NZ | Channel | Invalid URL 'https:/live//a1xs.vip/70003 | None | channel playlist.m3u |
 | ITV 3 | UK | Channel | Invalid URL 'https:/live//a1xs.vip/10000 | None | channel playlist.m3u |
 | NICK JR. | UK | Channel | Invalid URL 'https:/live//a1xs.vip/10000 | None | channel playlist.m3u |
 | SKY SPORTS CRICKET | UK | Channel | Invalid URL 'https:/live//a1xs.vip/20000 | None | channel playlist.m3u |
@@ -79,7 +100,6 @@
 | DISNEY CHANNEL (EAST) | USA | Channel | Connection refused | None | channel playlist.m3u |
 | DISNEY JR. | USA | Channel | Connection refused | None | channel playlist.m3u |
 | ESPN | USA | Channel | Invalid URL 'https:/live//a1xs.vip/40000 | None | channel playlist.m3u |
-| ESPN 2 | USA | Channel | Invalid URL 'https:/live//a1xs.vip/40000 | None | channel playlist.m3u |
 | ESPN U | USA | Channel | Invalid URL 'https:/live//a1xs.vip/40000 | None | channel playlist.m3u |
 | ESPNEWS | USA | Channel | Invalid URL 'https:/live//a1xs.vip/40000 | None | channel playlist.m3u |
 | FOOD NETWORK | USA | Channel | Connection refused | None | channel playlist.m3u |
@@ -151,44 +171,16 @@
 | FANDUEL SPORTS NETWORK ARIZONA | USA | Channel | Connection refused | None | channel playlist.m3u |
 | PEACOCK PREMIER LEAGUE TV | USA | Channel | Invalid URL 'https:/live//a1xs.vip/11000 | None | channel playlist.m3u |
 | NESN UHD | USA | Channel | Invalid URL 'https:/live//a1xs.vip/40000 | None | channel playlist.m3u |
-| FOX SPORTS 501 | AUS | Channel | Invalid URL 'https:/live//a1xs.vip/70000 | None | channel playlist.m3u |
-| FOX SPORTS 502 | AUS | Channel | Invalid URL 'https:/live//a1xs.vip/70000 | None | channel playlist.m3u |
-| FOX SPORTS 503 | AUS | Channel | Invalid URL 'https:/live//a1xs.vip/70000 | None | channel playlist.m3u |
-| FOX SPORTS 504 | AUS | Channel | Invalid URL 'https:/live//a1xs.vip/70000 | None | channel playlist.m3u |
-| FOX SPORTS 505 | AUS | Channel | Invalid URL 'https:/live//a1xs.vip/70000 | None | channel playlist.m3u |
-| FOX SPORTS 506 | AUS | Channel | Invalid URL 'https:/live//a1xs.vip/70000 | None | channel playlist.m3u |
-| SKY SPORT PREMIER LEAGUE | NZ | Channel | Invalid URL 'https:/live//a1xs.vip/70000 | None | channel playlist.m3u |
-| SKY SPORT 1 | NZ | Channel | Invalid URL 'https:/live//a1xs.vip/70003 | None | channel playlist.m3u |
-| SKY SPORT 2 | NZ | Channel | Invalid URL 'https:/live//a1xs.vip/70003 | None | channel playlist.m3u |
-| SKY SPORT 3 | NZ | Channel | Invalid URL 'https:/live//a1xs.vip/70003 | None | channel playlist.m3u |
-| SKY SPORT 4 | NZ | Channel | Invalid URL 'https:/live//a1xs.vip/70003 | None | channel playlist.m3u |
-| SKY SPORT 5 | NZ | Channel | Invalid URL 'https:/live//a1xs.vip/70003 | None | channel playlist.m3u |
-| SKY SPORT 6 | NZ | Channel | Invalid URL 'https:/live//a1xs.vip/70003 | None | channel playlist.m3u |
-| SKY SPORT 7 | NZ | Channel | Invalid URL 'https:/live//a1xs.vip/70003 | None | channel playlist.m3u |
-| TSN 2 | CA | Channel | Invalid URL 'https:/live//a1xs.vip/60000 | None | channel playlist.m3u |
-| TSN 3 | CA | Channel | Invalid URL 'https:/live//a1xs.vip/60000 | None | channel playlist.m3u |
-| TSN 4 | CA | Channel | Invalid URL 'https:/live//a1xs.vip/60000 | None | channel playlist.m3u |
-| HUB PREMIER 1 | INT | Channel | Invalid URL 'https:/live//a1xs.vip/11000 | None | channel playlist.m3u |
-| HUB PREMIER 2 | INT | Channel | Invalid URL 'https:/live//a1xs.vip/11000 | None | channel playlist.m3u |
-| STAR SPORTS SELECT 1 | INT | Channel | Invalid URL 'https:/live//a1xs.vip/80000 | None | channel playlist.m3u |
-| STAR SPORTS SELECT 2 | INT | Channel | Invalid URL 'https:/live//a1xs.vip/80000 | None | channel playlist.m3u |
 
 ### Not Found (404) (4 streams)
 *Stream URL no longer exists*
 
 | Channel | Group | Type | Error | Code | File |
 |---------|-------|------|-------|------|---------|
-| INDO OZ TV | AUS | Channel | Stream not found | 404 | channel playlist.m3u |
 | BEATS RADIO | AR | Channel | Stream not found | 404 | channel playlist.m3u |
 | CANAL 21 TV | AR | Channel | Stream not found | 404 | channel playlist.m3u |
-| YEMEN SHABAB CHANNEL | YE | Channel | Stream not found | 404 | channel playlist.m3u |
-
-### Server Errors (1 streams)
-*Server-side technical issues*
-
-| Channel | Group | Type | Error | Code | File |
-|---------|-------|------|-------|------|---------|
-| Fubo sports 1 | CA | Channel | Server error (502) | 502 | channel playlist.m3u |
+| CTB PERTH | AUS | Channel | Stream not found | 404 | channel playlist.m3u |
+| INDO OZ TV | AUS | Channel | Stream not found | 404 | channel playlist.m3u |
 
 ### DNS Failures (1 streams)
 *Domain name resolution failed*
@@ -197,15 +189,21 @@
 |---------|-------|------|-------|------|---------|
 | ABC AUSTRALIA VIETNAM | AUS | Channel | DNS resolution failed | None | channel playlist.m3u |
 
-### Connection Timeouts (16 streams)
+### Connection Timeouts (19 streams)
 *Server slow/overloaded or PPV preparing*
 
 | Channel | Group | Type | Error | Code | File |
 |---------|-------|------|-------|------|---------|
+| SKY RACING 1 | AUS | Channel | Timeout after 10s | None | channel playlist.m3u |
+| NOW SPORTS 1 | HK | Channel | Timeout after 10s | None | channel playlist.m3u |
+| NOW SPORTS 2 | HK | Channel | Timeout after 10s | None | channel playlist.m3u |
+| SKY SPORT 9 | NZ | Channel | Timeout after 10s | None | channel playlist.m3u |
 | SKY SPORTS MAIN EVENT UHD | UK | Channel | Timeout after 10s | None | channel playlist.m3u |
 | TNT SPORTS ULTIMATE | UK | Channel | Timeout after 10s | None | channel playlist.m3u |
 | TLC | UK | Channel | Timeout after 10s | None | channel playlist.m3u |
+| COMEDY CENTRAL | UK | Channel | Timeout after 10s | None | channel playlist.m3u |
 | COMEDY CENTRAL XTRA | UK | Channel | Timeout after 10s | None | channel playlist.m3u |
+| SKY ATLANTIC | UK | Channel | Timeout after 10s | None | channel playlist.m3u |
 | SKY MAX | UK | Channel | Timeout after 10s | None | channel playlist.m3u |
 | SKY REPLAY | UK | Channel | Timeout after 10s | None | channel playlist.m3u |
 | SKY SPORTS F1 UHD | UK | Channel | Timeout after 10s | None | channel playlist.m3u |
@@ -214,19 +212,13 @@
 | RACING TV | UK | Channel | Timeout after 10s | None | channel playlist.m3u |
 | LALIGA TV | UK | Channel | Timeout after 10s | None | channel playlist.m3u |
 | TNT SPORTS 5 | UK | Channel | Timeout after 10s | None | channel playlist.m3u |
-| SKY RACING 1 | AUS | Channel | Timeout after 10s | None | channel playlist.m3u |
-| SKY SPORT 9 | NZ | Channel | Timeout after 10s | None | channel playlist.m3u |
-| NOW SPORTS 1 | HK | Channel | Timeout after 10s | None | channel playlist.m3u |
-| NOW SPORTS 2 | HK | Channel | Timeout after 10s | None | channel playlist.m3u |
+| V SERIES | SE | Channel | Timeout after 10s | None | channel playlist.m3u |
 
 ### Access Denied (13 streams)
 *Geo-blocked or authentication required*
 
 | Channel | Group | Type | Error | Code | File |
 |---------|-------|------|-------|------|---------|
-| BLAZE | UK | Channel | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
-| TV WAREHOUSE | UK | Channel | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
-| TG 4 | IE | Channel | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
 | AL MASHHAD | AE | Channel | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
 | ALARABIYA | AE | Channel | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
 | MBC 1 | AE | Channel | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
@@ -237,9 +229,12 @@
 | MBC PERSIA | AE | Channel | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
 | SPACETOON ARABIC | AE | Channel | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
 | WANASAH | AE | Channel | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
+| TG 4 | IE | Channel | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
+| BLAZE | UK | Channel | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
+| TV WAREHOUSE | UK | Channel | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
 
 
-## Skipped Streams (1042 total)
+## Skipped Streams (1043 total)
 
 ### PPV/Event Channels (53 skipped)
 *Enable "Check PPV" in workflow dispatch to test these*
@@ -250,13 +245,14 @@
 | USA EVENTS | 50 |
 | USA FAST | 1 |
 
-### FAST Channels (119 skipped)
+### FAST Channels (120 skipped)
 *Enable "Check FAST" in workflow dispatch to test these*
 
 | Group | Count |
 |-------|---------|
 | IE FAST | 1 |
 | JP FAST | 4 |
+| MX FAST | 1 |
 | UK FAST | 102 |
 | USA FAST | 12 |
 
@@ -307,5 +303,5 @@ To test specific content types:
 5. Adjust **Timeout** for slower connections
 
 ---
-*Last updated: 2025-09-27 01:13:03 UTC*
+*Last updated: 2025-09-27 01:30:05 UTC*
 *Report generated automatically by GitHub Actions*

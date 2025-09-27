@@ -36,8 +36,19 @@ jobs:
               PREFIX = "http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1"
               SUFFIX = "/fast"
               
+              # Groups that need /#.mkv added to URLs
+              MKV_GROUPS = {
+                  "NETFLIX", "Disney+", "PRIME VIDEO", "HBO MAX", "Peacock TV", 
+                  "Paramount+", "SONY Pictures Core", "STARZ", "AMC+", "BritBox", 
+                  "Apple TV+", "Others", "Hallmark+", "stan.", "FMTV+", "RTÈ PLAYER", 
+                  "Angel Studios", "PBS", "DOCPLAY", "CBC Gem", "Peacock TV (Shows)", 
+                  "SONY Pictures Core (Shows)"
+              }
+              
               # Regex to find the CUID value from the #EXTINF line
               CUID_PATTERN = re.compile(r'CUID=\"(\d+)\"')
+              # Regex to find the group-title value
+              GROUP_PATTERN = re.compile(r'group-title=\"([^\"]+)\"')
               
               print(f"Starting M3U transformation: {input_file} -> {output_file}")
 
@@ -79,8 +90,10 @@ jobs:
                                   i += 2
                                   continue
                               
-                              # 2. Extract CUID
+                              # 2. Extract CUID and group-title
                               cuid_match = CUID_PATTERN.search(extinf_line)
+                              group_match = GROUP_PATTERN.search(extinf_line)
+                              
                               if not cuid_match:
                                   # If CUID is missing, write the original URL and continue
                                   outfile.write(url_line + '\n')
@@ -89,8 +102,19 @@ jobs:
 
                               cuid = int(cuid_match.group(1))
                               
-                              # 3. Build the JSON payload: {"url":"<ORIGINAL_URL>","id":<CUID>}
-                              payload_data = {"url": url_line, "id": cuid}
+                              # Check if this channel belongs to a group that needs /#.mkv
+                              needs_mkv = False
+                              if group_match:
+                                  group_title = group_match.group(1)
+                                  needs_mkv = group_title in MKV_GROUPS
+                              
+                              # Add /#.mkv to URL if needed
+                              final_url = url_line
+                              if needs_mkv and not url_line.endswith('/#.mkv'):
+                                  final_url = url_line + '/#.mkv'
+                              
+                              # 3. Build the JSON payload: {"url":"<FINAL_URL>","id":<CUID>}
+                              payload_data = {"url": final_url, "id": cuid}
                               payload_str = json.dumps(payload_data)
                               
                               # 4. Base64 Encode the JSON payload

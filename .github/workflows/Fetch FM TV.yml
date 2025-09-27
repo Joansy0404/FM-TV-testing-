@@ -17,8 +17,108 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download Channel M3U Plus file
-        run: wget "https://xapi-ie.cc/get.php?username=aBn1J1oTRSe&password=VVtbggGMS&type=m3u&output=mpegts" -O "channel playlist.m3u"
+      - name: Download unwrapped M3U Plus file
+        run: wget "https://xapi-ie.cc/get.php?username=aBn1J1oTRSe&password=VVtbggGMS&type=m3u_plus" -O "unwrapped.m3u"
+
+      - name: Transform URLs to wrapped format
+        run: |
+          python3 << 'EOF'
+          import base64
+          import re
+          import json
+          import urllib.parse
+
+          def wrap_m3u_urls(input_file, output_file):
+              """
+              Reads an unwrapped M3U file and transforms stream URLs into the proxy-wrapped format.
+              """
+              # Fixed parameters based on analysis and user credentials
+              PREFIX = "http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1"
+              SUFFIX = "/fast"
+              
+              # Regex to find the CUID value from the #EXTINF line
+              CUID_PATTERN = re.compile(r'CUID=\"(\d+)\"')
+              
+              print(f"Starting M3U transformation: {input_file} -> {output_file}")
+
+              try:
+                  with open(input_file, 'r', encoding='utf-8') as infile, \
+                       open(output_file, 'w', encoding='utf-8') as outfile:
+                      
+                      # Read all lines
+                      lines = infile.readlines()
+                      
+                      # Check for M3U header and write it
+                      if not lines or lines[0].strip() != "#EXTM3U":
+                          print("Error: Input file is missing the '#EXTM3U' header.")
+                          return
+
+                      # Write the header
+                      outfile.write(lines[0]) 
+                      
+                      i = 1 # Start processing from the second line
+                      while i < len(lines):
+                          extinf_line = lines[i].strip()
+                          
+                          # If it's an #EXTINF line, the next line should be the URL
+                          if extinf_line.startswith("#EXTINF"):
+                              # 1. Write the #EXTINF line immediately
+                              outfile.write(extinf_line + '\n')
+                              
+                              # Ensure a URL line exists before proceeding
+                              if i + 1 >= len(lines):
+                                  print(f"Warning: Missing URL after {extinf_line}. Skipping.")
+                                  i += 1
+                                  continue
+
+                              url_line = lines[i+1].strip()
+                              
+                              # Skip empty URL lines
+                              if not url_line:
+                                  outfile.write(url_line + '\n')
+                                  i += 2
+                                  continue
+                              
+                              # 2. Extract CUID
+                              cuid_match = CUID_PATTERN.search(extinf_line)
+                              if not cuid_match:
+                                  # If CUID is missing, write the original URL and continue
+                                  outfile.write(url_line + '\n')
+                                  i += 2
+                                  continue
+
+                              cuid = int(cuid_match.group(1))
+                              
+                              # 3. Build the JSON payload: {"url":"<ORIGINAL_URL>","id":<CUID>}
+                              payload_data = {"url": url_line, "id": cuid}
+                              payload_str = json.dumps(payload_data)
+                              
+                              # 4. Base64 Encode the JSON payload
+                              encoded_payload = base64.b64encode(payload_str.encode('utf-8')).decode('utf-8')
+                              
+                              # 5. URL-safe encode the result
+                              url_safe_payload = encoded_payload.replace('=', '%3D')
+                              
+                              # 6. Construct and write the new wrapped URL
+                              wrapped_url = f'{PREFIX}{url_safe_payload}{SUFFIX}'
+                              outfile.write(wrapped_url + '\n')
+                              
+                              i += 2 # Move to the next #EXTINF line
+                          else:
+                              # Write any other lines (like empty lines or other tags) as is
+                              outfile.write(lines[i]) 
+                              i += 1
+                              
+                  print("Transformation complete.")
+
+              except FileNotFoundError:
+                  print(f"Error: File {input_file} was not found.")
+              except Exception as e:
+                  print(f"An unexpected error occurred: {e}")
+
+          # Execute the transformation
+          wrap_m3u_urls('unwrapped.m3u', 'channel playlist.m3u')
+          EOF
 
       - name: Add files to Git
         run: |
@@ -39,7 +139,7 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "github-actions[bot]"
-          git commit -m "Updated channel playlist files (M3U Plus)"
+          git commit -m "Updated channel playlist files (M3U with wrapped URLs)"
 
       - name: Force push changes if commit happened
         if: env.changes_detected == 'true'

@@ -7,7 +7,6 @@ on:
   workflow_dispatch: {} # Enables manual triggering
 
 permissions:
-  # Grant write permissions for contents to allow committing and pushing
   contents: write
 
 jobs:
@@ -18,170 +17,31 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download unwrapped M3U Plus file
-        [span_0](start_span)run: wget "${{ secrets.IPTV_M3U_URL }}" -O "unwrapped.m3u"[span_0](end_span)
-
-      - name: Download EPG XML file
-        [span_1](start_span)run: wget "${{ secrets.IPTV_EPG_URL }}" -O "channel playlist.xml"[span_1](end_span)
-
-      - name: Transform URLs to wrapped format
-        env:
-          IPTV_USERNAME: ${{ secrets.IPTV_USERNAME }}
-          IPTV_PASSWORD: ${{ secrets.IPTV_PASSWORD }}
-        run: |
-          python3 << 'EOF'
-          import base64
-          import re
-          import json
-          import urllib.parse
-          import os
-
-          def wrap_m3u_urls(input_file, output_file):
-              """
-              [span_2](start_span)Reads an unwrapped M3U file[span_2](end_span) and transforms stream URLs into the proxy-wrapped format.
-              """
-              # Get credentials from environment variables
-              username = os.environ.get('IPTV_USERNAME')
-              password = os.environ.get('IPTV_PASSWORD')
-              
-              if not username or not password:
-                  [span_3](start_span)print("Error: IPTV credentials not found in environment variables")[span_3](end_span)
-                  return
-              
-              # Fixed parameters based on analysis and user credentials
-              [span_4](start_span)PREFIX = f"http://alt.xtream-ie.org/{username}/{password}/1"[span_4](end_span)
-              SUFFIX = "/fast"
-              
-              # Groups that need /#.mkv added to URLs
-              MKV_GROUPS = {
-                  "NETFLIX", "Disney+", "PRIME VIDEO", "HBO MAX", "Peacock TV", 
-                  "Paramount+", "SONY Pictures Core", "STARZ", "AMC+", "BritBox", 
-                  "Apple TV+", "Others", "Hallmark+", "stan.", "FMTV+", "RTÈ PLAYER", 
-                  "Angel Studios", "PBS", "DOCPLAY", "CBC Gem", "Peacock TV (Shows)", 
-                  [span_5](start_span)"SONY Pictures Core (Shows)", "Stan.", "Studiocanal Presents"[span_5](end_span)
-              }
-              
-              # Regex to find the CUID value from the #EXTINF line
-              [span_6](start_span)CUID_PATTERN = re.compile(r'CUID=\"(\d+)\"')[span_6](end_span)
-              # Regex to find the group-title value
-              [span_7](start_span)GROUP_PATTERN = re.compile(r'group-title=\"([^\"]+)\"')[span_7](end_span)
-              
-              [span_8](start_span)print(f"Starting M3U transformation: {input_file} -> {output_file}")[span_8](end_span)
-
-              try:
-                  with open(input_file, 'r', encoding='utf-8') as infile, \
-                       open(output_file, 'w', encoding='utf-8') as outfile:
-                      
-                      # Read all lines
-                      [span_9](start_span)lines = infile.readlines()[span_9](end_span)
-                      
-                      # Check for M3U header
-                      if not lines or lines[0].strip() != "#EXTM3U":
-                          [span_10](start_span)print("Error: Input file is missing the '#EXTM3U' header.")[span_10](end_span)
-                          [span_11](start_span)return[span_11](end_span)
-
-                      # Write the header with EPG URL
-                      [span_12](start_span)outfile.write('#EXTM3U url-tvg="https://tinyurl.com/FMTV-L1VE-EPG-XML"\n')[span_12](end_span) 
-                      
-                      [span_13](start_span)i = 1 # Start processing from the second line[span_13](end_span)
-                      while i < len(lines):
-                          [span_14](start_span)extinf_line = lines[i].strip()[span_14](end_span)
-                          
-                          # If it's an #EXTINF line, the next line should be the URL
-                          [span_15](start_span)if extinf_line.startswith("#EXTINF"):[span_15](end_span)
-                              # 1. Write the #EXTINF line immediately
-                              [span_16](start_span)outfile.write(extinf_line + '\n')[span_16](end_span)
-                              
-                              # Ensure a URL line exists before proceeding
-                              [span_17](start_span)if i + 1 >= len(lines):[span_17](end_span)
-                                  [span_18](start_span)print(f"Warning: Missing URL after {extinf_line}. Skipping.")[span_18](end_span)
-                                  i += 1
-                                  continue
-
-                              [span_19](start_span)url_line = lines[i+1].strip()[span_19](end_span)
-                              
-                              # Skip empty URL lines
-                              if not url_line:
-                                  [span_20](start_span)outfile.write(url_line + '\n')[span_20](end_span)
-                                  i += 2
-                                  [span_21](start_span)continue[span_21](end_span)
-                              
-                              # 2. Extract CUID and group-title
-                              [span_22](start_span)cuid_match = CUID_PATTERN.search(extinf_line)[span_22](end_span)
-                              [span_23](start_span)group_match = GROUP_PATTERN.search(extinf_line)[span_23](end_span)
-                              
-                              if not cuid_match:
-                                  # [span_24](start_span)If CUID is missing, write the original URL and continue[span_24](end_span)
-                                  [span_25](start_span)outfile.write(url_line + '\n')[span_25](end_span)
-                                  [span_26](start_span)i += 2[span_26](end_span)
-                                  continue
-
-                              [span_27](start_span)cuid = int(cuid_match.group(1))[span_27](end_span)
-                              
-                              # Check if this channel belongs to a group that needs /#.mkv
-                              needs_mkv = False
-                              [span_28](start_span)if group_match:[span_28](end_span)
-                                  [span_29](start_span)group_title = group_match.group(1)[span_29](end_span)
-                                  [span_30](start_span)needs_mkv = group_title in MKV_GROUPS[span_30](end_span)
-                              
-                              # 3. Build the JSON payload: {"url":"<ORIGINAL_URL>","id":<CUID>}
-                              [span_31](start_span)payload_data = {"url": url_line, "id": cuid}[span_31](end_span)
-                              [span_32](start_span)payload_str = json.dumps(payload_data)[span_32](end_span)
-                              
-                              # 4. Base64 Encode the JSON payload
-                              [span_33](start_span)encoded_payload = base64.b64encode(payload_str.encode('utf-8')).decode('utf-8')[span_33](end_span)
-                              
-                              # 5. URL-safe encode the result
-                              [span_34](start_span)url_safe_payload = encoded_payload.replace('=', '%3D')[span_34](end_span)
-                              
-                              # 6. Construct the wrapped URL with /#.mkv after /fast if needed
-                              [span_35](start_span)if needs_mkv:[span_35](end_span)
-                                  [span_36](start_span)wrapped_url = f'{PREFIX}{url_safe_payload}{SUFFIX}/#.mkv'[span_36](end_span)
-                              else:
-                                  [span_37](start_span)wrapped_url = f'{PREFIX}{url_safe_payload}{SUFFIX}'[span_37](end_span)
-                              
-                              [span_38](start_span)outfile.write(wrapped_url + '\n')[span_38](end_span)
-                              
-                              [span_39](start_span)i += 2 # Move to the next #EXTINF line[span_39](end_span)
-                          else:
-                              # [span_40](start_span)Write any other lines (like empty lines or other tags) as is[span_40](end_span)
-                              [span_41](start_span)outfile.write(lines[i])[span_41](end_span)
-                              [span_42](start_span)i += 1[span_42](end_span)
-                              
-                  [span_43](start_span)print("Transformation complete.")[span_43](end_span)
-
-              except FileNotFoundError:
-                  [span_44](start_span)print(f"Error: File {input_file} was not found.")[span_44](end_span)
-              except Exception as e:
-                  [span_45](start_span)print(f"An unexpected error occurred: {e}")[span_45](end_span)
-
-          # Execute the transformation
-          wrap_m3u_urls('unwrapped.m3u', 'channel playlist.m3u')
-          EOF
+      - name: Download Channel M3U file
+        run: wget "https://xapi-ie.cc/get.php?username=aBn1J1oTRSe&password=VVtbggGMS&type=m3u&output=ts" -O "channel playlist.m3u"
 
       - name: Add files to Git
         run: |
-          [span_46](start_span)git add "channel playlist.m3u"[span_46](end_span)
-          [span_47](start_span)git add "channel playlist.xml"[span_47](end_span)
+          git add "channel playlist.m3u"
 
-      # --- CHANGES START HERE ---
-      - name: Check for changes
+      - name: Check for changes before commit
         id: changes
         run: |
-          # The 'git diff-index' command is more reliable for checking for staged-only changes.
-          # It returns an exit code of 0 if there are no differences.
-          if git diff-index --quiet HEAD --; then
-            echo "no changes detected"
+          if git diff --cached --quiet; then
+            echo "no changes"
             echo "changes_detected=false" >> $GITHUB_ENV
           else
             echo "changes_detected=true" >> $GITHUB_ENV
           fi
 
-      - name: Commit and Push changes
-        # This step will only run if changes_detected is 'true'
+      - name: Commit changes if any
         if: env.changes_detected == 'true'
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "Updated channel playlist files (M3U with wrapped URLs and EPG XML)"
-          branch: ${{ github.ref_name }} # Push to the current branch (e.g., 'main' or 'master')
-          # The default GITHUB_TOKEN has permission to push the changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "github-actions[bot]"
+          git commit -m "Updated channel playlist files (M3U Plus)"
+
+      - name: Force push changes if commit happened
+        if: env.changes_detected == 'true'
+        run: |
+          git push origin main --force

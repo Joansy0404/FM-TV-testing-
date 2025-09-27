@@ -1,209 +1,83 @@
-# M3U Stream Status Report (Enhanced)
+# M3U Stream Status Report (Enhanced with Proxies)
 
-**Generated on:** 2025-09-27 16:15:42 UTC  
-**Duration:** 3723.5 seconds  
-**Configuration:** VODs: Disabled, PPV: Disabled, FAST: Disabled  
-**Rate Limiting:** 5 streams per batch, 2.0s base delay
+**Generated on:** 2025-09-27 19:49:05 UTC
+**Configuration:** VODs: Disabled, PPV: Disabled, FAST: Disabled
+**Proxy Performance:** 0 working proxies found
+**Timeout:** 5 seconds per stream
 
 ## Summary
 
 | Metric | Count | Percentage |
-|--------|-------|-----------|
-| **Total Streams Found** | 1626 | 100.0% |
-| **Checked Streams** | 580 | 35.7% |
-| **Working Streams** | 328 | 56.6% |
-| **Failed Streams** | 252 | 43.4% |
-| **Skipped Streams** | 1046 | 64.3% |
+|--------|-------|------------|
+| **Total Streams Found** | 1634 | 100.0% |
+| **Checked Streams** | 588 | 36.0% |
+| **Working Streams** | 159 | 27.0% |
+| **Failed Streams** | 429 | 73.0% |
+| **Skipped Streams** | 1046 | 64.0% |
 
-## Failure Analysis (252 total failures)
+## Performance Breakdown
 
-### Geo-blocked (146 streams)
-*Blocked from all tested regions*
+- **Regular Streams:** 159/465 working (34.2%)
+- **Geo-blocked Streams:** 0/123 working (0.0%)
 
-| Channel | Group | Type | Error | Code | File |
-|---------|-------|------|-------|------|---------|
-| BLAZE | UK | Channel | Blocked with all header combinations | 403 | channel playlist.m3u |
-| QUEST RED | UK | Channel | Blocked with all header combinations | 403 | channel playlist.m3u |
-| QUEST+1 | UK | Channel | Blocked with all header combinations | 403 | channel playlist.m3u |
-| QVC | UK | Channel | Blocked with all header combinations | 403 | channel playlist.m3u |
-| QVC BEAUTY | UK | Channel | Blocked with all header combinations | 403 | channel playlist.m3u |
-| QVC EXTRA | UK | Channel | Blocked with all header combinations | 403 | channel playlist.m3u |
-| QVC STYLE | UK | Channel | Blocked with all header combinations | 403 | channel playlist.m3u |
-| RACING TV | UK | Channel | Blocked with all header combinations | 403 | channel playlist.m3u |
-| REALLY | UK | Channel | Blocked with all header combinations | 403 | channel playlist.m3u |
-| S4C | UK | Channel | Blocked with all header combinations | 403 | channel playlist.m3u |
-| SKY ARTS | UK | Channel | Blocked with all header combinations | 403 | channel playlist.m3u |
-| SKY ATLANTIC | UK | Channel | Blocked with all header combinations | 403 | channel playlist.m3u |
-| SKY CINEMA ACTION | UK | Channel | Blocked with all header combinations | 403 | channel playlist.m3u |
-| SKY CINEMA ANIMATION | UK | Channel | Blocked with all header combinations | 403 | channel playlist.m3u |
-| SKY CINEMA FAMILY | UK | Channel | Blocked with all header combinations | 403 | channel playlist.m3u |
-| SKY CINEMA GREATS | UK | Channel | Blocked with all header combinations | 403 | channel playlist.m3u |
-| SKY CINEMA HITS | UK | Channel | Blocked with all header combinations | 403 | channel playlist.m3u |
-| SKY CINEMA PREMIERE | UK | Channel | Blocked with all header combinations | 403 | channel playlist.m3u |
-| SKY CINEMA SCI-FI HORROR | UK | Channel | Blocked with all header combinations | 403 | channel playlist.m3u |
-| SKY CINEMA SELECT | UK | Channel | Blocked with all header combinations | 403 | channel playlist.m3u |
-*... and 126 more*
+## Failure Analysis (429 total failures)
 
-### Connection Refused (81 streams)
-*Server actively refusing connections*
+### Client Errors (4xx) (305 streams)
+*Too many failures to list individually (305 total)*
 
-| Channel | Group | Type | Error | Code | File |
-|---------|-------|------|-------|------|---------|
-| ASPIRE | USA | Channel | Connection refused | None | channel playlist.m3u |
-| AXS TV | USA | Channel | Connection refused | None | channel playlist.m3u |
-| BBC NEWS | USA | Channel | Connection refused | None | channel playlist.m3u |
-| BEIN SPORTS | USA | Channel | Connection refused | None | channel playlist.m3u |
-| BET (EAST) | USA | Channel | Connection refused | None | channel playlist.m3u |
-| BET GOSPEL | USA | Channel | Connection refused | None | channel playlist.m3u |
-| BET HER (EAST) | USA | Channel | Connection refused | None | channel playlist.m3u |
-| BET JAMS | USA | Channel | Connection refused | None | channel playlist.m3u |
-| BET SOUL | USA | Channel | Connection refused | None | channel playlist.m3u |
-| BRAVO (EAST) | USA | Channel | Connection refused | None | channel playlist.m3u |
-| CBS SPORTS NETWORK | USA | Channel | Connection refused | None | channel playlist.m3u |
-| CLEO TV | USA | Channel | Connection refused | None | channel playlist.m3u |
-| CMT | USA | Channel | Connection refused | None | channel playlist.m3u |
-| CNBC WORLD | USA | Channel | Connection refused | None | channel playlist.m3u |
-| COMET | USA | Channel | Connection refused | None | channel playlist.m3u |
-| COZI TV | USA | Channel | Connection refused | None | channel playlist.m3u |
-| C•SPAN | USA | Channel | Connection refused | None | channel playlist.m3u |
-| DISCOVERY FAMILY | USA | Channel | Connection refused | None | channel playlist.m3u |
-| DISCOVERY LIFE | USA | Channel | Connection refused | None | channel playlist.m3u |
-| DISCOVERY SCIENCE | USA | Channel | Connection refused | None | channel playlist.m3u |
-*... and 61 more*
+### Not Found (404) (1 streams)
+*Connection issues*
 
-### Not Found (404) (16 streams)
-*Stream URL no longer exists*
+| Channel | Group | Error | Code |
+|---------|-------|-------|------|
+| DISNEY JR. | JP | failed | 404 |
 
-| Channel | Group | Type | Error | Code | File |
-|---------|-------|------|-------|------|---------|
-| THE MOVIE CHANNEL | USA | Channel | Stream not found | 404 | channel playlist.m3u |
-| AL JAZEERA ENGLISH | UK | Channel | Stream not found | 404 | channel playlist.m3u |
-| BBC SCOTLAND | UK | Channel | Stream not found | 404 | channel playlist.m3u |
-| CHALLENGE | UK | Channel | Stream not found | 404 | channel playlist.m3u |
-| DAYSTAR | UK | Channel | Stream not found | 404 | channel playlist.m3u |
-| HGTV | UK | Channel | Stream not found | 404 | channel playlist.m3u |
-| ITV 4 | UK | Channel | Stream not found | 404 | channel playlist.m3u |
-| QUEST | UK | Channel | Stream not found | 404 | channel playlist.m3u |
-| BEATS RADIO | AR | Channel | Stream not found | 404 | channel playlist.m3u |
-| CTB PERTH | AUS | Channel | Stream not found | 404 | channel playlist.m3u |
-| INDO OZ TV | AUS | Channel | Stream not found | 404 | channel playlist.m3u |
-| RTÈ JR. | IE | Channel | Stream not found | 404 | channel playlist.m3u |
-| RTÈ NEWS | IE | Channel | Stream not found | 404 | channel playlist.m3u |
-| VIRGIN MEDIA THREE | IE | Channel | Stream not found | 404 | channel playlist.m3u |
-| VIRIGIN MEDIA ONE | IE | Channel | Stream not found | 404 | channel playlist.m3u |
-| DISNEY JR. | JP | Channel | Stream not found | 404 | channel playlist.m3u |
-
-### Server Errors (2 streams)
-*Server-side technical issues*
-
-| Channel | Group | Type | Error | Code | File |
-|---------|-------|------|-------|------|---------|
-| MSNBC | USA | Channel | Server error (502) | 502 | channel playlist.m3u |
-| WARNER TV | IT | Channel | Server error (500) | 500 | channel playlist.m3u |
-
-### Connection Timeouts (3 streams)
-*Server slow/overloaded*
-
-| Channel | Group | Type | Error | Code | File |
-|---------|-------|------|-------|------|---------|
-| PEACOCK PREMIER LEAGUE TV | USA | Channel | Timeout after 10s | None | channel playlist.m3u |
-| ITV 3 | UK | Channel | Timeout after 10s | None | channel playlist.m3u |
-| RTÈ 2 | IE | Channel | Timeout after 10s | None | channel playlist.m3u |
-
-### Connection Errors (1 streams)
-*Network connectivity issues*
-
-| Channel | Group | Type | Error | Code | File |
-|---------|-------|------|-------|------|---------|
-| ABC AUSTRALIA VIETNAM | AUS | Channel | Network error | None | channel playlist.m3u |
-
-### Unknown Errors (3 streams)
-*Unexpected errors*
-
-| Channel | Group | Type | Error | Code | File |
-|---------|-------|------|-------|------|---------|
-| BBC ONE LONDON | UK | Channel | HTTP 509 | 509 | channel playlist.m3u |
-| FOX SPORTS 503 | AUS | Channel | HTTP 401 | 401 | channel playlist.m3u |
-| SKY SPORT 1 | NZ | Channel | HTTP 401 | 401 | channel playlist.m3u |
+### Other Errors (123 streams)
+*Too many failures to list individually (123 total)*
 
 ## Skipped Streams (1046 total)
 
-### PPV/Event Channels (53 skipped)
-*Enable "Check PPV" in workflow dispatch to test these*
-
-| Group | Count |
-|-------|---------|
-| UK EVENTS | 2 |
-| USA EVENTS | 50 |
-| USA FAST | 1 |
-
-### FAST Channels (120 skipped)
+### FAST (120 skipped)
 *Enable "Check FAST" in workflow dispatch to test these*
 
-| Group | Count |
-|-------|---------|
-| IE FAST | 1 |
-| JP FAST | 4 |
-| MX FAST | 1 |
-| UK FAST | 102 |
-| USA FAST | 12 |
+### PPV (53 skipped)
+*Enable "Check PPV" in workflow dispatch to test these*
 
-### VOD Files (873 skipped)
-*Enable "Check VODs" in workflow dispatch to test these*
-
-| Group | Count |
-|-------|---------|
-| AMC+ | 4 |
-| Angel Studios | 1 |
-| Apple TV+ | 7 |
-| BritBox | 5 |
-| CBC Gem | 1 |
-| DOCPLAY | 1 |
-| Disney+ | 211 |
-| FMTV+ | 3 |
-| HBO MAX | 111 |
-| Hallmark+ | 1 |
-| NETFLIX | 22 |
-| Others | 84 |
-| PBS | 2 |
-| PRIME VIDEO | 41 |
-| Paramount+ | 96 |
-| Peacock TV | 141 |
-| RTÈ PLAYER | 3 |
-| SONY Pictures Core | 83 |
-| SONY Pictures Core (Shows) | 12 |
-| STARZ | 38 |
-| Stan. | 2 |
-| Studiocanal Presents | 4 |
+### VOD (873 skipped)
+*Enable "Check VOD" in workflow dispatch to test these*
 
 ## Enhanced Configuration Notes
 
 - **VOD Checking:** Disabled - URLs ending with #.mkv are VOD files
 - **PPV/Event Checking:** Disabled - UK EVENTS & USA EVENTS groups automatically detected
 - **FAST Checking:** Disabled - Groups containing 'FAST' automatically detected
-- **Geographic Headers:** Automatic region detection from group names with fallback headers
-- **Rate Limiting:** 5 streams per batch with 2.0s delays and exponential backoff
-- **Timeout:** 10 seconds per stream (PPV channels get 2x timeout)
+- **Proxy Support:** Enabled - Enhanced geo-blocking bypass
+- **Timeout:** 5 seconds per stream
+- **Proxy Sources:** 2 sources tested
+- **Proxy Testing:** Up to 50 proxies tested to find 15 working
 
 ## Manual Testing Options
 
 To test specific content types:
-1. Go to **Actions** → **Check M3U Streams (Enhanced)** → **Run workflow**
+1. Go to **Actions** → **Check M3U Streams with Enhanced Proxies** → **Run workflow**
 2. Toggle **Check VODs** to test video-on-demand content
 3. Toggle **Check PPV** to test Pay-Per-View channels
 4. Toggle **Check FAST** to test Free Ad-Supported TV channels
-5. Adjust **Batch Size** (lower = slower but more reliable)
-6. Adjust **Base Delay** (higher = less rate limiting)
+5. Adjust **Target Working Proxies** (15-50 recommended for geo-blocked content)
+6. Toggle **Use Proxies** to enable/disable proxy support
+7. Toggle **Setup Tor** for additional anonymity
 
 ## Enhanced Features
 
-- **Rate Limiting Protection:** Exponential backoff for 429 errors
-- **Geo-aware Headers:** Region-appropriate headers based on stream groups
-- **Fallback Headers:** Try US/UK headers for geo-blocked content
-- **Batch Processing:** Configurable batch sizes with adaptive delays
-- **Random Jitter:** Prevents synchronized requests
-- **Enhanced Error Categorization:** Better failure analysis
+- **Multi-Source Proxy Collection:** 2 different proxy sources
+- **Fast Proxy Testing:** Optimized concurrent validation
+- **Geo-blocking Detection:** Automatic identification of region-locked content
+- **Smart Proxy Distribution:** Random proxy selection for each geo-blocked stream
+- **Tor Integration:** Optional Tor SOCKS5 proxy support
+- **Enhanced Error Analysis:** Better categorization of failure types
+- **Adaptive Processing:** Configurable timeouts and limits
+- **Unified Reporting:** All results in single report.md file
 
 ---
-*Last updated: 2025-09-27 16:15:42 UTC*
-*Enhanced report with rate limiting and geo-header testing*
+*Last updated: 2025-09-27 19:49:05 UTC*
+*Enhanced report with proxy support*

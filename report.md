@@ -1,7 +1,7 @@
 # M3U Stream Status Report
 
-**Generated on:** 2025-09-27 01:30:05 UTC  
-**Duration:** 605.6 seconds  
+**Generated on:** 2025-09-27 01:48:10 UTC  
+**Duration:** 579.9 seconds  
 **Configuration:** VODs: Disabled, PPV: Disabled, FAST: Disabled, Timeout: 10s
 
 ## Files Processed
@@ -18,17 +18,17 @@
 | **PPV** | 53 | 3.3% |
 | **FAST** | 120 | 7.4% |
 | **Checked Streams** | 578 | 35.7% |
-| **Working Streams** | 405 | 70.1% |
-| **Failed Streams** | 173 | 29.9% |
+| **Working Streams** | 404 | 69.9% |
+| **Failed Streams** | 174 | 30.1% |
 | **Skipped Streams** | 1043 | 64.3% |
 
 ## Stream Type Breakdown
 
 | Type | Working | Failed | Total Checked | Success Rate |
 |------|---------|--------|---------------|-------------|
-| **Channels** | 405 | 173 | 578 | 70.1% |
+| **Channels** | 404 | 174 | 578 | 69.9% |
 
-## Failure Analysis (173 total failures)
+## Failure Analysis (174 total failures)
 
 ### Unknown Errors (136 streams)
 *Unexpected errors*
@@ -179,8 +179,8 @@
 |---------|-------|------|-------|------|---------|
 | BEATS RADIO | AR | Channel | Stream not found | 404 | channel playlist.m3u |
 | CANAL 21 TV | AR | Channel | Stream not found | 404 | channel playlist.m3u |
-| CTB PERTH | AUS | Channel | Stream not found | 404 | channel playlist.m3u |
 | INDO OZ TV | AUS | Channel | Stream not found | 404 | channel playlist.m3u |
+| HBO COMEDY | USA | Channel | Stream not found | 404 | channel playlist.m3u |
 
 ### DNS Failures (1 streams)
 *Domain name resolution failed*
@@ -189,30 +189,31 @@
 |---------|-------|------|-------|------|---------|
 | ABC AUSTRALIA VIETNAM | AUS | Channel | DNS resolution failed | None | channel playlist.m3u |
 
-### Connection Timeouts (19 streams)
+### Connection Timeouts (20 streams)
 *Server slow/overloaded or PPV preparing*
 
 | Channel | Group | Type | Error | Code | File |
 |---------|-------|------|-------|------|---------|
 | SKY RACING 1 | AUS | Channel | Timeout after 10s | None | channel playlist.m3u |
+| SKY SPORT TOP EVENT | DE | Channel | Timeout after 10s | None | channel playlist.m3u |
 | NOW SPORTS 1 | HK | Channel | Timeout after 10s | None | channel playlist.m3u |
 | NOW SPORTS 2 | HK | Channel | Timeout after 10s | None | channel playlist.m3u |
+| RTÈ ONE | IE | Channel | Timeout after 10s | None | channel playlist.m3u |
+| 24/7 FAMILY GUY | INT | Channel | Timeout after 10s | None | channel playlist.m3u |
 | SKY SPORT 9 | NZ | Channel | Timeout after 10s | None | channel playlist.m3u |
 | SKY SPORTS MAIN EVENT UHD | UK | Channel | Timeout after 10s | None | channel playlist.m3u |
 | TNT SPORTS ULTIMATE | UK | Channel | Timeout after 10s | None | channel playlist.m3u |
 | TLC | UK | Channel | Timeout after 10s | None | channel playlist.m3u |
-| COMEDY CENTRAL | UK | Channel | Timeout after 10s | None | channel playlist.m3u |
-| COMEDY CENTRAL XTRA | UK | Channel | Timeout after 10s | None | channel playlist.m3u |
-| SKY ATLANTIC | UK | Channel | Timeout after 10s | None | channel playlist.m3u |
+| E4 | UK | Channel | Timeout after 10s | None | channel playlist.m3u |
 | SKY MAX | UK | Channel | Timeout after 10s | None | channel playlist.m3u |
 | SKY REPLAY | UK | Channel | Timeout after 10s | None | channel playlist.m3u |
+| BBC PARLIAMENT | UK | Channel | Timeout after 10s | None | channel playlist.m3u |
 | SKY SPORTS F1 UHD | UK | Channel | Timeout after 10s | None | channel playlist.m3u |
 | MUTV | UK | Channel | Timeout after 10s | None | channel playlist.m3u |
 | LFCTV | UK | Channel | Timeout after 10s | None | channel playlist.m3u |
 | RACING TV | UK | Channel | Timeout after 10s | None | channel playlist.m3u |
 | LALIGA TV | UK | Channel | Timeout after 10s | None | channel playlist.m3u |
 | TNT SPORTS 5 | UK | Channel | Timeout after 10s | None | channel playlist.m3u |
-| V SERIES | SE | Channel | Timeout after 10s | None | channel playlist.m3u |
 
 ### Access Denied (13 streams)
 *Geo-blocked or authentication required*
@@ -303,5 +304,5 @@ To test specific content types:
 5. Adjust **Timeout** for slower connections
 
 ---
-*Last updated: 2025-09-27 01:30:05 UTC*
+*Last updated: 2025-09-27 01:48:10 UTC*
 *Report generated automatically by GitHub Actions*

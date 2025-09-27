@@ -20,6 +20,46 @@ jobs:
       - name: Download unwrapped M3U Plus file
         run: wget "https://xapi-ie.cc/get.php?username=aBn1J1oTRSe&password=VVtbggGMS&type=m3u_plus" -O "unwrapped.m3u"
 
+      - name: Check for available XML files
+        run: |
+          echo "Checking for available XML/EPG files..."
+          
+          # Try common IPTV XML endpoints
+          echo "=== Trying xmltv format ==="
+          wget "https://xapi-ie.cc/xmltv.php?username=aBn1J1oTRSe&password=VVtbggGMS" -O "epg_test.xml" --timeout=30 || echo "xmltv.php not available"
+          
+          echo "=== Trying get.php with type=xml ==="
+          wget "https://xapi-ie.cc/get.php?username=aBn1J1oTRSe&password=VVtbggGMS&type=xml" -O "channels_test.xml" --timeout=30 || echo "get.php?type=xml not available"
+          
+          echo "=== Trying player_api with action=get_live_categories ==="
+          wget "https://xapi-ie.cc/player_api.php?username=aBn1J1oTRSe&password=VVtbggGMS&action=get_live_categories" -O "categories_test.json" --timeout=30 || echo "player_api categories not available"
+          
+          echo "=== Trying player_api with action=get_simple_data_table ==="
+          wget "https://xapi-ie.cc/player_api.php?username=aBn1J1oTRSe&password=VVtbggGMS&action=get_simple_data_table" -O "simple_data_test.json" --timeout=30 || echo "player_api simple_data not available"
+          
+          # Check which files were successfully downloaded and show their content type
+          for file in epg_test.xml channels_test.xml categories_test.json simple_data_test.json; do
+            if [ -f "$file" ] && [ -s "$file" ]; then
+              echo "=== $file ($(wc -c < "$file") bytes) ==="
+              file_type=$(file -b --mime-type "$file")
+              echo "File type: $file_type"
+              echo "First 500 characters:"
+              head -c 500 "$file"
+              echo -e "\n--- End of preview ---\n"
+              
+              # If it looks like a valid XML/JSON, copy it as the final file
+              if [[ "$file" == *".xml" ]] && grep -q "<?xml" "$file" 2>/dev/null; then
+                cp "$file" "channel playlist.xml"
+                echo "✓ Using $file as channel playlist.xml"
+              fi
+            else
+              echo "✗ $file - not available or empty"
+            fi
+          done
+          
+          # Clean up test files
+          rm -f *_test.xml *_test.json
+
       - name: Transform URLs to wrapped format
         run: |
           python3 << 'EOF'
@@ -146,6 +186,9 @@ jobs:
       - name: Add files to Git
         run: |
           git add "channel playlist.m3u"
+          if [ -f "channel playlist.xml" ]; then
+            git add "channel playlist.xml"
+          fi
 
       - name: Check for changes before commit
         id: changes
@@ -162,7 +205,7 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "github-actions[bot]"
-          git commit -m "Updated channel playlist files (M3U with wrapped URLs)"
+          git commit -m "Updated channel playlist files (M3U with wrapped URLs and XML if available)"
 
       - name: Force push changes if commit happened
         if: env.changes_detected == 'true'

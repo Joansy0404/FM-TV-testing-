@@ -118,9 +118,9 @@ jobs:
                               # 5. URL-safe encode the result
                               url_safe_payload = encoded_payload.replace('=', '%3D')
                               
-                              # 6. Construct the wrapped URL with /#.mkv inserted before /fast if needed
+                              # 6. Construct the wrapped URL with /#.mkv after /fast if needed
                               if needs_mkv:
-                                  wrapped_url = f'{PREFIX}{url_safe_payload}/#.mkv{SUFFIX}'
+                                  wrapped_url = f'{PREFIX}{url_safe_payload}{SUFFIX}/#.mkv'
                               else:
                                   wrapped_url = f'{PREFIX}{url_safe_payload}{SUFFIX}'
                               

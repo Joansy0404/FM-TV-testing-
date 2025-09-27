@@ -1,4 +1,4 @@
-name: Check M3U Streams (Enhanced)
+name: Check M3U Streams with Free Proxies
 
 on:
   workflow_dispatch:
@@ -14,27 +14,32 @@ on:
         default: false
         type: boolean
       check_fast:
-        description: 'Check FAST channels (Free Ad-Supported TV)'
+        description: 'Check FAST channels'
+        required: false
+        default: false
+        type: boolean
+      use_proxies:
+        description: 'Use free proxies for geo-blocked content'
+        required: false
+        default: true
+        type: boolean
+      setup_tor:
+        description: 'Setup Tor proxy'
         required: false
         default: false
         type: boolean
       timeout_seconds:
         description: 'Timeout per stream (seconds)'
         required: false
-        default: '10'
-        type: string
-      batch_size:
-        description: 'Streams per batch (lower = slower but more reliable)'
-        required: false
         default: '5'
         type: string
-      base_delay:
-        description: 'Seconds between requests (higher = less rate limiting)'
+      max_proxies:
+        description: 'Maximum proxies to test'
         required: false
-        default: '2.0'
+        default: '30'
         type: string
   schedule:
-    - cron: '0 */8 * * *'  # Runs every 8 hours
+    - cron: '0 */12 * * *'  # Every 12 hours
 
 permissions:
   contents: write
@@ -42,6 +47,7 @@ permissions:
 jobs:
   check-streams:
     runs-on: ubuntu-latest
+    timeout-minutes: 360  # 6 hour limit
 
     steps:
       - name: Checkout repository
@@ -57,691 +63,560 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install requests m3u8
+          pip install requests aiohttp beautifulsoup4 lxml asyncio
+
+      - name: Setup Tor (optional)
+        if: ${{ github.event.inputs.setup_tor == 'true' }}
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y tor
+          sudo service tor start
+          sleep 15
+          echo "Testing Tor connection..."
+          curl --socks5 127.0.0.1:9050 --max-time 10 https://check.torproject.org/api/ip || echo "Tor setup may have issues"
 
       - name: Enhanced Stream Check
         env:
           CHECK_VODS: ${{ github.event.inputs.check_vods || 'false' }}
           CHECK_PPV: ${{ github.event.inputs.check_ppv || 'false' }}
           CHECK_FAST: ${{ github.event.inputs.check_fast || 'false' }}
-          TIMEOUT_SECONDS: ${{ github.event.inputs.timeout_seconds || '10' }}
-          BATCH_SIZE: ${{ github.event.inputs.batch_size || '5' }}
-          BASE_DELAY: ${{ github.event.inputs.base_delay || '2.0' }}
+          USE_PROXIES: ${{ github.event.inputs.use_proxies || 'true' }}
+          SETUP_TOR: ${{ github.event.inputs.setup_tor || 'false' }}
+          TIMEOUT_SECONDS: ${{ github.event.inputs.timeout_seconds || '5' }}
+          MAX_PROXIES: ${{ github.event.inputs.max_proxies || '30' }}
         run: |
-          set -e
           python - << 'EOF'
           import requests
-          import os
-          from datetime import datetime, timezone
-          import re
-          import time
+          import asyncio
+          import aiohttp
           import random
-          
-          # Configuration from environment
+          import time
+          import os
+          import subprocess
+          import json
+          import re
+          from datetime import datetime, timezone
+
+          # Configuration
           CHECK_VODS = os.getenv('CHECK_VODS', 'false').lower() == 'true'
-          CHECK_PPV = os.getenv('CHECK_PPV', 'false').lower() == 'true' 
+          CHECK_PPV = os.getenv('CHECK_PPV', 'false').lower() == 'true'
           CHECK_FAST = os.getenv('CHECK_FAST', 'false').lower() == 'true'
-          TIMEOUT_SECONDS = int(os.getenv('TIMEOUT_SECONDS', '10'))
-          BATCH_SIZE = int(os.getenv('BATCH_SIZE', '5'))
-          BASE_DELAY = float(os.getenv('BASE_DELAY', '2.0'))
-          MAX_RETRIES = 3
-          
-          print(f"Enhanced Configuration: VODs={CHECK_VODS}, PPV={CHECK_PPV}, FAST={CHECK_FAST}")
-          print(f"Batch={BATCH_SIZE}, Delay={BASE_DELAY}s, Timeout={TIMEOUT_SECONDS}s")
-          
-          def get_geo_headers(group_name):
-              """Get region-appropriate headers based on stream group"""
-              group_lower = group_name.lower()
-              
-              base_headers = {
-                  'Accept': '*/*',
-                  'Accept-Encoding': 'gzip, deflate, br',
-                  'Connection': 'keep-alive',
-                  'Cache-Control': 'no-cache',
-                  'Sec-Fetch-Dest': 'video',
-                  'Sec-Fetch-Mode': 'no-cors',
-                  'Sec-Fetch-Site': 'cross-site'
-              }
-              
-              if any(x in group_lower for x in ['uk', 'britain', 'bbc', 'itv', 'sky']):
-                  base_headers.update({
-                      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                      'Accept-Language': 'en-GB,en;q=0.9',
-                      'Referer': 'https://www.google.co.uk/'
-                  })
-              elif any(x in group_lower for x in ['canada', 'ca ', 'cbc', 'ctv']):
-                  base_headers.update({
-                      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                      'Accept-Language': 'en-CA,en;q=0.9,fr-CA;q=0.8',
-                      'Referer': 'https://www.google.ca/'
-                  })
-              elif any(x in group_lower for x in ['australia', 'aus', 'abc australia']):
-                  base_headers.update({
-                      'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                      'Accept-Language': 'en-AU,en;q=0.9',
-                      'Referer': 'https://www.google.com.au/'
-                  })
-              else:  # Default to US
-                  base_headers.update({
-                      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                      'Accept-Language': 'en-US,en;q=0.9',
-                      'Referer': 'https://www.google.com/'
-                  })
-              
-              return base_headers
-          
-          def check_stream_with_geo_fallback(url, timeout, stream_type, group_name, retry_count=0):
-              """Enhanced stream check with rate limiting and geo header fallback"""
-              
-              # Rate limiting delay with jitter
-              jitter = random.uniform(0.2, 0.8)
-              time.sleep(BASE_DELAY + jitter)
-              
-              try:
-                  # Get appropriate headers for the stream's likely region
-                  headers = get_geo_headers(group_name)
+          USE_PROXIES = os.getenv('USE_PROXIES', 'true').lower() == 'true'
+          SETUP_TOR = os.getenv('SETUP_TOR', 'false').lower() == 'true'
+          TIMEOUT_SECONDS = int(os.getenv('TIMEOUT_SECONDS', '5'))
+          MAX_PROXIES = int(os.getenv('MAX_PROXIES', '30'))
+
+          print(f"Configuration: VODs={CHECK_VODS}, PPV={CHECK_PPV}, FAST={CHECK_FAST}")
+          print(f"Proxy settings: USE_PROXIES={USE_PROXIES}, SETUP_TOR={SETUP_TOR}")
+          print(f"Timeout: {TIMEOUT_SECONDS}s, Max proxies to test: {MAX_PROXIES}")
+
+          class ProxyStreamChecker:
+              def __init__(self):
+                  self.working_proxies = []
+                  self.geo_working = []
+                  self.geo_failed = []
+                  self.regular_working = []
+                  self.regular_failed = []
+                  self.skipped = []
+
+              def get_free_proxies(self):
+                  """Fetch and test free proxies"""
+                  print("Fetching free proxy lists...")
                   
-                  # Adjust timeout for PPV
-                  if stream_type == 'PPV':
-                      timeout = min(timeout * 2, 30)
-                  
-                  response = requests.get(url, timeout=timeout, headers=headers, stream=True, allow_redirects=True)
-                  
-                  # Handle rate limiting
-                  if response.status_code == 429:
-                      if retry_count < MAX_RETRIES:
-                          backoff_time = (2 ** retry_count) * BASE_DELAY + random.uniform(1, 3)
-                          print(f"    Rate limited, backing off for {backoff_time:.1f}s")
-                          time.sleep(backoff_time)
-                          return check_stream_with_geo_fallback(url, timeout, stream_type, group_name, retry_count + 1)
-                      else:
-                          return {"status": "rate_limited", "code": 429, "error": "Rate limited after retries"}
-                  
-                  # Handle geo-blocking - try alternative headers
-                  elif response.status_code == 403:
-                      if retry_count < 2:
-                          print(f"    Geo-blocked, trying alternative headers...")
-                          
-                          fallback_headers = [
-                              {  # US headers
-                                  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                                  'Accept-Language': 'en-US,en;q=0.9',
-                                  'Accept': '*/*'
-                              },
-                              {  # UK headers  
-                                  'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-                                  'Accept-Language': 'en-GB,en;q=0.9',
-                                  'Accept': '*/*'
-                              }
-                          ]
-                          
-                          time.sleep(1)
-                          alt_response = requests.get(
-                              url, 
-                              timeout=timeout, 
-                              headers=fallback_headers[retry_count], 
-                              stream=True
-                          )
-                          
-                          if alt_response.status_code < 400:
-                              region_note = "US" if retry_count == 0 else "UK"
-                              return {
-                                  "status": "working", 
-                                  "code": alt_response.status_code, 
-                                  "note": f"Works with {region_note} headers"
-                              }
-                          else:
-                              return check_stream_with_geo_fallback(url, timeout, stream_type, group_name, retry_count + 1)
-                      else:
-                          return {"status": "geo_blocked", "code": 403, "error": "Blocked with all header combinations"}
-                  
-                  # Success case
-                  elif response.status_code < 400:
-                      # Test if stream has content (for live streams)
-                      if stream_type != 'VOD':
-                          try:
-                              chunk = next(response.iter_content(chunk_size=1024), None)
-                              if not chunk:
-                                  return {"status": "empty_stream", "code": response.status_code, "error": "No content"}
-                          except:
-                              pass
-                      
-                      return {"status": "working", "code": response.status_code, "error": None, "type": stream_type}
-                  
-                  # Other HTTP errors
-                  else:
-                      if response.status_code == 404:
-                          error_msg = "Stream not found"
-                          if stream_type == 'PPV':
-                              error_msg += " (PPV may be offline)"
-                          return {"status": "not_found", "code": 404, "error": error_msg}
-                      elif response.status_code in [500, 502, 503, 504]:
-                          return {"status": "server_error", "code": response.status_code, "error": f"Server error ({response.status_code})"}
-                      else:
-                          return {"status": "http_error", "code": response.status_code, "error": f"HTTP {response.status_code}"}
-              
-              except requests.exceptions.Timeout:
-                  error_msg = f"Timeout after {timeout}s"
-                  if stream_type == 'PPV':
-                      error_msg += " (PPV may be preparing)"
-                  return {"status": "timeout", "code": None, "error": error_msg}
-              except requests.exceptions.ConnectionError as e:
-                  if "refused" in str(e).lower():
-                      return {"status": "connection_refused", "code": None, "error": "Connection refused"}
-                  else:
-                      return {"status": "connection_error", "code": None, "error": "Network error"}
-              except Exception as e:
-                  return {"status": "unknown_error", "code": None, "error": str(e)[:100]}
-          
-          def is_vod_url(url):
-              return url.endswith('#.mkv')
-          
-          def is_fast_channel(name, group):
-              return 'fast' in group.lower()
-          
-          def is_ppv_channel(name, group):
-              group_lower = group.lower()
-              name_lower = name.lower()
-              event_groups = ['uk events', 'usa events', 'events']
-              ppv_indicators = ['ppv', 'pay per view', 'boxing', 'ufc', 'wwe']
-              
-              return (any(event_group in group_lower for event_group in event_groups) or
-                      any(indicator in name_lower for indicator in ppv_indicators) or 
-                      any(indicator in group_lower for indicator in ppv_indicators))
-          
-          def classify_stream_type(stream):
-              url = stream['url']
-              name = stream['name']
-              group = stream['group']
-              
-              if is_vod_url(url):
-                  return 'VOD'
-              elif is_ppv_channel(name, group):
-                  return 'PPV'
-              elif is_fast_channel(name, group):
-                  return 'FAST'
-              else:
-                  return 'Channel'
-          
-          def get_stream_emoji(stream_type):
-              emojis = {
-                  'VOD': 'Movies',
-                  'PPV': 'PPV', 
-                  'FAST': 'FAST',
-                  'Channel': 'Channel'
-              }
-              return emojis.get(stream_type, 'Unknown')
-          
-          def should_skip_stream(stream):
-              stream_type = classify_stream_type(stream)
-              
-              if stream_type == 'VOD' and not CHECK_VODS:
-                  return True, f"VOD file (skipped)"
-              elif stream_type == 'PPV' and not CHECK_PPV:
-                  return True, f"PPV channel (skipped)"
-              elif stream_type == 'FAST' and not CHECK_FAST:
-                  return True, f"FAST channel (skipped)"
-              
-              return False, None
-          
-          def parse_m3u(file_path):
-              if not os.path.exists(file_path):
-                  print(f"File not found: {file_path}")
-                  return []
-                  
-              streams = []
-              
-              try:
-                  with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                      lines = f.readlines()
-              except Exception as e:
-                  print(f"Error reading {file_path}: {str(e)}")
-                  return []
-                  
-              for i in range(len(lines)):
-                  line = lines[i].strip()
-                  if line.startswith('#EXTINF'):
-                      try:
-                          group_match = re.search(r'group-title="([^"]*)"', line)
-                          group = group_match.group(1) if group_match else "No Group"
-                          
-                          name_part = line.split(',')[-1].strip()
-                          name = name_part if name_part else "Unknown Channel"
-                          
-                          if i + 1 < len(lines):
-                              url = lines[i + 1].strip()
-                              if url and not url.startswith('#') and ('http' in url or 'rtmp' in url):
-                                  streams.append({
-                                      'name': name,
-                                      'url': url,
-                                      'group': group
-                                  })
-                      except Exception as e:
-                          print(f"Error parsing line {i}: {str(e)}")
-                          continue
-              
-              return streams
-          
-          # Initialize counters
-          total_streams = 0
-          checked_streams = 0
-          working_streams = 0
-          skipped_streams = 0
-          
-          # Enhanced failure categorization
-          categorized_failures = {
-              'rate_limited': [],
-              'geo_blocked': [],
-              'connection_refused': [],
-              'not_found': [],
-              'server_error': [],
-              'timeout': [],
-              'connection_error': [],
-              'unknown_error': []
-          }
-          
-          skipped_categories = {
-              'vods': [],
-              'ppv': [],
-              'fast': []
-          }
-          
-          # M3U files to process
-          m3u_files = ['channel playlist.m3u']
-          
-          print("Starting enhanced stream check...")
-          start_time = datetime.now(timezone.utc)
-          
-          for m3u_file in m3u_files:
-              print(f"\nProcessing {m3u_file}...")
-              
-              try:
-                  streams = parse_m3u(m3u_file)
-                  file_total = len(streams)
-                  total_streams += file_total
-                  
-                  print(f"Found {file_total} total streams in {m3u_file}")
-                  
-                  # Filter streams to check
-                  streams_to_check = []
-                  for stream in streams:
-                      should_skip, skip_reason = should_skip_stream(stream)
-                      if should_skip:
-                          skipped_streams += 1
-                          stream_type = classify_stream_type(stream)
-                          print(f"Skipped: {stream['name'][:40]}... [{get_stream_emoji(stream_type)}] - {skip_reason}")
-                          
-                          # Categorize skipped streams
-                          if "VOD" in skip_reason:
-                              skipped_categories['vods'].append({
-                                  'name': stream['name'],
-                                  'group': stream['group'],
-                                  'file': m3u_file
-                              })
-                          elif "PPV" in skip_reason:
-                              skipped_categories['ppv'].append({
-                                  'name': stream['name'],
-                                  'group': stream['group'],
-                                  'file': m3u_file
-                              })
-                          elif "FAST" in skip_reason:
-                              skipped_categories['fast'].append({
-                                  'name': stream['name'],
-                                  'group': stream['group'],
-                                  'file': m3u_file
-                              })
-                      else:
-                          streams_to_check.append(stream)
-                  
-                  # Process streams in batches
-                  for i in range(0, len(streams_to_check), BATCH_SIZE):
-                      batch = streams_to_check[i:i + BATCH_SIZE]
-                      batch_num = i // BATCH_SIZE + 1
-                      
-                      print(f"\nProcessing batch {batch_num} ({len(batch)} streams)")
-                      batch_working = 0
-                      
-                      for stream in batch:
-                          checked_streams += 1
-                          stream_type = classify_stream_type(stream)
-                          stream_emoji = get_stream_emoji(stream_type)
-                          
-                          print(f"Checking {checked_streams}: {stream['name'][:40]}... [{stream_emoji}]")
-                          
-                          result = check_stream_with_geo_fallback(
-                              stream['url'], 
-                              TIMEOUT_SECONDS, 
-                              stream_type, 
-                              stream['group']
-                          )
-                          
-                          if result['status'] == 'working':
-                              working_streams += 1
-                              batch_working += 1
-                              note = f" ({result['note']})" if 'note' in result else ""
-                              print(f"  Working [{stream_emoji}]{note}")
-                          else:
-                              print(f"  Failed [{stream_emoji}]: {result['error']}")
-                              
-                              # Categorize the failure
-                              failure_info = {
-                                  'name': stream['name'],
-                                  'group': stream['group'],
-                                  'type': stream_type,
-                                  'error': result['error'],
-                                  'code': result.get('code'),
-                                  'file': m3u_file
-                              }
-                              
-                              if result['status'] in categorized_failures:
-                                  categorized_failures[result['status']].append(failure_info)
-                              else:
-                                  categorized_failures['unknown_error'].append(failure_info)
-                      
-                      # Adaptive delay between batches
-                      success_rate = batch_working / len(batch) if batch else 0
-                      if success_rate < 0.3:
-                          delay = BASE_DELAY * 3
-                      elif success_rate < 0.6:
-                          delay = BASE_DELAY * 2
-                      else:
-                          delay = BASE_DELAY
-                      
-                      print(f"Batch {batch_num}: {batch_working}/{len(batch)} working ({success_rate:.1%})")
-                      
-                      if i + BATCH_SIZE < len(streams_to_check):
-                          print(f"Waiting {delay:.1f}s before next batch...")
-                          time.sleep(delay)
-                  
-              except Exception as e:
-                  print(f"Error processing {m3u_file}: {str(e)}")
-                  continue
-          
-          # Calculate final statistics
-          total_checked = checked_streams
-          total_failures = sum(len(failures) for failures in categorized_failures.values())
-          working_percentage = (working_streams / total_checked * 100) if total_checked > 0 else 0
-          end_time = datetime.now(timezone.utc)
-          duration = end_time - start_time
-          
-          print(f"\nCheck completed in {duration.total_seconds():.1f} seconds")
-          print(f"Results: {working_streams} working, {total_failures} failed, {skipped_streams} skipped")
-          print(f"Success rate: {working_percentage:.1f}%")
-          
-          if total_streams == 0:
-              print("No streams found to process!")
-              import sys
-              sys.exit(1)
-          
-          print("Stream checking completed successfully")
-          
-          # Generate enhanced report
-          print("Generating report...")
-          
-          try:
-              checked_percentage = (total_checked/total_streams*100) if total_streams > 0 else 0
-              failure_percentage = (total_failures/total_checked*100) if total_checked > 0 else 0
-              skipped_percentage = (skipped_streams/total_streams*100) if total_streams > 0 else 0
-              
-              vod_config = 'Enabled' if CHECK_VODS else 'Disabled'
-              ppv_config = 'Enabled' if CHECK_PPV else 'Disabled'
-              fast_config = 'Enabled' if CHECK_FAST else 'Disabled'
-              
-              report = "# M3U Stream Status Report (Enhanced)\n\n"
-              report += f"**Generated on:** {end_time.strftime('%Y-%m-%d %H:%M:%S')} UTC  \n"
-              report += f"**Duration:** {duration.total_seconds():.1f} seconds  \n"
-              report += f"**Configuration:** VODs: {vod_config}, PPV: {ppv_config}, FAST: {fast_config}  \n"
-              report += f"**Rate Limiting:** {BATCH_SIZE} streams per batch, {BASE_DELAY}s base delay\n\n"
-              
-              # Summary section
-              report += "## Summary\n\n"
-              report += "| Metric | Count | Percentage |\n"
-              report += "|--------|-------|-----------|\n"
-              report += f"| **Total Streams Found** | {total_streams} | 100.0% |\n"
-              report += f"| **Checked Streams** | {total_checked} | {checked_percentage:.1f}% |\n"
-              report += f"| **Working Streams** | {working_streams} | {working_percentage:.1f}% |\n"
-              report += f"| **Failed Streams** | {total_failures} | {failure_percentage:.1f}% |\n"
-              report += f"| **Skipped Streams** | {skipped_streams} | {skipped_percentage:.1f}% |\n\n"
-              
-              # Failure Analysis section
-              if total_failures > 0:
-                  report += f"## Failure Analysis ({total_failures} total failures)\n\n"
-                  
-                  failure_order = [
-                      ('rate_limited', 'Rate Limited', 'Server limiting request frequency'),
-                      ('geo_blocked', 'Geo-blocked', 'Blocked from all tested regions'),
-                      ('connection_refused', 'Connection Refused', 'Server actively refusing connections'),
-                      ('not_found', 'Not Found (404)', 'Stream URL no longer exists'),
-                      ('server_error', 'Server Errors', 'Server-side technical issues'),
-                      ('timeout', 'Connection Timeouts', 'Server slow/overloaded'),
-                      ('connection_error', 'Connection Errors', 'Network connectivity issues'),
-                      ('unknown_error', 'Unknown Errors', 'Unexpected errors')
+                  proxy_sources = [
+                      "https://api.proxyscrape.com/v2/?request=get&protocol=http&timeout=5000&country=all&format=textplain&limit=200",
+                      "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt",
+                      "https://raw.githubusercontent.com/mmpx12/proxy-list/master/http.txt",
+                      "https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list-raw.txt"
                   ]
                   
-                  for category, title, description in failure_order:
-                      failures = categorized_failures.get(category, [])
-                      if failures:
-                          report += f"### {title} ({len(failures)} streams)\n"
-                          report += f"*{description}*\n\n"
-                          report += "| Channel | Group | Type | Error | Code | File |\n"
-                          report += "|---------|-------|------|-------|------|---------|\n"
-                          
-                          for stream in failures[:20]:  # Limit to prevent huge reports
-                              try:
-                                  name = str(stream.get('name', 'Unknown'))[:30].replace('|', '\\|')
-                                  group = str(stream.get('group', 'No Group'))[:20].replace('|', '\\|')
-                                  stream_type = str(stream.get('type', 'Channel'))
-                                  error = str(stream.get('error', 'Unknown'))[:40].replace('|', '\\|')
-                                  code = str(stream.get('code', 'N/A'))
-                                  file_name = str(stream.get('file', 'Unknown')).replace('|', '\\|')
-                                  
-                                  report += f"| {name} | {group} | {stream_type} | {error} | {code} | {file_name} |\n"
-                              except Exception as e:
-                                  continue
-                          
-                          if len(failures) > 20:
-                              report += f"*... and {len(failures) - 20} more*\n"
-                          report += "\n"
-              
-              # Skipped Streams section
-              if skipped_streams > 0:
-                  report += f"## Skipped Streams ({skipped_streams} total)\n\n"
+                  all_proxies = []
+                  for source in proxy_sources:
+                      try:
+                          print(f"Fetching from: {source}")
+                          response = requests.get(source, timeout=15)
+                          if response.status_code == 200:
+                              proxies = [line.strip() for line in response.text.split('\n') 
+                                        if ':' in line and len(line.strip()) > 7]
+                              all_proxies.extend(proxies)
+                              print(f"  Got {len(proxies)} proxies")
+                      except Exception as e:
+                          print(f"  Failed: {e}")
                   
-                  # PPV/Event Channels
-                  if skipped_categories['ppv'] and not CHECK_PPV:
-                      ppv_groups = {}
-                      for item in skipped_categories['ppv']:
-                          group = item.get('group', 'No Group')
-                          ppv_groups[group] = ppv_groups.get(group, 0) + 1
-                      
-                      report += f"### PPV/Event Channels ({len(skipped_categories['ppv'])} skipped)\n"
-                      report += "*Enable \"Check PPV\" in workflow dispatch to test these*\n\n"
-                      report += "| Group | Count |\n"
-                      report += "|-------|---------|\n"
-                      
-                      for group, count in sorted(ppv_groups.items()):
-                          group_safe = str(group).replace('|', '\\|')
-                          report += f"| {group_safe} | {count} |\n"
-                      report += "\n"
+                  if not all_proxies:
+                      print("No proxies found from sources")
+                      return []
                   
-                  # FAST Channels
-                  if skipped_categories['fast'] and not CHECK_FAST:
-                      fast_groups = {}
-                      for item in skipped_categories['fast']:
-                          group = item.get('group', 'No Group')
-                          fast_groups[group] = fast_groups.get(group, 0) + 1
-                      
-                      report += f"### FAST Channels ({len(skipped_categories['fast'])} skipped)\n"
-                      report += "*Enable \"Check FAST\" in workflow dispatch to test these*\n\n"
-                      report += "| Group | Count |\n"
-                      report += "|-------|---------|\n"
-                      
-                      for group, count in sorted(fast_groups.items()):
-                          group_safe = str(group).replace('|', '\\|')
-                          report += f"| {group_safe} | {count} |\n"
-                      report += "\n"
+                  # Remove duplicates and clean
+                  unique_proxies = list(set(all_proxies))
+                  random.shuffle(unique_proxies)
+                  print(f"Testing {min(MAX_PROXIES, len(unique_proxies))} unique proxies...")
                   
-                  # VOD Files
-                  if skipped_categories['vods'] and not CHECK_VODS:
-                      vod_groups = {}
-                      for item in skipped_categories['vods']:
-                          group = item.get('group', 'No Group')
-                          vod_groups[group] = vod_groups.get(group, 0) + 1
+                  # Test proxies quickly
+                  working = []
+                  for i, proxy in enumerate(unique_proxies[:MAX_PROXIES]):
+                      if len(working) >= 15:  # Limit working proxies
+                          break
                       
-                      report += f"### VOD Files ({len(skipped_categories['vods'])} skipped)\n"
-                      report += "*Enable \"Check VODs\" in workflow dispatch to test these*\n\n"
-                      report += "| Group | Count |\n"
-                      report += "|-------|---------|\n"
+                      if self.test_proxy(proxy):
+                          proxy_url = f"http://{proxy}" if not proxy.startswith('http') else proxy
+                          working.append(proxy_url)
+                          print(f"  Working [{len(working)}]: {proxy}")
                       
-                      for group, count in sorted(vod_groups.items()):
-                          group_safe = str(group).replace('|', '\\|')
-                          report += f"| {group_safe} | {count} |\n"
-                      report += "\n"
-              
-              # Configuration Notes
-              report += f"## Enhanced Configuration Notes\n\n"
-              report += f"- **VOD Checking:** {vod_config} - URLs ending with #.mkv are VOD files\n"
-              report += f"- **PPV/Event Checking:** {ppv_config} - UK EVENTS & USA EVENTS groups automatically detected\n"
-              report += f"- **FAST Checking:** {fast_config} - Groups containing 'FAST' automatically detected\n"
-              report += f"- **Geographic Headers:** Automatic region detection from group names with fallback headers\n"
-              report += f"- **Rate Limiting:** {BATCH_SIZE} streams per batch with {BASE_DELAY}s delays and exponential backoff\n"
-              report += f"- **Timeout:** {TIMEOUT_SECONDS} seconds per stream (PPV channels get 2x timeout)\n\n"
-              
-              report += "## Manual Testing Options\n\n"
-              report += "To test specific content types:\n"
-              report += "1. Go to **Actions** → **Check M3U Streams (Enhanced)** → **Run workflow**\n"
-              report += "2. Toggle **Check VODs** to test video-on-demand content\n"
-              report += "3. Toggle **Check PPV** to test Pay-Per-View channels\n"
-              report += "4. Toggle **Check FAST** to test Free Ad-Supported TV channels\n"
-              report += "5. Adjust **Batch Size** (lower = slower but more reliable)\n"
-              report += "6. Adjust **Base Delay** (higher = less rate limiting)\n\n"
-              
-              report += "## Enhanced Features\n\n"
-              report += "- **Rate Limiting Protection:** Exponential backoff for 429 errors\n"
-              report += "- **Geo-aware Headers:** Region-appropriate headers based on stream groups\n"
-              report += "- **Fallback Headers:** Try US/UK headers for geo-blocked content\n"
-              report += "- **Batch Processing:** Configurable batch sizes with adaptive delays\n"
-              report += "- **Random Jitter:** Prevents synchronized requests\n"
-              report += "- **Enhanced Error Categorization:** Better failure analysis\n\n"
-              
-              report += "---\n"
-              report += f"*Last updated: {end_time.strftime('%Y-%m-%d %H:%M:%S')} UTC*\n"
-              report += "*Enhanced report with rate limiting and geo-header testing*\n"
-              
-              print("Report generation completed successfully")
-              
-          except Exception as e:
-              print(f"Error generating report: {str(e)}")
-              import traceback
-              traceback.print_exc()
-              import sys
-              sys.exit(1)
-          
-          # Write report
-          print("Writing report to file...")
-          try:
-              with open('report.md', 'w', encoding='utf-8') as f:
-                  f.write(report)
-              print("Enhanced report generated successfully!")
-              print(f"Final Summary: {working_streams}/{total_checked} streams working ({working_percentage:.1f}%), {skipped_streams} skipped")
-              
-              # Verify file was written
-              if os.path.exists('report.md'):
-                  file_size = os.path.getsize('report.md')
-                  print(f"Report file created: {file_size} bytes")
-              else:
-                  print("Report file was not created!")
-                  import sys
-                  sys.exit(1)
-              
-          except Exception as e:
-              print(f"Error writing report: {str(e)}")
-              import traceback
-              traceback.print_exc()
-              import sys
-              sys.exit(1)
-          
-          print("Script completed successfully!")
-          EOF
-          
-          # Verify Python script succeeded
-          if [ $? -eq 0 ]; then
-            echo "Python script completed successfully"
-          else
-            echo "Python script failed with exit code $?"
-            exit 1
-          fi
-          
-          # Double-check report file exists
-          if [ -f "report.md" ]; then
-            echo "Report file confirmed"
-            echo "Report size: $(wc -c < report.md) bytes"
-            echo "First few lines of report:"
-            head -5 report.md
-          else
-            echo "Report file missing after Python execution!"
-            ls -la
-            exit 1
-          fi
+                      if (i + 1) % 10 == 0:
+                          print(f"  Tested {i + 1}, found {len(working)} working")
+                  
+                  self.working_proxies = working
+                  print(f"Found {len(working)} working proxies total")
+                  return working
 
-      - name: Commit and push report
+              def test_proxy(self, proxy_address, timeout=4):
+                  """Quick test of proxy"""
+                  try:
+                      if not proxy_address.startswith('http'):
+                          proxy_url = f"http://{proxy_address}"
+                      else:
+                          proxy_url = proxy_address
+                      
+                      proxies = {'http': proxy_url, 'https': proxy_url}
+                      
+                      response = requests.get(
+                          "http://httpbin.org/ip",
+                          proxies=proxies,
+                          timeout=timeout,
+                          headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+                      )
+                      
+                      if response.status_code == 200:
+                          try:
+                              data = response.json()
+                              return 'origin' in data  # Verify it's a real response
+                          except:
+                              return True  # Response came back, assume working
+                  except:
+                      pass
+                  return False
+
+              def setup_tor(self):
+                  """Setup Tor if requested"""
+                  if not SETUP_TOR:
+                      return False
+                  
+                  try:
+                      # Test Tor connection via curl (simpler than python socks)
+                      result = subprocess.run([
+                          'curl', '--socks5', '127.0.0.1:9050', 
+                          '--max-time', '10', '--silent',
+                          'https://httpbin.org/ip'
+                      ], capture_output=True, text=True, timeout=15)
+                      
+                      if result.returncode == 0:
+                          try:
+                              tor_ip = json.loads(result.stdout)['origin']
+                              print(f"Tor working, IP: {tor_ip}")
+                              self.working_proxies.append("tor://127.0.0.1:9050")
+                              return True
+                          except:
+                              pass
+                  except Exception as e:
+                      print(f"Tor setup failed: {e}")
+                  
+                  return False
+
+              def parse_m3u(self, file_path):
+                  """Parse M3U file"""
+                  if not os.path.exists(file_path):
+                      print(f"M3U file not found: {file_path}")
+                      return []
+                  
+                  streams = []
+                  try:
+                      with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                          lines = f.readlines()
+                  except Exception as e:
+                      print(f"Error reading {file_path}: {e}")
+                      return []
+                  
+                  for i in range(len(lines)):
+                      line = lines[i].strip()
+                      if line.startswith('#EXTINF'):
+                          try:
+                              group_match = re.search(r'group-title="([^"]*)"', line)
+                              group = group_match.group(1) if group_match else "Unknown"
+                              
+                              name = line.split(',')[-1].strip() if ',' in line else "Unknown"
+                              
+                              if i + 1 < len(lines):
+                                  url = lines[i + 1].strip()
+                                  if url and not url.startswith('#') and ('http' in url.lower()):
+                                      streams.append({
+                                          'name': name,
+                                          'url': url,
+                                          'group': group
+                                      })
+                          except Exception as e:
+                              continue
+                  
+                  print(f"Parsed {len(streams)} streams from {file_path}")
+                  return streams
+
+              def classify_stream(self, stream):
+                  """Classify stream type"""
+                  url = stream['url']
+                  name = stream['name'].lower()
+                  group = stream['group'].lower()
+                  
+                  # VOD detection
+                  if url.endswith('#.mkv') or url.endswith('/fast/#.mkv'):
+                      return 'VOD'
+                  
+                  # PPV detection
+                  ppv_groups = ['uk events', 'usa events', 'events']
+                  ppv_keywords = ['ppv', 'boxing', 'ufc', 'wwe']
+                  if (any(g in group for g in ppv_groups) or 
+                      any(k in name or k in group for k in ppv_keywords)):
+                      return 'PPV'
+                  
+                  # FAST detection
+                  if 'fast' in group:
+                      return 'FAST'
+                  
+                  return 'Channel'
+
+              def is_geo_blocked(self, stream):
+                  """Identify likely geo-blocked streams"""
+                  name = stream['name'].lower()
+                  group = stream['group'].lower()
+                  
+                  geo_indicators = [
+                      # UK indicators
+                      'bbc', 'itv', 'channel 4', 'channel 5', 'sky', 'quest', 'really',
+                      'dave', 'drama', 'yesterday', 'alibi', 'eden', 'gold',
+                      # Canada
+                      'cbc', 'ctv', 'global', 'tsn', 'sportsnet',
+                      # Australia  
+                      'abc australia', 'sbs', 'seven', 'nine', 'ten', 'fox sports',
+                      # Ireland
+                      'rte', 'tg4', 'virgin media'
+                  ]
+                  
+                  return any(indicator in name or indicator in group for indicator in geo_indicators)
+
+              def should_skip(self, stream):
+                  """Determine if stream should be skipped"""
+                  stream_type = self.classify_stream(stream)
+                  
+                  if stream_type == 'VOD' and not CHECK_VODS:
+                      return True, "VOD (disabled)"
+                  elif stream_type == 'PPV' and not CHECK_PPV:
+                      return True, "PPV (disabled)"  
+                  elif stream_type == 'FAST' and not CHECK_FAST:
+                      return True, "FAST (disabled)"
+                  
+                  return False, None
+
+              async def check_stream_direct(self, session, stream):
+                  """Check stream without proxy"""
+                  try:
+                      timeout = aiohttp.ClientTimeout(total=TIMEOUT_SECONDS)
+                      headers = {
+                          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                          'Accept': '*/*'
+                      }
+                      
+                      async with session.head(stream['url'], timeout=timeout, headers=headers) as response:
+                          return {
+                              'stream': stream,
+                              'status': 'working' if response.status < 400 else 'failed',
+                              'code': response.status,
+                              'method': 'direct'
+                          }
+                  except asyncio.TimeoutError:
+                      return {'stream': stream, 'status': 'timeout', 'method': 'direct'}
+                  except Exception as e:
+                      return {'stream': stream, 'status': 'error', 'error': str(e)[:50], 'method': 'direct'}
+
+              async def check_stream_via_proxy(self, stream, proxy_url):
+                  """Check stream via proxy using requests (not async)"""
+                  try:
+                      if proxy_url.startswith('tor://'):
+                          # Use curl for Tor SOCKS proxy
+                          result = subprocess.run([
+                              'curl', '--socks5', '127.0.0.1:9050',
+                              '--head', '--max-time', str(TIMEOUT_SECONDS),
+                              '--silent', '--output', '/dev/null',
+                              '--write-out', '%{http_code}',
+                              stream['url']
+                          ], capture_output=True, text=True, timeout=TIMEOUT_SECONDS + 2)
+                          
+                          if result.returncode == 0:
+                              status_code = int(result.stdout.strip()) if result.stdout.strip().isdigit() else 0
+                              return {
+                                  'stream': stream,
+                                  'status': 'working' if status_code < 400 and status_code > 0 else 'failed',
+                                  'code': status_code,
+                                  'method': 'tor'
+                              }
+                      else:
+                          # Regular HTTP proxy
+                          proxies = {'http': proxy_url, 'https': proxy_url}
+                          headers = {
+                              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                              'Accept': '*/*'
+                          }
+                          
+                          response = requests.head(
+                              stream['url'],
+                              proxies=proxies,
+                              timeout=TIMEOUT_SECONDS,
+                              headers=headers
+                          )
+                          
+                          return {
+                              'stream': stream,
+                              'status': 'working' if response.status_code < 400 else 'failed',
+                              'code': response.status_code,
+                              'method': 'proxy'
+                          }
+                  
+                  except Exception as e:
+                      return {
+                          'stream': stream, 
+                          'status': 'error', 
+                          'error': str(e)[:50], 
+                          'method': proxy_url.split('://')[0]
+                      }
+
+              async def process_streams(self, streams):
+                  """Main processing function"""
+                  if not streams:
+                      print("No streams to process")
+                      return
+                  
+                  # Classify streams
+                  regular_streams = []
+                  geo_streams = []
+                  
+                  for stream in streams:
+                      skip, reason = self.should_skip(stream)
+                      if skip:
+                          self.skipped.append({'stream': stream, 'reason': reason})
+                          continue
+                      
+                      if self.is_geo_blocked(stream):
+                          geo_streams.append(stream)
+                      else:
+                          regular_streams.append(stream)
+                  
+                  print(f"Stream classification:")
+                  print(f"  Regular: {len(regular_streams)}")
+                  print(f"  Geo-blocked: {len(geo_streams)}")
+                  print(f"  Skipped: {len(self.skipped)}")
+                  
+                  # Check regular streams directly (fast)
+                  if regular_streams:
+                      print(f"\nChecking {len(regular_streams)} regular streams...")
+                      await self.check_regular_streams(regular_streams)
+                  
+                  # Check geo-blocked streams with proxies
+                  if geo_streams and USE_PROXIES and self.working_proxies:
+                      print(f"\nChecking {len(geo_streams)} geo-blocked streams with proxies...")
+                      await self.check_geo_streams(geo_streams)
+                  elif geo_streams:
+                      print(f"\nSkipping {len(geo_streams)} geo-blocked streams (no proxies)")
+                      for stream in geo_streams:
+                          self.geo_failed.append({
+                              'stream': stream,
+                              'status': 'skipped',
+                              'reason': 'No proxies available'
+                          })
+
+              async def check_regular_streams(self, streams):
+                  """Check regular streams quickly with async"""
+                  connector = aiohttp.TCPConnector(limit=30)
+                  
+                  async with aiohttp.ClientSession(connector=connector) as session:
+                      # Process in batches
+                      batch_size = 20
+                      for i in range(0, len(streams), batch_size):
+                          batch = streams[i:i + batch_size]
+                          
+                          tasks = [self.check_stream_direct(session, stream) for stream in batch]
+                          results = await asyncio.gather(*tasks, return_exceptions=True)
+                          
+                          for result in results:
+                              if isinstance(result, dict):
+                                  if result['status'] == 'working':
+                                      self.regular_working.append(result)
+                                  else:
+                                      self.regular_failed.append(result)
+                          
+                          # Brief pause between batches
+                          if i + batch_size < len(streams):
+                              await asyncio.sleep(1)
+
+              async def check_geo_streams(self, streams):
+                  """Check geo-streams using proxies"""
+                  if not self.working_proxies:
+                      return
+                  
+                  for i, stream in enumerate(streams[:50]):  # Limit geo checks
+                      print(f"  Geo-check {i+1}/{min(len(streams), 50)}: {stream['name'][:30]}...")
+                      
+                      success = False
+                      for proxy in self.working_proxies[:3]:  # Try first 3 proxies
+                          try:
+                              result = await self.check_stream_via_proxy(stream, proxy)
+                              
+                              if result['status'] == 'working':
+                                  self.geo_working.append(result)
+                                  print(f"    Working via {result['method']}")
+                                  success = True
+                                  break
+                              
+                              await asyncio.sleep(0.5)  # Brief delay between proxy attempts
+                          except:
+                              continue
+                      
+                      if not success:
+                          self.geo_failed.append({
+                              'stream': stream,
+                              'status': 'failed',
+                              'reason': 'All proxies failed'
+                          })
+                      
+                      await asyncio.sleep(1)  # Delay between streams
+
+              def generate_report(self):
+                  """Generate final report"""
+                  total_regular = len(self.regular_working) + len(self.regular_failed)
+                  total_geo = len(self.geo_working) + len(self.geo_failed)
+                  total_checked = total_regular + total_geo
+                  total_working = len(self.regular_working) + len(self.geo_working)
+                  
+                  report = "# Enhanced Stream Check Report\n\n"
+                  report += f"**Generated:** {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')} UTC\n"
+                  report += f"**Configuration:** VODs={CHECK_VODS}, PPV={CHECK_PPV}, FAST={CHECK_FAST}, Proxies={USE_PROXIES}\n\n"
+                  
+                  report += "## Summary\n\n"
+                  report += f"| Metric | Count | Percentage |\n"
+                  report += f"|--------|-------|------------|\n"
+                  report += f"| **Total Checked** | {total_checked} | 100.0% |\n"
+                  report += f"| **Working Streams** | {total_working} | {(total_working/total_checked*100):.1f}% |\n"
+                  report += f"| **Regular Streams** | {total_regular} | {(total_regular/total_checked*100) if total_checked > 0 else 0:.1f}% |\n"
+                  report += f"| **Geo-blocked Streams** | {total_geo} | {(total_geo/total_checked*100) if total_checked > 0 else 0:.1f}% |\n"
+                  report += f"| **Skipped Streams** | {len(self.skipped)} | - |\n\n"
+                  
+                  if USE_PROXIES and self.working_proxies:
+                      report += f"## Proxy Performance\n\n"
+                      report += f"- **Working Proxies Found:** {len(self.working_proxies)}\n"
+                      report += f"- **Geo-blocked Streams Recovered:** {len(self.geo_working)}\n"
+                      report += f"- **Proxy Success Rate:** {(len(self.geo_working)/total_geo*100) if total_geo > 0 else 0:.1f}%\n\n"
+                  
+                  report += f"## Performance\n\n"
+                  report += f"- **Regular Streams:** {len(self.regular_working)}/{total_regular} working ({(len(self.regular_working)/total_regular*100) if total_regular > 0 else 0:.1f}%)\n"
+                  if total_geo > 0:
+                      report += f"- **Geo-blocked Streams:** {len(self.geo_working)}/{total_geo} working ({(len(self.geo_working)/total_geo*100):.1f}%)\n"
+                  
+                  if len(self.skipped) > 0:
+                      report += f"\n## Skipped Streams ({len(self.skipped)})\n\n"
+                      skip_reasons = {}
+                      for item in self.skipped:
+                          reason = item['reason']
+                          skip_reasons[reason] = skip_reasons.get(reason, 0) + 1
+                      
+                      for reason, count in skip_reasons.items():
+                          report += f"- **{reason}:** {count}\n"
+                  
+                  report += f"\n---\n*Enhanced check completed with {'proxy support' if USE_PROXIES else 'direct connections only'}*\n"
+                  
+                  return report
+
+              async def run(self):
+                  """Main execution function"""
+                  start_time = time.time()
+                  print("Starting enhanced stream check...")
+                  
+                  # Parse M3U
+                  streams = self.parse_m3u('channel playlist.m3u')
+                  if not streams:
+                      print("No streams found, exiting")
+                      return
+                  
+                  # Setup proxies if enabled
+                  if USE_PROXIES:
+                      print("Setting up proxy infrastructure...")
+                      self.get_free_proxies()
+                      if SETUP_TOR:
+                          self.setup_tor()
+                      
+                      if not self.working_proxies:
+                          print("Warning: No working proxies found")
+                  
+                  # Process all streams  
+                  await self.process_streams(streams)
+                  
+                  # Generate and save report
+                  report = self.generate_report()
+                  
+                  with open('proxy_report.md', 'w', encoding='utf-8') as f:
+                      f.write(report)
+                  
+                  # Summary
+                  duration = time.time() - start_time
+                  total_working = len(self.regular_working) + len(self.geo_working)
+                  total_checked = len(self.regular_working) + len(self.regular_failed) + len(self.geo_working) + len(self.geo_failed)
+                  
+                  print(f"\nCompleted in {duration:.1f} seconds")
+                  print(f"Results: {total_working}/{total_checked} working")
+                  if USE_PROXIES and self.working_proxies:
+                      print(f"Proxy recovery: {len(self.geo_working)} geo-blocked streams working")
+                  
+                  print("Report saved to proxy_report.md")
+
+          # Execute the enhanced checker
+          checker = ProxyStreamChecker()
+          asyncio.run(checker.run())
+          EOF
+
+      - name: Commit Report
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "github-actions[bot]"
           
-          # Check if report was generated
-          if [[ -f "report.md" ]]; then
-            echo "Report file found"
-            ls -la report.md
+          if [ -f "proxy_report.md" ]; then
+            echo "Report generated successfully"
+            ls -la proxy_report.md
+            
+            git add proxy_report.md
+            if ! git diff --staged --quiet; then
+              COMMIT_MSG="Enhanced stream check"
+              if [[ "${{ github.event.inputs.use_proxies }}" == "true" ]]; then
+                COMMIT_MSG="$COMMIT_MSG with proxy support"
+              fi
+              COMMIT_MSG="$COMMIT_MSG - $(date -u '+%Y-%m-%d %H:%M UTC')"
+              
+              git commit -m "$COMMIT_MSG"
+              
+              # Push with retry
+              for i in {1..3}; do
+                if git push; then
+                  echo "Report pushed successfully"
+                  break
+                else
+                  if [ $i -lt 3 ]; then
+                    sleep 2
+                    git pull --rebase
+                  else
+                    echo "Failed to push after 3 attempts"
+                    exit 1
+                  fi
+                fi
+              done
+            else
+              echo "No changes to commit"
+            fi
           else
             echo "Report file not found!"
-            ls -la
             exit 1
-          fi
-          
-          # Pull latest changes first to avoid conflicts
-          echo "Pulling latest changes..."
-          git pull origin main || {
-            echo "Pull failed, trying to resolve conflicts..."
-            git reset --hard HEAD
-            git pull origin main
-          }
-          
-          git add report.md
-          if git diff --staged --quiet; then
-            echo "No changes to commit"
-          else
-            # Enhanced commit message
-            COMMIT_MSG="Enhanced stream report"
-            if [[ "${CHECK_VODS:-false}" == "true" ]]; then
-              COMMIT_MSG="$COMMIT_MSG +VODs"
-            fi
-            if [[ "${CHECK_PPV:-false}" == "true" ]]; then
-              COMMIT_MSG="$COMMIT_MSG +PPV" 
-            fi
-            if [[ "${CHECK_FAST:-false}" == "true" ]]; then
-              COMMIT_MSG="$COMMIT_MSG +FAST" 
-            fi
-            COMMIT_MSG="$COMMIT_MSG - $(date -u '+%Y-%m-%d %H:%M UTC')"
-            
-            echo "Committing: $COMMIT_MSG"
-            git commit -m "$COMMIT_MSG"
-            
-            # Push with retry logic
-            echo "Pushing changes..."
-            for i in {1..3}; do
-              if git push origin main; then
-                echo "Report pushed successfully"
-                break
-              else
-                echo "Push attempt $i failed, retrying..."
-                if [ $i -lt 3 ]; then
-                  sleep 2
-                  git pull --rebase origin main
-                else
-                  echo "Failed to push after 3 attempts"
-                  exit 1
-                fi
-              fi
-            done
           fi

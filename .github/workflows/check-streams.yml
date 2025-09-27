@@ -151,63 +151,407 @@ jobs:
                   self.total_by_type = {'Channel': 0, 'VOD': 0, 'PPV': 0, 'FAST': 0}
 
               def get_fast_proxy_sources(self):
-                  """Optimized proxy sources focusing on speed and reliability"""
+                  """Enhanced proxy sources with backup options"""
+                  primary_sources = [
+                      "https://api.proxyscrape.com/v2/?request=get&protocol=http&timeout=8000&country=all&format=textplain&limit=200",
+                      "https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list-raw.txt",
+                      "https://www.proxy-list.download/api/v1/get?type=http",
+                      "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt",
+                      "https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/http.txt"
+                  ]
+                  
+                  backup_sources = [
+                      "https://raw.githubusercontent.com/sunny9577/proxy-scraper/master/proxies.txt",
+                      "https://raw.githubusercontent.com/ShiftyTR/Proxy-List/master/http.txt",
+                      "https://raw.githubusercontent.com/roosterkid/openproxylist/main/HTTPS_RAW.txt"
+                  ]
+                  
                   if QUICK_MODE:
-                      return [
-                          "https://api.proxyscrape.com/v2/?request=get&protocol=http&timeout=5000&country=all&format=textplain&limit=100",
-                          "https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list-raw.txt",
-                          "https://www.proxy-list.download/api/v1/get?type=http"
-                      ]
+                      return primary_sources[:3] + backup_sources[:2]
                   else:
-                      return [
-                          "https://proxylist.geonode.com/api/proxy-list?limit=150&page=1&sort_by=lastChecked&sort_type=desc&protocols=http",
-                          "https://api.proxyscrape.com/v2/?request=get&protocol=http&timeout=5000&country=all&format=textplain&limit=150",
-                          "https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list-raw.txt",
-                          "https://www.proxy-list.download/api/v1/get?type=http"
-                      ]
+                      return primary_sources + backup_sources
 
               def setup_optimized_proxies(self):
-                  """Fast proxy setup with aggressive filtering"""
+                  """Enhanced proxy setup with comprehensive diagnostics"""
                   if not USE_PROXIES:
                       return []
                   
-                  print("⚡ Fast proxy setup...")
+                  print("=" * 60)
+                  print("PROXY SETUP DIAGNOSTICS")
+                  print("=" * 60)
                   
+                  # Test basic connectivity first
+                  print("Step 1: Testing basic internet connectivity...")
+                  try:
+                      test_response = requests.get("https://httpbin.org/ip", timeout=10)
+                      if test_response.status_code == 200:
+                          our_ip = test_response.json().get('origin', 'unknown')
+                          print(f"✅ Direct connection working - Our IP: {our_ip}")
+                      else:
+                          print(f"⚠️ Direct connection issue - Status: {test_response.status_code}")
+                  except Exception as e:
+                      print(f"❌ Direct connection failed: {e}")
+                      print("This suggests network connectivity issues in the GitHub Actions environment")
+                  
+                  print("\nStep 2: Fetching proxy sources...")
                   all_proxies = []
                   sources = self.get_fast_proxy_sources()
+                  successful_sources = 0
                   
-                  # Quick parallel fetch
-                  with ThreadPoolExecutor(max_workers=len(sources)) as executor:
-                      future_to_source = {executor.submit(self.fetch_proxy_source, source): source for source in sources}
-                      
-                      for future in as_completed(future_to_source, timeout=30):
-                          try:
-                              proxies = future.result(timeout=15)
+                  for i, source in enumerate(sources):
+                      print(f"\nSource {i+1}/{len(sources)}: {source}")
+                      try:
+                          start_time = time.time()
+                          response = requests.get(source, timeout=25, headers={
+                              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                              'Accept': 'text/plain, application/json, */*',
+                              'Accept-Language': 'en-US,en;q=0.9'
+                          })
+                          fetch_time = time.time() - start_time
+                          
+                          print(f"  Response: {response.status_code} in {fetch_time:.1f}s")
+                          print(f"  Content-Type: {response.headers.get('content-type', 'unknown')}")
+                          print(f"  Content-Length: {len(response.text)} bytes")
+                          
+                          if response.status_code == 200 and response.text.strip():
+                              # Show first few lines for debugging
+                              preview_lines = response.text.strip().split('\n')[:3]
+                              print(f"  Preview: {preview_lines}")
+                              
+                              proxies = self.parse_proxy_response(response.text)
                               if proxies:
-                                  all_proxies.extend(proxies[:50])  # Limit per source
-                          except Exception as e:
-                              continue
+                                  all_proxies.extend(proxies[:150])
+                                  successful_sources += 1
+                                  print(f"  ✅ Parsed {len(proxies)} proxies (using first 150)")
+                              else:
+                                  print(f"  ❌ No valid proxies found in response")
+                                  # Show raw content sample for debugging
+                                  sample = response.text[:200]
+                                  print(f"  Raw sample: {repr(sample)}")
+                          else:
+                              print(f"  ❌ Failed - Status: {response.status_code}")
+                              if response.status_code != 200:
+                                  print(f"  Error content: {response.text[:200]}")
+                      except requests.exceptions.Timeout:
+                          print(f"  ❌ Timeout after 25 seconds")
+                      except requests.exceptions.ConnectionError as e:
+                          print(f"  ❌ Connection error: {e}")
+                      except Exception as e:
+                          print(f"  ❌ Unexpected error: {e}")
+                  
+                  print(f"\nStep 3: Proxy collection summary")
+                  print(f"  Total collected: {len(all_proxies)} proxies")
+                  print(f"  Successful sources: {successful_sources}/{len(sources)}")
                   
                   if not all_proxies:
-                      print("❌ No proxies found")
+                      print("\n❌ CRITICAL: No proxies collected from any source")
+                      print("Possible causes:")
+                      print("  - All proxy sources are down/blocked")
+                      print("  - GitHub Actions environment blocks proxy sites")
+                      print("  - Network connectivity issues")
+                      print("  - Proxy format parsing issues")
                       return []
                   
-                  # Aggressive deduplication and filtering
-                  unique_proxies = list(set(all_proxies))
-                  filtered_proxies = self.aggressive_filter(unique_proxies)
+                  # Show some examples
+                  print(f"  Example proxies: {all_proxies[:5]}")
                   
-                  # Fast parallel testing
-                  test_count = min(MAX_PROXIES, len(filtered_proxies))
-                  print(f"🧪 Testing {test_count} proxies (target: {TARGET_WORKING_PROXIES})")
+                  print("\nStep 4: Deduplication and filtering...")
+                  unique_proxies = list(dict.fromkeys(all_proxies))
+                  print(f"  Unique proxies: {len(unique_proxies)}")
                   
-                  working = self.fast_test_proxies(filtered_proxies[:test_count])
+                  filtered_proxies = self.enhanced_filter(unique_proxies)
+                  print(f"  After filtering: {len(filtered_proxies)}")
                   
+                  if not filtered_proxies:
+                      print("❌ CRITICAL: No proxies passed filtering")
+                      print("All proxies were rejected due to:")
+                      print("  - Invalid IP format")
+                      print("  - Private/reserved IP ranges")
+                      print("  - Invalid port numbers")
+                      return []
+                  
+                  # Show filtering results by port
+                  port_stats = {}
+                  for proxy in filtered_proxies[:20]:  # Sample first 20
+                      port = proxy.split(':')[1]
+                      port_stats[port] = port_stats.get(port, 0) + 1
+                  print(f"  Port distribution (sample): {dict(list(port_stats.items())[:10])}")
+                  
+                  print("\nStep 5: Proxy testing phase...")
+                  test_count = min(MAX_PROXIES * 2, len(filtered_proxies))
+                  print(f"  Testing {test_count} proxies (target: {TARGET_WORKING_PROXIES})")
+                  
+                  working = self.diagnostic_test_proxies(filtered_proxies[:test_count])
+                  
+                  # Try Tor if enabled
                   if SETUP_TOR and self.setup_tor_fast():
                       working.append("tor://127.0.0.1:9050")
+                      print("  ✅ Added Tor proxy")
+                  
+                  print(f"\nStep 6: Final results")
+                  print(f"  Working proxies found: {len(working)}")
+                  if len(working) > 0:
+                      print(f"  Working proxies: {working}")
+                  else:
+                      print("\n❌ CRITICAL: NO WORKING PROXIES FOUND")
+                      print("\nDiagnostic suggestions:")
+                      print("  1. Try running with setup_tor: true")
+                      print("  2. Increase timeout_seconds to 10+") 
+                      print("  3. Try disabling quick_mode")
+                      print("  4. Check if GitHub Actions blocks proxy connections")
+                      print("  5. Consider using different proxy sources")
+                  
+                  print("=" * 60)
                   
                   self.working_proxies = working
-                  print(f"✅ Proxy setup: {len(working)} working proxies ready")
+                  return working
+
+              def diagnostic_test_proxies(self, proxy_list):
+                  """Enhanced proxy testing with detailed diagnostics"""
+                  working = []
+                  tested = 0
+                  detailed_failures = {
+                      'timeout': 0,
+                      'connection_error': 0,
+                      'proxy_error': 0,
+                      'invalid_response': 0,
+                      'http_error': 0,
+                      'other': 0
+                  }
                   
+                  print(f"  Starting parallel testing of {len(proxy_list)} proxies...")
+                  
+                  with ThreadPoolExecutor(max_workers=20) as executor:  # Reduced workers for stability
+                      future_to_proxy = {
+                          executor.submit(self.diagnostic_test_single_proxy, proxy): proxy 
+                          for proxy in proxy_list
+                      }
+                      
+                      for future in as_completed(future_to_proxy, timeout=120):  # 2 minute total timeout
+                          tested += 1
+                          
+                          try:
+                              proxy = future_to_proxy[future]
+                              result = future.result(timeout=12)  # 12 second per-proxy timeout
+                              
+                              if result['success']:
+                                  working.append(f"http://{proxy}")
+                                  print(f"    ✅ [{len(working)}] {proxy} - {result['method']}")
+                              else:
+                                  failure_type = result['error_type']
+                                  detailed_failures[failure_type] += 1
+                                  
+                                  # Show first few failures for debugging
+                                  if sum(detailed_failures.values()) <= 10:
+                                      print(f"    ❌ {proxy} - {result['error']}")
+                              
+                              # Progress updates
+                              if tested % 25 == 0:
+                                  print(f"    Progress: {tested}/{len(proxy_list)} tested, {len(working)} working")
+                                  print(f"    Failure breakdown: {dict(detailed_failures)}")
+                              
+                              # Early termination
+                              if len(working) >= TARGET_WORKING_PROXIES:
+                                  print(f"    Target reached! Cancelling remaining tests.")
+                                  for remaining_future in future_to_proxy:
+                                      if not remaining_future.done():
+                                          remaining_future.cancel()
+                                  break
+                                  
+                          except Exception as e:
+                              detailed_failures['other'] += 1
+                              continue
+                  
+                  print(f"\n  Testing completed:")
+                  print(f"    Total tested: {tested}")
+                  print(f"    Working found: {len(working)}")
+                  print(f"    Success rate: {len(working)/tested*100:.1f}%")
+                  print(f"    Failure breakdown:")
+                  for error_type, count in detailed_failures.items():
+                      if count > 0:
+                          percentage = count/tested*100 if tested > 0 else 0
+                          print(f"      {error_type}: {count} ({percentage:.1f}%)")
+                  
+                  if len(working) == 0:
+                      print(f"\n  ⚠️ PROXY TESTING ANALYSIS:")
+                      if detailed_failures['timeout'] > tested * 0.5:
+                          print(f"    - High timeout rate suggests slow/dead proxy sources")
+                      if detailed_failures['connection_error'] > tested * 0.3:
+                          print(f"    - High connection errors suggest network restrictions")
+                      if detailed_failures['proxy_error'] > tested * 0.3:
+                          print(f"    - High proxy errors suggest GitHub Actions blocks proxy usage")
+                      if detailed_failures['invalid_response'] > tested * 0.2:
+                          print(f"    - Invalid responses suggest proxy sources have wrong format")
+                  
+                  return working
+
+              def diagnostic_test_single_proxy(self, proxy_address):
+                  """Single proxy test with detailed error reporting"""
+                  result = {
+                      'success': False,
+                      'error': '',
+                      'error_type': 'other',
+                      'method': '',
+                      'response_time': 0
+                  }
+                  
+                  try:
+                      proxy_url = f"http://{proxy_address}"
+                      proxies = {'http': proxy_url, 'https': proxy_url}
+                      
+                      test_endpoints = [
+                          ("httpbin.org/ip", "http://httpbin.org/ip"),
+                          ("ipify.org", "https://api.ipify.org?format=json"),
+                          ("ip-api.com", "http://ip-api.com/json/?fields=query")
+                      ]
+                      
+                      for method_name, test_url in test_endpoints:
+                          try:
+                              start_time = time.time()
+                              response = requests.get(
+                                  test_url,
+                                  proxies=proxies,
+                                  timeout=8,
+                                  headers={
+                                      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                                      'Accept': 'application/json, text/plain, */*'
+                                  }
+                              )
+                              result['response_time'] = time.time() - start_time
+                              
+                              if response.status_code == 200:
+                                  content = response.text.strip()
+                                  
+                                  # Validate response content
+                                  if len(content) > 10 and len(content) < 2000:  # Reasonable size
+                                      content_lower = content.lower()
+                                      if any(indicator in content_lower for indicator in ['origin', 'ip', 'query', 'address']):
+                                          result['success'] = True
+                                          result['method'] = method_name
+                                          return result
+                                  
+                                  result['error'] = f"Invalid response format from {method_name}"
+                                  result['error_type'] = 'invalid_response'
+                              else:
+                                  result['error'] = f"HTTP {response.status_code} from {method_name}"
+                                  result['error_type'] = 'http_error'
+                                  
+                          except requests.exceptions.ConnectTimeout:
+                              result['error'] = f"Connect timeout to {method_name}"
+                              result['error_type'] = 'timeout'
+                              continue  # Try next endpoint
+                          except requests.exceptions.ReadTimeout:
+                              result['error'] = f"Read timeout from {method_name}"
+                              result['error_type'] = 'timeout'
+                              continue
+                          except requests.exceptions.ProxyError as e:
+                              result['error'] = f"Proxy error: {str(e)[:50]}"
+                              result['error_type'] = 'proxy_error'
+                              break  # Don't try other endpoints if proxy is bad
+                          except requests.exceptions.ConnectionError as e:
+                              result['error'] = f"Connection error: {str(e)[:50]}"
+                              result['error_type'] = 'connection_error'
+                              continue
+                          except Exception as e:
+                              result['error'] = f"Unexpected error with {method_name}: {str(e)[:50]}"
+                              result['error_type'] = 'other'
+                              continue
+                              
+                  except Exception as e:
+                      result['error'] = f"General error: {str(e)[:50]}"
+                      result['error_type'] = 'other'
+                  
+                  return result
+
+              def enhanced_filter(self, proxies):
+                  """Enhanced filtering with better logic"""
+                  filtered = []
+                  priority_ports = [80, 8080, 3128, 8000, 8888, 1080]
+                  good_ports = [8081, 9090, 8118, 3129, 8123, 8090]
+                  
+                  for proxy in proxies:
+                      try:
+                          if ':' not in proxy:
+                              continue
+                              
+                          ip, port = proxy.split(':', 1)
+                          port_num = int(port)
+                          
+                          # Validate IP format
+                          ip_parts = ip.split('.')
+                          if len(ip_parts) != 4:
+                              continue
+                              
+                          ip_nums = [int(x) for x in ip_parts]
+                          
+                          # Skip invalid IP ranges
+                          if not all(0 <= x <= 255 for x in ip_nums):
+                              continue
+                              
+                          # Skip private/reserved IPs
+                          if (ip_nums[0] == 10 or 
+                              (ip_nums[0] == 172 and 16 <= ip_nums[1] <= 31) or
+                              (ip_nums[0] == 192 and ip_nums[1] == 168) or
+                              ip_nums[0] == 127 or ip_nums[0] >= 224 or ip_nums[0] == 0):
+                              continue
+                          
+                          # Port validation
+                          if not (1 <= port_num <= 65535):
+                              continue
+                          
+                          # Prioritize by port quality
+                          if port_num in priority_ports:
+                              filtered.insert(0, proxy)  # Highest priority
+                          elif port_num in good_ports:
+                              filtered.insert(len([p for p in filtered if int(p.split(':')[1]) in priority_ports]), proxy)  # Medium priority
+                          elif 1024 <= port_num <= 65535:
+                              filtered.append(proxy)  # Lower priority
+                              
+                      except (ValueError, IndexError, AttributeError):
+                          continue
+                  
+                  return filtered
+
+              def enhanced_test_proxies(self, proxy_list):
+                  """Enhanced proxy testing with better success detection"""
+                  working = []
+                  tested = 0
+                  
+                  # Use more workers but with timeout control
+                  with ThreadPoolExecutor(max_workers=25) as executor:
+                      # Submit all tasks
+                      future_to_proxy = {
+                          executor.submit(self.test_proxy_fast, proxy): proxy 
+                          for proxy in proxy_list
+                      }
+                      
+                      # Process results as they complete
+                      for future in as_completed(future_to_proxy, timeout=90):  # 90 second total timeout
+                          tested += 1
+                          
+                          try:
+                              proxy = future_to_proxy[future]
+                              if future.result(timeout=10):  # 10 second per-proxy timeout
+                                  working.append(f"http://{proxy}")
+                                  
+                              # Show progress
+                              if tested % 10 == 0:
+                                  print(f"    📊 Progress: {tested} tested, {len(working)} working")
+                              
+                              # Early termination when target reached
+                              if len(working) >= TARGET_WORKING_PROXIES:
+                                  print(f"    🎯 Target reached! Stopping tests.")
+                                  # Cancel remaining futures
+                                  for remaining_future in future_to_proxy:
+                                      if not remaining_future.done():
+                                          remaining_future.cancel()
+                                  break
+                                  
+                          except Exception as e:
+                              # Don't let individual proxy test failures stop the process
+                              continue
+                  
+                  print(f"📈 Testing complete: {len(working)} working from {tested} tested")
                   return working
 
               def fetch_proxy_source(self, source):
@@ -309,21 +653,47 @@ jobs:
                   return working
 
               def test_proxy_fast(self, proxy_address):
-                  """Fast proxy test"""
+                  """Enhanced fast proxy test with multiple validation methods"""
                   try:
                       proxy_url = f"http://{proxy_address}"
                       proxies = {'http': proxy_url, 'https': proxy_url}
                       
-                      response = requests.get(
+                      # Try multiple test endpoints
+                      test_urls = [
                           "http://httpbin.org/ip",
-                          proxies=proxies,
-                          timeout=5,
-                          headers={'User-Agent': 'Mozilla/5.0'}
-                      )
+                          "https://api.ipify.org?format=json",
+                          "http://ip-api.com/json/?fields=query"
+                      ]
                       
-                      return response.status_code == 200 and 'origin' in response.text
-                  except:
-                      return False
+                      for test_url in test_urls:
+                          try:
+                              response = requests.get(
+                                  test_url,
+                                  proxies=proxies,
+                                  timeout=7,  # Slightly longer timeout
+                                  headers={
+                                      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                                      'Accept': 'application/json, text/plain, */*'
+                                  }
+                              )
+                              
+                              if response.status_code == 200:
+                                  content = response.text.lower()
+                                  # Validate it's actually returning IP information
+                                  if any(indicator in content for indicator in ['origin', 'ip', 'query', 'address']) and len(content) < 1000:
+                                      print(f"    ✓ {proxy_address} - {test_url.split('//')[-1].split('/')[0]}")
+                                      return True
+                          except requests.exceptions.ConnectTimeout:
+                              continue  # Try next endpoint
+                          except requests.exceptions.ProxyError:
+                              break  # This proxy is definitely bad
+                          except Exception:
+                              continue  # Try next endpoint
+                              
+                  except Exception:
+                      pass
+                  
+                  return False
 
               def setup_tor_fast(self):
                   """Fast Tor setup"""

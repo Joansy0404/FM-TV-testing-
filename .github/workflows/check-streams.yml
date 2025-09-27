@@ -1,4 +1,4 @@
-name: Check M3U Streams with Free Proxies
+name: Check M3U Streams with Enhanced Proxies
 
 on:
   workflow_dispatch:
@@ -31,12 +31,17 @@ on:
       timeout_seconds:
         description: 'Timeout per stream (seconds)'
         required: false
-        default: '5'
+        default: '8'
         type: string
       max_proxies:
         description: 'Maximum proxies to test'
         required: false
-        default: '30'
+        default: '200'
+        type: string
+      target_working_proxies:
+        description: 'Target number of working proxies'
+        required: false
+        default: '100'
         type: string
   schedule:
     - cron: '0 */12 * * *'  # Every 12 hours
@@ -47,7 +52,7 @@ permissions:
 jobs:
   check-streams:
     runs-on: ubuntu-latest
-    timeout-minutes: 360  # 6 hour limit
+    timeout-minutes: 420  # 7 hour limit
 
     steps:
       - name: Checkout repository
@@ -63,7 +68,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install requests aiohttp beautifulsoup4 lxml asyncio
+          pip install requests aiohttp beautifulsoup4 lxml asyncio pysocks
 
       - name: Setup Tor (optional)
         if: ${{ github.event.inputs.setup_tor == 'true' }}
@@ -75,15 +80,16 @@ jobs:
           echo "Testing Tor connection..."
           curl --socks5 127.0.0.1:9050 --max-time 10 https://check.torproject.org/api/ip || echo "Tor setup may have issues"
 
-      - name: Enhanced Stream Check
+      - name: Enhanced Stream Check with Better Proxies
         env:
           CHECK_VODS: ${{ github.event.inputs.check_vods || 'false' }}
           CHECK_PPV: ${{ github.event.inputs.check_ppv || 'false' }}
           CHECK_FAST: ${{ github.event.inputs.check_fast || 'false' }}
           USE_PROXIES: ${{ github.event.inputs.use_proxies || 'true' }}
           SETUP_TOR: ${{ github.event.inputs.setup_tor || 'false' }}
-          TIMEOUT_SECONDS: ${{ github.event.inputs.timeout_seconds || '5' }}
-          MAX_PROXIES: ${{ github.event.inputs.max_proxies || '30' }}
+          TIMEOUT_SECONDS: ${{ github.event.inputs.timeout_seconds || '8' }}
+          MAX_PROXIES: ${{ github.event.inputs.max_proxies || '200' }}
+          TARGET_WORKING_PROXIES: ${{ github.event.inputs.target_working_proxies || '100' }}
         run: |
           python - << 'EOF'
           import requests
@@ -96,6 +102,7 @@ jobs:
           import json
           import re
           from datetime import datetime, timezone
+          from concurrent.futures import ThreadPoolExecutor
 
           # Configuration
           CHECK_VODS = os.getenv('CHECK_VODS', 'false').lower() == 'true'
@@ -103,14 +110,15 @@ jobs:
           CHECK_FAST = os.getenv('CHECK_FAST', 'false').lower() == 'true'
           USE_PROXIES = os.getenv('USE_PROXIES', 'true').lower() == 'true'
           SETUP_TOR = os.getenv('SETUP_TOR', 'false').lower() == 'true'
-          TIMEOUT_SECONDS = int(os.getenv('TIMEOUT_SECONDS', '5'))
-          MAX_PROXIES = int(os.getenv('MAX_PROXIES', '30'))
+          TIMEOUT_SECONDS = int(os.getenv('TIMEOUT_SECONDS', '8'))
+          MAX_PROXIES = int(os.getenv('MAX_PROXIES', '200'))
+          TARGET_WORKING_PROXIES = int(os.getenv('TARGET_WORKING_PROXIES', '100'))
 
           print(f"Configuration: VODs={CHECK_VODS}, PPV={CHECK_PPV}, FAST={CHECK_FAST}")
           print(f"Proxy settings: USE_PROXIES={USE_PROXIES}, SETUP_TOR={SETUP_TOR}")
-          print(f"Timeout: {TIMEOUT_SECONDS}s, Max proxies to test: {MAX_PROXIES}")
+          print(f"Timeout: {TIMEOUT_SECONDS}s, Max proxies to test: {MAX_PROXIES}, Target working: {TARGET_WORKING_PROXIES}")
 
-          class ProxyStreamChecker:
+          class EnhancedProxyStreamChecker:
               def __init__(self):
                   self.working_proxies = []
                   self.geo_working = []
@@ -118,61 +126,170 @@ jobs:
                   self.regular_working = []
                   self.regular_failed = []
                   self.skipped = []
+                  self.proxy_stats = {
+                      'sources_tried': 0,
+                      'total_found': 0,
+                      'tested': 0,
+                      'working': 0
+                  }
+
+              def get_enhanced_proxy_sources(self):
+                  """Enhanced proxy source list with more reliable sources"""
+                  return [
+                      # High-quality proxy APIs
+                      "https://api.proxyscrape.com/v2/?request=get&protocol=http&timeout=3000&country=all&format=textplain&limit=500",
+                      "https://api.proxyscrape.com/v2/?request=get&protocol=socks4&timeout=3000&country=all&format=textplain&limit=200",
+                      "https://api.proxyscrape.com/v2/?request=get&protocol=socks5&timeout=3000&country=all&format=textplain&limit=200",
+                      
+                      # GitHub proxy lists (more reliable)
+                      "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt",
+                      "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/socks4.txt",
+                      "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/socks5.txt",
+                      "https://raw.githubusercontent.com/mmpx12/proxy-list/master/http.txt",
+                      "https://raw.githubusercontent.com/mmpx12/proxy-list/master/https.txt",
+                      "https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list-raw.txt",
+                      "https://raw.githubusercontent.com/sunny9577/proxy-scraper/master/proxies.txt",
+                      "https://raw.githubusercontent.com/ShiftyTR/Proxy-List/master/http.txt",
+                      "https://raw.githubusercontent.com/ShiftyTR/Proxy-List/master/https.txt",
+                      
+                      # Additional sources
+                      "https://raw.githubusercontent.com/roosterkid/openproxylist/main/HTTPS_RAW.txt",
+                      "https://raw.githubusercontent.com/roosterkid/openproxylist/main/SOCKS4_RAW.txt",
+                      "https://raw.githubusercontent.com/roosterkid/openproxylist/main/SOCKS5_RAW.txt",
+                      "https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/http.txt",
+                      "https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/socks4.txt",
+                      "https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/socks5.txt",
+                      
+                      # Free proxy services
+                      "https://www.proxy-list.download/api/v1/get?type=http",
+                      "https://www.proxy-list.download/api/v1/get?type=https",
+                      "https://www.proxy-list.download/api/v1/get?type=socks4",
+                      "https://www.proxy-list.download/api/v1/get?type=socks5",
+                  ]
 
               def get_free_proxies(self):
-                  """Fetch and test free proxies"""
-                  print("Fetching free proxy lists...")
+                  """Enhanced proxy fetching with better testing"""
+                  print("Fetching enhanced proxy lists...")
                   
-                  proxy_sources = [
-                      "https://api.proxyscrape.com/v2/?request=get&protocol=http&timeout=5000&country=all&format=textplain&limit=200",
-                      "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt",
-                      "https://raw.githubusercontent.com/mmpx12/proxy-list/master/http.txt",
-                      "https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list-raw.txt"
-                  ]
-                  
+                  proxy_sources = self.get_enhanced_proxy_sources()
                   all_proxies = []
-                  for source in proxy_sources:
+                  
+                  # Fetch from multiple sources
+                  for i, source in enumerate(proxy_sources):
+                      self.proxy_stats['sources_tried'] += 1
                       try:
-                          print(f"Fetching from: {source}")
-                          response = requests.get(source, timeout=15)
+                          print(f"Fetching from source {i+1}/{len(proxy_sources)}: {source.split('/')[-1]}")
+                          response = requests.get(source, timeout=20, headers={
+                              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                          })
+                          
                           if response.status_code == 200:
-                              proxies = [line.strip() for line in response.text.split('\n') 
-                                        if ':' in line and len(line.strip()) > 7]
-                              all_proxies.extend(proxies)
-                              print(f"  Got {len(proxies)} proxies")
+                              # Parse different formats
+                              text = response.text.strip()
+                              if text:
+                                  proxies = self.parse_proxy_response(text)
+                                  all_proxies.extend(proxies)
+                                  print(f"  Got {len(proxies)} proxies")
+                                  
                       except Exception as e:
-                          print(f"  Failed: {e}")
+                          print(f"  Failed: {str(e)[:50]}")
                   
                   if not all_proxies:
-                      print("No proxies found from sources")
+                      print("No proxies found from any source")
                       return []
                   
                   # Remove duplicates and clean
                   unique_proxies = list(set(all_proxies))
                   random.shuffle(unique_proxies)
-                  print(f"Testing {min(MAX_PROXIES, len(unique_proxies))} unique proxies...")
+                  self.proxy_stats['total_found'] = len(unique_proxies)
                   
-                  # Test proxies quickly
-                  working = []
-                  for i, proxy in enumerate(unique_proxies[:MAX_PROXIES]):
-                      if len(working) >= 15:  # Limit working proxies
-                          break
-                      
-                      if self.test_proxy(proxy):
-                          proxy_url = f"http://{proxy}" if not proxy.startswith('http') else proxy
-                          working.append(proxy_url)
-                          print(f"  Working [{len(working)}]: {proxy}")
-                      
-                      if (i + 1) % 10 == 0:
-                          print(f"  Tested {i + 1}, found {len(working)} working")
+                  print(f"Found {len(unique_proxies)} unique proxies total")
+                  print(f"Testing up to {MAX_PROXIES} proxies to find {TARGET_WORKING_PROXIES} working...")
+                  
+                  # Test proxies with threading for speed
+                  working = self.test_proxies_threaded(unique_proxies[:MAX_PROXIES])
                   
                   self.working_proxies = working
-                  print(f"Found {len(working)} working proxies total")
+                  self.proxy_stats['working'] = len(working)
+                  
+                  print(f"Proxy testing complete: {len(working)} working proxies found")
                   return working
 
-              def test_proxy(self, proxy_address, timeout=4):
-                  """Quick test of proxy"""
+              def parse_proxy_response(self, text):
+                  """Parse different proxy response formats"""
+                  proxies = []
+                  lines = text.split('\n')
+                  
+                  for line in lines:
+                      line = line.strip()
+                      
+                      # Skip empty lines and comments
+                      if not line or line.startswith('#') or line.startswith('//'):
+                          continue
+                      
+                      # Handle JSON format
+                      if line.startswith('{') and 'ip' in line:
+                          try:
+                              proxy_json = json.loads(line)
+                              if 'ip' in proxy_json and 'port' in proxy_json:
+                                  proxies.append(f"{proxy_json['ip']}:{proxy_json['port']}")
+                          except:
+                              pass
+                      
+                      # Handle IP:PORT format
+                      elif ':' in line and len(line.strip()) > 7:
+                          # Extract IP:PORT using regex
+                          match = re.search(r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):(\d+)', line)
+                          if match:
+                              ip, port = match.groups()
+                              # Basic validation
+                              if all(0 <= int(part) <= 255 for part in ip.split('.')) and 1 <= int(port) <= 65535:
+                                  proxies.append(f"{ip}:{port}")
+                  
+                  return proxies
+
+              def test_proxies_threaded(self, proxy_list):
+                  """Test proxies using threading for better performance"""
+                  working = []
+                  tested = 0
+                  
+                  with ThreadPoolExecutor(max_workers=50) as executor:
+                      # Submit all proxy tests
+                      future_to_proxy = {
+                          executor.submit(self.test_proxy_enhanced, proxy): proxy 
+                          for proxy in proxy_list
+                      }
+                      
+                      for future in future_to_proxy:
+                          tested += 1
+                          self.proxy_stats['tested'] = tested
+                          
+                          try:
+                              proxy = future_to_proxy[future]
+                              result = future.result(timeout=10)  # 10 second timeout per test
+                              
+                              if result:
+                                  working.append(result)
+                                  print(f"  Working [{len(working)}]: {proxy}")
+                              
+                              # Stop if we have enough working proxies
+                              if len(working) >= TARGET_WORKING_PROXIES:
+                                  print(f"  Reached target of {TARGET_WORKING_PROXIES} working proxies")
+                                  break
+                              
+                              # Progress update
+                              if tested % 25 == 0:
+                                  print(f"  Tested {tested}, found {len(working)} working")
+                                  
+                          except Exception as e:
+                              pass  # Timeout or other error, skip this proxy
+                  
+                  return working
+
+              def test_proxy_enhanced(self, proxy_address, timeout=6):
+                  """Enhanced proxy testing with multiple validation methods"""
                   try:
+                      # Clean up proxy address
                       if not proxy_address.startswith('http'):
                           proxy_url = f"http://{proxy_address}"
                       else:
@@ -180,22 +297,45 @@ jobs:
                       
                       proxies = {'http': proxy_url, 'https': proxy_url}
                       
-                      response = requests.get(
-                          "http://httpbin.org/ip",
-                          proxies=proxies,
-                          timeout=timeout,
-                          headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
-                      )
+                      headers = {
+                          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                          'Accept': 'application/json, text/plain, */*',
+                          'Accept-Language': 'en-US,en;q=0.9'
+                      }
                       
-                      if response.status_code == 200:
+                      # Test with multiple endpoints for reliability
+                      test_urls = [
+                          "http://httpbin.org/ip",
+                          "https://api.ipify.org?format=json",
+                          "http://ip-api.com/json/"
+                      ]
+                      
+                      for test_url in test_urls:
                           try:
-                              data = response.json()
-                              return 'origin' in data  # Verify it's a real response
+                              response = requests.get(
+                                  test_url,
+                                  proxies=proxies,
+                                  timeout=timeout,
+                                  headers=headers
+                              )
+                              
+                              if response.status_code == 200:
+                                  # Try to parse JSON to verify it's a real response
+                                  try:
+                                      data = response.json()
+                                      if any(key in data for key in ['origin', 'ip', 'query']):
+                                          return proxy_url  # Working proxy
+                                  except:
+                                      # Even if not JSON, if we got 200, proxy might work
+                                      if len(response.text) > 5:
+                                          return proxy_url
                           except:
-                              return True  # Response came back, assume working
-                  except:
+                              continue  # Try next test URL
+                      
+                  except Exception:
                       pass
-                  return False
+                  
+                  return None  # Proxy failed all tests
 
               def setup_tor(self):
                   """Setup Tor if requested"""
@@ -203,16 +343,17 @@ jobs:
                       return False
                   
                   try:
-                      # Test Tor connection via curl (simpler than python socks)
+                      # Test Tor connection
                       result = subprocess.run([
                           'curl', '--socks5', '127.0.0.1:9050', 
-                          '--max-time', '10', '--silent',
+                          '--max-time', '15', '--silent',
                           'https://httpbin.org/ip'
-                      ], capture_output=True, text=True, timeout=15)
+                      ], capture_output=True, text=True, timeout=20)
                       
                       if result.returncode == 0:
                           try:
-                              tor_ip = json.loads(result.stdout)['origin']
+                              tor_response = json.loads(result.stdout)
+                              tor_ip = tor_response.get('origin', 'Unknown')
                               print(f"Tor working, IP: {tor_ip}")
                               self.working_proxies.append("tor://127.0.0.1:9050")
                               return True
@@ -337,7 +478,7 @@ jobs:
                       return {'stream': stream, 'status': 'error', 'error': str(e)[:50], 'method': 'direct'}
 
               async def check_stream_via_proxy(self, stream, proxy_url):
-                  """Check stream via proxy using requests (not async)"""
+                  """Check stream via proxy"""
                   try:
                       if proxy_url.startswith('tor://'):
                           # Use curl for Tor SOCKS proxy
@@ -347,7 +488,7 @@ jobs:
                               '--silent', '--output', '/dev/null',
                               '--write-out', '%{http_code}',
                               stream['url']
-                          ], capture_output=True, text=True, timeout=TIMEOUT_SECONDS + 2)
+                          ], capture_output=True, text=True, timeout=TIMEOUT_SECONDS + 5)
                           
                           if result.returncode == 0:
                               status_code = int(result.stdout.strip()) if result.stdout.strip().isdigit() else 0
@@ -384,7 +525,7 @@ jobs:
                           'stream': stream, 
                           'status': 'error', 
                           'error': str(e)[:50], 
-                          'method': proxy_url.split('://')[0]
+                          'method': proxy_url.split('://')[0] if '://' in proxy_url else 'proxy'
                       }
 
               async def process_streams(self, streams):
@@ -420,7 +561,7 @@ jobs:
                   
                   # Check geo-blocked streams with proxies
                   if geo_streams and USE_PROXIES and self.working_proxies:
-                      print(f"\nChecking {len(geo_streams)} geo-blocked streams with proxies...")
+                      print(f"\nChecking {len(geo_streams)} geo-blocked streams with {len(self.working_proxies)} proxies...")
                       await self.check_geo_streams(geo_streams)
                   elif geo_streams:
                       print(f"\nSkipping {len(geo_streams)} geo-blocked streams (no proxies)")
@@ -433,11 +574,11 @@ jobs:
 
               async def check_regular_streams(self, streams):
                   """Check regular streams quickly with async"""
-                  connector = aiohttp.TCPConnector(limit=30)
+                  connector = aiohttp.TCPConnector(limit=50)
                   
                   async with aiohttp.ClientSession(connector=connector) as session:
                       # Process in batches
-                      batch_size = 20
+                      batch_size = 30
                       for i in range(0, len(streams), batch_size):
                           batch = streams[i:i + batch_size]
                           
@@ -456,25 +597,32 @@ jobs:
                               await asyncio.sleep(1)
 
               async def check_geo_streams(self, streams):
-                  """Check geo-streams using proxies"""
+                  """Check geo-streams using proxies with better distribution"""
                   if not self.working_proxies:
                       return
                   
-                  for i, stream in enumerate(streams[:50]):  # Limit geo checks
-                      print(f"  Geo-check {i+1}/{min(len(streams), 50)}: {stream['name'][:30]}...")
+                  # Limit geo checks to prevent timeout
+                  max_geo_checks = min(100, len(streams))
+                  streams_to_check = streams[:max_geo_checks]
+                  
+                  for i, stream in enumerate(streams_to_check):
+                      print(f"  Geo-check {i+1}/{len(streams_to_check)}: {stream['name'][:40]}...")
                       
                       success = False
-                      for proxy in self.working_proxies[:3]:  # Try first 3 proxies
+                      # Try up to 5 different proxies for each stream
+                      proxies_to_try = random.sample(self.working_proxies, min(5, len(self.working_proxies)))
+                      
+                      for proxy in proxies_to_try:
                           try:
                               result = await self.check_stream_via_proxy(stream, proxy)
                               
                               if result['status'] == 'working':
                                   self.geo_working.append(result)
-                                  print(f"    Working via {result['method']}")
+                                  print(f"    Working via {result['method']} (HTTP {result.get('code', 'N/A')})")
                                   success = True
                                   break
                               
-                              await asyncio.sleep(0.5)  # Brief delay between proxy attempts
+                              await asyncio.sleep(0.3)  # Brief delay between proxy attempts
                           except:
                               continue
                       
@@ -485,57 +633,146 @@ jobs:
                               'reason': 'All proxies failed'
                           })
                       
-                      await asyncio.sleep(1)  # Delay between streams
+                      await asyncio.sleep(0.8)  # Delay between streams to avoid overloading
 
-              def generate_report(self):
-                  """Generate final report"""
+              def generate_unified_report(self):
+                  """Generate unified report in existing report.md format"""
                   total_regular = len(self.regular_working) + len(self.regular_failed)
                   total_geo = len(self.geo_working) + len(self.geo_failed)
                   total_checked = total_regular + total_geo
                   total_working = len(self.regular_working) + len(self.geo_working)
                   
-                  report = "# Enhanced Stream Check Report\n\n"
-                  report += f"**Generated:** {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')} UTC\n"
-                  report += f"**Configuration:** VODs={CHECK_VODS}, PPV={CHECK_PPV}, FAST={CHECK_FAST}, Proxies={USE_PROXIES}\n\n"
+                  report = "# M3U Stream Status Report (Enhanced with Proxies)\n\n"
+                  report += f"**Generated on:** {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')} UTC\n"
+                  report += f"**Configuration:** VODs: {'Enabled' if CHECK_VODS else 'Disabled'}, "
+                  report += f"PPV: {'Enabled' if CHECK_PPV else 'Disabled'}, "
+                  report += f"FAST: {'Enabled' if CHECK_FAST else 'Disabled'}\n"
+                  if USE_PROXIES:
+                      report += f"**Proxy Performance:** {len(self.working_proxies)} working proxies found\n"
+                  report += f"**Timeout:** {TIMEOUT_SECONDS} seconds per stream\n\n"
                   
                   report += "## Summary\n\n"
                   report += f"| Metric | Count | Percentage |\n"
                   report += f"|--------|-------|------------|\n"
-                  report += f"| **Total Checked** | {total_checked} | 100.0% |\n"
-                  report += f"| **Working Streams** | {total_working} | {(total_working/total_checked*100):.1f}% |\n"
-                  report += f"| **Regular Streams** | {total_regular} | {(total_regular/total_checked*100) if total_checked > 0 else 0:.1f}% |\n"
-                  report += f"| **Geo-blocked Streams** | {total_geo} | {(total_geo/total_checked*100) if total_checked > 0 else 0:.1f}% |\n"
-                  report += f"| **Skipped Streams** | {len(self.skipped)} | - |\n\n"
+                  report += f"| **Total Streams Found** | {total_checked + len(self.skipped)} | 100.0% |\n"
+                  report += f"| **Checked Streams** | {total_checked} | {(total_checked/(total_checked + len(self.skipped))*100):.1f}% |\n"
+                  report += f"| **Working Streams** | {total_working} | {(total_working/total_checked*100) if total_checked > 0 else 0:.1f}% |\n"
+                  report += f"| **Failed Streams** | {total_checked - total_working} | {((total_checked - total_working)/total_checked*100) if total_checked > 0 else 0:.1f}% |\n"
+                  report += f"| **Skipped Streams** | {len(self.skipped)} | {(len(self.skipped)/(total_checked + len(self.skipped))*100):.1f}% |\n\n"
                   
                   if USE_PROXIES and self.working_proxies:
                       report += f"## Proxy Performance\n\n"
-                      report += f"- **Working Proxies Found:** {len(self.working_proxies)}\n"
-                      report += f"- **Geo-blocked Streams Recovered:** {len(self.geo_working)}\n"
-                      report += f"- **Proxy Success Rate:** {(len(self.geo_working)/total_geo*100) if total_geo > 0 else 0:.1f}%\n\n"
+                      report += f"- **Sources Tried:** {self.proxy_stats['sources_tried']}\n"
+                      report += f"- **Total Proxies Found:** {self.proxy_stats['total_found']}\n"
+                      report += f"- **Proxies Tested:** {self.proxy_stats['tested']}\n"
+                      report += f"- **Working Proxies:** {self.proxy_stats['working']} ({(self.proxy_stats['working']/self.proxy_stats['tested']*100) if self.proxy_stats['tested'] > 0 else 0:.1f}%)\n"
+                      report += f"- **Geo-blocked Streams Recovered:** {len(self.geo_working)}/{total_geo} ({(len(self.geo_working)/total_geo*100) if total_geo > 0 else 0:.1f}%)\n\n"
                   
-                  report += f"## Performance\n\n"
-                  report += f"- **Regular Streams:** {len(self.regular_working)}/{total_regular} working ({(len(self.regular_working)/total_regular*100) if total_regular > 0 else 0:.1f}%)\n"
+                  report += f"## Performance Breakdown\n\n"
+                  if total_regular > 0:
+                      report += f"- **Regular Streams:** {len(self.regular_working)}/{total_regular} working ({(len(self.regular_working)/total_regular*100):.1f}%)\n"
                   if total_geo > 0:
                       report += f"- **Geo-blocked Streams:** {len(self.geo_working)}/{total_geo} working ({(len(self.geo_working)/total_geo*100):.1f}%)\n"
                   
-                  if len(self.skipped) > 0:
-                      report += f"\n## Skipped Streams ({len(self.skipped)})\n\n"
+                  # Failure Analysis
+                  all_failed = self.regular_failed + self.geo_failed
+                  if all_failed:
+                      report += f"\n## Failure Analysis ({len(all_failed)} total failures)\n\n"
+                      
+                      # Group failures by type
+                      failure_groups = {}
+                      for failure in all_failed:
+                          if failure['status'] == 'timeout':
+                              key = 'Connection Timeouts'
+                          elif failure['status'] == 'error' and 'connection refused' in failure.get('error', '').lower():
+                              key = 'Connection Refused'
+                          elif failure.get('code') == 403:
+                              key = 'Geo-blocked (403)'
+                          elif failure.get('code') == 404:
+                              key = 'Not Found (404)'
+                          elif failure.get('code') == 401:
+                              key = 'Unauthorized (401)'
+                          elif failure.get('code', 0) >= 500:
+                              key = 'Server Errors (5xx)'
+                          elif failure.get('code', 0) >= 400:
+                              key = 'Client Errors (4xx)'
+                          else:
+                              key = 'Other Errors'
+                          
+                          if key not in failure_groups:
+                              failure_groups[key] = []
+                          failure_groups[key].append(failure)
+                      
+                      for group_name, failures in failure_groups.items():
+                          if failures:
+                              report += f"### {group_name} ({len(failures)} streams)\n"
+                              if len(failures) <= 20:  # Show details for smaller groups
+                                  report += f"*{'Blocked from all tested regions' if 'Geo-blocked' in group_name else 'Connection issues'}*\n\n"
+                                  report += f"| Channel | Group | Type | Error | Code | File |\n"
+                                  report += f"|---------|-------|------|-------|------|---------|\n"
+                                  for failure in failures[:20]:
+                                      stream = failure['stream']
+                                      error_msg = failure.get('error', failure['status'])[:30] if failure.get('error') else failure['status']
+                                      code = failure.get('code', 'None')
+                                      report += f"| {stream['name'][:20]} | {stream['group'][:15]} | Channel | {error_msg} | {code} | channel playlist.m3u |\n"
+                              else:
+                                  report += f"*Too many failures to list individually ({len(failures)} total)*\n"
+                              report += "\n"
+                  
+                  # Skipped streams summary
+                  if self.skipped:
+                      report += f"## Skipped Streams ({len(self.skipped)} total)\n\n"
                       skip_reasons = {}
                       for item in self.skipped:
                           reason = item['reason']
                           skip_reasons[reason] = skip_reasons.get(reason, 0) + 1
                       
                       for reason, count in skip_reasons.items():
-                          report += f"- **{reason}:** {count}\n"
+                          category = reason.split(' ')[0]  # VOD, PPV, FAST
+                          report += f"### {category} ({count} skipped)\n"
+                          report += f"*Enable \"Check {category}\" in workflow dispatch to test these*\n\n"
                   
-                  report += f"\n---\n*Enhanced check completed with {'proxy support' if USE_PROXIES else 'direct connections only'}*\n"
+                  # Configuration notes
+                  report += f"## Enhanced Configuration Notes\n\n"
+                  report += f"- **VOD Checking:** {'Enabled' if CHECK_VODS else 'Disabled'} - URLs ending with #.mkv are VOD files\n"
+                  report += f"- **PPV/Event Checking:** {'Enabled' if CHECK_PPV else 'Disabled'} - UK EVENTS & USA EVENTS groups automatically detected\n"
+                  report += f"- **FAST Checking:** {'Enabled' if CHECK_FAST else 'Disabled'} - Groups containing 'FAST' automatically detected\n"
+                  report += f"- **Proxy Support:** {'Enabled' if USE_PROXIES else 'Disabled'} - Enhanced geo-blocking bypass\n"
+                  report += f"- **Timeout:** {TIMEOUT_SECONDS} seconds per stream\n"
+                  if USE_PROXIES:
+                      report += f"- **Proxy Sources:** {self.proxy_stats['sources_tried']} sources tested\n"
+                      report += f"- **Proxy Testing:** Up to {MAX_PROXIES} proxies tested to find {TARGET_WORKING_PROXIES} working\n"
+                  
+                  report += f"\n## Manual Testing Options\n\n"
+                  report += f"To test specific content types:\n"
+                  report += f"1. Go to **Actions** → **Check M3U Streams with Enhanced Proxies** → **Run workflow**\n"
+                  report += f"2. Toggle **Check VODs** to test video-on-demand content\n"
+                  report += f"3. Toggle **Check PPV** to test Pay-Per-View channels\n"
+                  report += f"4. Toggle **Check FAST** to test Free Ad-Supported TV channels\n"
+                  report += f"5. Adjust **Target Working Proxies** (70-150 recommended for geo-blocked content)\n"
+                  report += f"6. Toggle **Use Proxies** to enable/disable proxy support\n"
+                  report += f"7. Toggle **Setup Tor** for additional anonymity\n\n"
+                  
+                  report += f"## Enhanced Features\n\n"
+                  report += f"- **Multi-Source Proxy Collection:** {self.proxy_stats['sources_tried']} different proxy sources\n"
+                  report += f"- **Intelligent Proxy Testing:** Multiple validation methods for reliability\n"
+                  report += f"- **Geo-blocking Detection:** Automatic identification of region-locked content\n"
+                  report += f"- **Proxy Load Balancing:** Random proxy selection for each geo-blocked stream\n"
+                  report += f"- **Tor Integration:** Optional Tor SOCKS5 proxy support\n"
+                  report += f"- **Enhanced Error Analysis:** Better categorization of failure types\n"
+                  report += f"- **Adaptive Timeouts:** Configurable timeout per stream\n"
+                  report += f"- **Threaded Proxy Testing:** Fast parallel proxy validation\n\n"
+                  
+                  report += f"---\n"
+                  report += f"*Last updated: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')} UTC*\n"
+                  report += f"*Enhanced report with {'proxy support' if USE_PROXIES else 'direct connections only'}*\n"
                   
                   return report
 
               async def run(self):
                   """Main execution function"""
                   start_time = time.time()
-                  print("Starting enhanced stream check...")
+                  print("Starting enhanced stream check with improved proxy support...")
                   
                   # Parse M3U
                   streams = self.parse_m3u('channel playlist.m3u')
@@ -545,21 +782,24 @@ jobs:
                   
                   # Setup proxies if enabled
                   if USE_PROXIES:
-                      print("Setting up proxy infrastructure...")
+                      print("\nSetting up enhanced proxy infrastructure...")
                       self.get_free_proxies()
                       if SETUP_TOR:
                           self.setup_tor()
                       
                       if not self.working_proxies:
-                          print("Warning: No working proxies found")
+                          print("Warning: No working proxies found - geo-blocked streams will be skipped")
+                      else:
+                          print(f"Proxy setup complete: {len(self.working_proxies)} working proxies ready")
                   
                   # Process all streams  
                   await self.process_streams(streams)
                   
-                  # Generate and save report
-                  report = self.generate_report()
+                  # Generate and save unified report to report.md
+                  report = self.generate_unified_report()
                   
-                  with open('proxy_report.md', 'w', encoding='utf-8') as f:
+                  # Write to report.md (replacing existing file)
+                  with open('report.md', 'w', encoding='utf-8') as f:
                       f.write(report)
                   
                   # Summary
@@ -567,32 +807,41 @@ jobs:
                   total_working = len(self.regular_working) + len(self.geo_working)
                   total_checked = len(self.regular_working) + len(self.regular_failed) + len(self.geo_working) + len(self.geo_failed)
                   
-                  print(f"\nCompleted in {duration:.1f} seconds")
-                  print(f"Results: {total_working}/{total_checked} working")
+                  print(f"\n" + "="*60)
+                  print(f"ENHANCED STREAM CHECK COMPLETE")
+                  print(f"="*60)
+                  print(f"Duration: {duration:.1f} seconds")
+                  print(f"Results: {total_working}/{total_checked} streams working ({(total_working/total_checked*100) if total_checked > 0 else 0:.1f}%)")
                   if USE_PROXIES and self.working_proxies:
-                      print(f"Proxy recovery: {len(self.geo_working)} geo-blocked streams working")
-                  
-                  print("Report saved to proxy_report.md")
+                      print(f"Proxy Performance: {len(self.working_proxies)} working proxies")
+                      print(f"Geo-recovery: {len(self.geo_working)} geo-blocked streams recovered")
+                  print(f"Report updated: report.md")
+                  print(f"="*60)
 
           # Execute the enhanced checker
-          checker = ProxyStreamChecker()
+          checker = EnhancedProxyStreamChecker()
           asyncio.run(checker.run())
           EOF
 
-      - name: Commit Report
+      - name: Commit Updated Report
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "github-actions[bot]"
           
-          if [ -f "proxy_report.md" ]; then
-            echo "Report generated successfully"
-            ls -la proxy_report.md
+          if [ -f "report.md" ]; then
+            echo "Enhanced report generated successfully"
+            ls -la report.md
             
-            git add proxy_report.md
+            # Remove old proxy_report.md if it exists
+            if [ -f "proxy_report.md" ]; then
+              git rm proxy_report.md || true
+            fi
+            
+            git add report.md
             if ! git diff --staged --quiet; then
               COMMIT_MSG="Enhanced stream check"
               if [[ "${{ github.event.inputs.use_proxies }}" == "true" ]]; then
-                COMMIT_MSG="$COMMIT_MSG with proxy support"
+                COMMIT_MSG="$COMMIT_MSG with ${{ github.event.inputs.target_working_proxies || '100' }} proxies"
               fi
               COMMIT_MSG="$COMMIT_MSG - $(date -u '+%Y-%m-%d %H:%M UTC')"
               
@@ -601,7 +850,7 @@ jobs:
               # Push with retry
               for i in {1..3}; do
                 if git push; then
-                  echo "Report pushed successfully"
+                  echo "Enhanced report pushed successfully"
                   break
                 else
                   if [ $i -lt 3 ]; then

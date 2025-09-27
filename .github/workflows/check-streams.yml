@@ -151,23 +151,28 @@ jobs:
                   self.total_by_type = {'Channel': 0, 'VOD': 0, 'PPV': 0, 'FAST': 0}
 
               def get_fast_proxy_sources(self):
-                  """Enhanced proxy sources with backup options"""
+                  """Country-specific proxy sources with backup options"""
+                  # Country-specific sources for better geo-targeting
                   primary_sources = [
+                      # Country-specific sources (higher quality)
+                      "https://proxylist.geonode.com/api/proxy-list?limit=50&country=US&protocols=http&sort_by=lastChecked&sort_type=desc",
+                      "https://proxylist.geonode.com/api/proxy-list?limit=50&country=GB&protocols=http&sort_by=lastChecked&sort_type=desc", 
+                      "https://proxylist.geonode.com/api/proxy-list?limit=50&country=DE&protocols=http&sort_by=lastChecked&sort_type=desc",
+                      "https://proxylist.geonode.com/api/proxy-list?limit=50&country=CA&protocols=http&sort_by=lastChecked&sort_type=desc",
+                      # High-volume general sources
                       "https://api.proxyscrape.com/v2/?request=get&protocol=http&timeout=8000&country=all&format=textplain&limit=200",
                       "https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list-raw.txt",
-                      "https://www.proxy-list.download/api/v1/get?type=http",
-                      "https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/http.txt",
-                      "https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/http.txt"
+                      "https://www.proxy-list.download/api/v1/get?type=http"
                   ]
                   
                   backup_sources = [
                       "https://raw.githubusercontent.com/sunny9577/proxy-scraper/master/proxies.txt",
                       "https://raw.githubusercontent.com/ShiftyTR/Proxy-List/master/http.txt",
-                      "https://raw.githubusercontent.com/roosterkid/openproxylist/main/HTTPS_RAW.txt"
+                      "https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/http.txt"
                   ]
                   
                   if QUICK_MODE:
-                      return primary_sources[:3] + backup_sources[:2]
+                      return primary_sources[:5] + backup_sources[:2]
                   else:
                       return primary_sources + backup_sources
 
@@ -306,11 +311,26 @@ jobs:
                   self.working_proxies = working
                   return working
 
+              def pre_validate_proxy_connection(self, ip, port):
+                  """Quick connection validation before full proxy testing"""
+                  import socket
+                  
+                  try:
+                      sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                      sock.settimeout(3)  # Quick 3-second timeout
+                      result = sock.connect_ex((ip, int(port)))
+                      sock.close()
+                      return result == 0  # 0 means connection successful
+                  except:
+                      return False
+
               def diagnostic_test_proxies(self, proxy_list):
-                  """Enhanced proxy testing with detailed diagnostics"""
+                  """Enhanced proxy testing with connection pre-validation and detailed diagnostics"""
                   working = []
                   tested = 0
+                  pre_filtered = 0
                   detailed_failures = {
+                      'connection_refused': 0,  # Failed pre-validation
                       'timeout': 0,
                       'connection_error': 0,
                       'proxy_error': 0,
@@ -319,36 +339,60 @@ jobs:
                       'other': 0
                   }
                   
-                  print(f"  Starting parallel testing of {len(proxy_list)} proxies...")
+                  print(f"  Starting enhanced testing with pre-validation...")
                   
-                  with ThreadPoolExecutor(max_workers=20) as executor:  # Reduced workers for stability
+                  # Pre-filter proxies with quick connection tests
+                  print(f"  Pre-validating {len(proxy_list)} proxies for basic connectivity...")
+                  pre_validated = []
+                  
+                  for proxy in proxy_list:
+                      try:
+                          ip, port = proxy.split(':')
+                          if self.pre_validate_proxy_connection(ip, port):
+                              pre_validated.append(proxy)
+                          else:
+                              pre_filtered += 1
+                      except:
+                          pre_filtered += 1
+                  
+                  print(f"    Pre-validation results: {len(pre_validated)} passed, {pre_filtered} filtered out")
+                  
+                  if not pre_validated:
+                      print("    ❌ No proxies passed pre-validation!")
+                      return []
+                  
+                  # Now do full testing on pre-validated proxies
+                  print(f"  Full testing {len(pre_validated)} pre-validated proxies...")
+                  
+                  with ThreadPoolExecutor(max_workers=15) as executor:  # Reduced workers since pre-validated
                       future_to_proxy = {
                           executor.submit(self.diagnostic_test_single_proxy, proxy): proxy 
-                          for proxy in proxy_list
+                          for proxy in pre_validated
                       }
                       
-                      for future in as_completed(future_to_proxy, timeout=120):  # 2 minute total timeout
+                      for future in as_completed(future_to_proxy, timeout=120):
                           tested += 1
                           
                           try:
                               proxy = future_to_proxy[future]
-                              result = future.result(timeout=12)  # 12 second per-proxy timeout
+                              result = future.result(timeout=12)
                               
                               if result['success']:
                                   working.append(f"http://{proxy}")
-                                  print(f"    ✅ [{len(working)}] {proxy} - {result['method']}")
+                                  print(f"    ✅ [{len(working)}] {proxy} - {result['method']} ({result['response_time']:.1f}s)")
                               else:
                                   failure_type = result['error_type']
                                   detailed_failures[failure_type] += 1
                                   
                                   # Show first few failures for debugging
-                                  if sum(detailed_failures.values()) <= 10:
+                                  if sum(detailed_failures.values()) <= 8:
                                       print(f"    ❌ {proxy} - {result['error']}")
                               
-                              # Progress updates
-                              if tested % 25 == 0:
-                                  print(f"    Progress: {tested}/{len(proxy_list)} tested, {len(working)} working")
-                                  print(f"    Failure breakdown: {dict(detailed_failures)}")
+                              # Progress updates with enhanced stats
+                              if tested % 20 == 0:
+                                  success_rate = len(working)/tested*100 if tested > 0 else 0
+                                  print(f"    Progress: {tested}/{len(pre_validated)} tested, {len(working)} working ({success_rate:.1f}%)")
+                                  print(f"    Top failures: {dict(list(sorted(detailed_failures.items(), key=lambda x: x[1], reverse=True))[:3])}")
                               
                               # Early termination
                               if len(working) >= TARGET_WORKING_PROXIES:
@@ -362,26 +406,41 @@ jobs:
                               detailed_failures['other'] += 1
                               continue
                   
-                  print(f"\n  Testing completed:")
-                  print(f"    Total tested: {tested}")
+                  # Enhanced reporting
+                  total_processed = pre_filtered + tested
+                  overall_success_rate = len(working)/total_processed*100 if total_processed > 0 else 0
+                  
+                  print(f"\n  Enhanced testing completed:")
+                  print(f"    Total processed: {total_processed}")
+                  print(f"    Pre-filtered (no connection): {pre_filtered} ({pre_filtered/total_processed*100:.1f}%)")
+                  print(f"    Full tested: {tested}")
                   print(f"    Working found: {len(working)}")
-                  print(f"    Success rate: {len(working)/tested*100:.1f}%")
-                  print(f"    Failure breakdown:")
+                  print(f"    Overall success rate: {overall_success_rate:.1f}%")
+                  print(f"    Post-validation success rate: {len(working)/tested*100 if tested > 0 else 0:.1f}%")
+                  print(f"    Detailed failure breakdown:")
                   for error_type, count in detailed_failures.items():
                       if count > 0:
                           percentage = count/tested*100 if tested > 0 else 0
                           print(f"      {error_type}: {count} ({percentage:.1f}%)")
                   
+                  # Enhanced analysis and recommendations
                   if len(working) == 0:
-                      print(f"\n  ⚠️ PROXY TESTING ANALYSIS:")
-                      if detailed_failures['timeout'] > tested * 0.5:
-                          print(f"    - High timeout rate suggests slow/dead proxy sources")
-                      if detailed_failures['connection_error'] > tested * 0.3:
-                          print(f"    - High connection errors suggest network restrictions")
-                      if detailed_failures['proxy_error'] > tested * 0.3:
-                          print(f"    - High proxy errors suggest GitHub Actions blocks proxy usage")
-                      if detailed_failures['invalid_response'] > tested * 0.2:
-                          print(f"    - Invalid responses suggest proxy sources have wrong format")
+                      print(f"\n  🔍 ENHANCED ANALYSIS:")
+                      if pre_filtered > total_processed * 0.8:
+                          print(f"    - Very high pre-filter rate suggests most proxies are dead/unreachable")
+                          print(f"    - Recommendation: Try different proxy sources or increase connection timeout")
+                      if detailed_failures['proxy_error'] > tested * 0.5:
+                          print(f"    - High proxy errors suggest GitHub Actions environment restrictions")
+                          print(f"    - Recommendation: Enable Tor or try different proxy types")
+                      if detailed_failures['timeout'] > tested * 0.3:
+                          print(f"    - High timeout rate suggests slow proxy sources")
+                          print(f"    - Recommendation: Increase timeout_seconds or use faster sources")
+                  else:
+                      print(f"\n  📈 Success factors identified:")
+                      print(f"    - Pre-validation eliminated {pre_filtered} dead connections")
+                      print(f"    - {len(working)} working proxies found efficiently")
+                      if len(working) >= TARGET_WORKING_PROXIES:
+                          print(f"    - Target reached early - could reduce max_proxies for speed")
                   
                   return working
 
@@ -464,10 +523,16 @@ jobs:
                   return result
 
               def enhanced_filter(self, proxies):
-                  """Enhanced filtering with better logic"""
+                  """Data-driven filtering based on success patterns from diagnostic logs"""
                   filtered = []
-                  priority_ports = [80, 8080, 3128, 8000, 8888, 1080]
-                  good_ports = [8081, 9090, 8118, 3129, 8123, 8090]
+                  
+                  # Reordered based on your diagnostic data showing 3128 had highest success
+                  priority_ports = [3128, 8080, 80]  # 3128 showed 8/10 working proxies
+                  high_success_ports = [8000, 8888, 1080]
+                  acceptable_ports = [8081, 9090, 8118, 3129, 8123, 8090]
+                  
+                  print(f"  Enhanced filtering based on diagnostic data...")
+                  port_priority_stats = {p: 0 for p in priority_ports}
                   
                   for proxy in proxies:
                       try:
@@ -488,27 +553,36 @@ jobs:
                           if not all(0 <= x <= 255 for x in ip_nums):
                               continue
                               
-                          # Skip private/reserved IPs
+                          # Skip private/reserved IPs with enhanced checking
                           if (ip_nums[0] == 10 or 
                               (ip_nums[0] == 172 and 16 <= ip_nums[1] <= 31) or
                               (ip_nums[0] == 192 and ip_nums[1] == 168) or
-                              ip_nums[0] == 127 or ip_nums[0] >= 224 or ip_nums[0] == 0):
+                              ip_nums[0] == 127 or ip_nums[0] >= 224 or ip_nums[0] == 0 or
+                              (ip_nums[0] == 169 and ip_nums[1] == 254)):  # Link-local
                               continue
                           
                           # Port validation
                           if not (1 <= port_num <= 65535):
                               continue
                           
-                          # Prioritize by port quality
+                          # Smart prioritization based on diagnostic data
                           if port_num in priority_ports:
-                              filtered.insert(0, proxy)  # Highest priority
-                          elif port_num in good_ports:
-                              filtered.insert(len([p for p in filtered if int(p.split(':')[1]) in priority_ports]), proxy)  # Medium priority
+                              filtered.insert(0, proxy)  # Highest priority - put at front
+                              port_priority_stats[port_num] += 1
+                          elif port_num in high_success_ports:
+                              # Insert after priority ports but before others
+                              priority_count = len([p for p in filtered if int(p.split(':')[1]) in priority_ports])
+                              filtered.insert(priority_count, proxy)
+                          elif port_num in acceptable_ports:
+                              filtered.append(proxy)
                           elif 1024 <= port_num <= 65535:
-                              filtered.append(proxy)  # Lower priority
+                              filtered.append(proxy)  # Lowest priority
                               
                       except (ValueError, IndexError, AttributeError):
                           continue
+                  
+                  print(f"    Priority port distribution: {port_priority_stats}")
+                  print(f"    Total after enhanced filtering: {len(filtered)}")
                   
                   return filtered
 

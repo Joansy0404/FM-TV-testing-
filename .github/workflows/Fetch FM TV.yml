@@ -108,13 +108,8 @@ jobs:
                                   group_title = group_match.group(1)
                                   needs_mkv = group_title in MKV_GROUPS
                               
-                              # Add /#.mkv to URL if needed
-                              final_url = url_line
-                              if needs_mkv and not url_line.endswith('/#.mkv'):
-                                  final_url = url_line + '/#.mkv'
-                              
-                              # 3. Build the JSON payload: {"url":"<FINAL_URL>","id":<CUID>}
-                              payload_data = {"url": final_url, "id": cuid}
+                              # 3. Build the JSON payload: {"url":"<ORIGINAL_URL>","id":<CUID>}
+                              payload_data = {"url": url_line, "id": cuid}
                               payload_str = json.dumps(payload_data)
                               
                               # 4. Base64 Encode the JSON payload
@@ -123,8 +118,12 @@ jobs:
                               # 5. URL-safe encode the result
                               url_safe_payload = encoded_payload.replace('=', '%3D')
                               
-                              # 6. Construct and write the new wrapped URL
-                              wrapped_url = f'{PREFIX}{url_safe_payload}{SUFFIX}'
+                              # 6. Construct the wrapped URL with /#.mkv inserted before /fast if needed
+                              if needs_mkv:
+                                  wrapped_url = f'{PREFIX}{url_safe_payload}/#.mkv{SUFFIX}'
+                              else:
+                                  wrapped_url = f'{PREFIX}{url_safe_payload}{SUFFIX}'
+                              
                               outfile.write(wrapped_url + '\n')
                               
                               i += 2 # Move to the next #EXTINF line

@@ -18,25 +18,37 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Download unwrapped M3U Plus file
-        run: wget "https://xapi-ie.cc/get.php?username=aBn1J1oTRSe&password=VVtbggGMS&type=m3u_plus" -O "unwrapped.m3u"
+        run: wget "${{ secrets.IPTV_M3U_URL }}" -O "unwrapped.m3u"
 
       - name: Download EPG XML file
-        run: wget "https://xapi-ie.cc/xmltv.php?username=aBn1J1oTRSe&password=VVtbggGMS" -O "channel playlist.xml"
+        run: wget "${{ secrets.IPTV_EPG_URL }}" -O "channel playlist.xml"
 
       - name: Transform URLs to wrapped format
+        env:
+          IPTV_USERNAME: ${{ secrets.IPTV_USERNAME }}
+          IPTV_PASSWORD: ${{ secrets.IPTV_PASSWORD }}
         run: |
           python3 << 'EOF'
           import base64
           import re
           import json
           import urllib.parse
+          import os
 
           def wrap_m3u_urls(input_file, output_file):
               """
               Reads an unwrapped M3U file and transforms stream URLs into the proxy-wrapped format.
               """
+              # Get credentials from environment variables
+              username = os.environ.get('IPTV_USERNAME')
+              password = os.environ.get('IPTV_PASSWORD')
+              
+              if not username or not password:
+                  print("Error: IPTV credentials not found in environment variables")
+                  return
+              
               # Fixed parameters based on analysis and user credentials
-              PREFIX = "http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1"
+              PREFIX = f"http://alt.xtream-ie.org/{username}/{password}/1"
               SUFFIX = "/fast"
               
               # Groups that need /#.mkv added to URLs

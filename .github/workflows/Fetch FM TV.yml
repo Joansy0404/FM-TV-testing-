@@ -17,16 +17,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download Channel M3U file
-        run: wget https://opop.pro/YRHV3D5jWnbRhX -O "channel playlist.m3u"
-
-      - name: Download Channel XML file
-        run: wget https://opop.pro/jGoejGCxMyUbBSt -O "channel playlist.xml"
+      - name: Download Channel M3U Plus file
+        run: wget "https://xapi-ie.cc/get.php?username=aBn1J1oTRSe&password=VVtbggGMS&type=m3u_plus" -O "channel playlist.m3u"
 
       - name: Add files to Git
         run: |
           git add "channel playlist.m3u"
-          git add "channel playlist.xml"
 
       - name: Check for changes before commit
         id: changes
@@ -43,7 +39,7 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "github-actions[bot]"
-          git commit -m "Updated channel playlist files (XML and M3U)"
+          git commit -m "Updated channel playlist files (M3U Plus)"
 
       - name: Force push changes if commit happened
         if: env.changes_detected == 'true'

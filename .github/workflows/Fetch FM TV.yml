@@ -42,7 +42,7 @@ jobs:
                   "Paramount+", "SONY Pictures Core", "STARZ", "AMC+", "BritBox", 
                   "Apple TV+", "Others", "Hallmark+", "stan.", "FMTV+", "RTÈ PLAYER", 
                   "Angel Studios", "PBS", "DOCPLAY", "CBC Gem", "Peacock TV (Shows)", 
-                  "SONY Pictures Core (Shows)"
+                  "SONY Pictures Core (Shows)", "Stan.", "Studiocanal Presents"
               }
               
               # Regex to find the CUID value from the #EXTINF line

@@ -1,186 +1,266 @@
 # M3U Stream Status Report
 
-**Generated on:** 2025-09-26 22:33:02 UTC  
-**Duration:** 446.7 seconds  
-**Configuration:** VODs: Disabled, PPV: Disabled, Timeout: 10s
+**Generated on:** 2025-09-27 01:13:03 UTC  
+**Duration:** 502.5 seconds  
+**Configuration:** VODs: Disabled, PPV: Disabled, FAST: Disabled, Timeout: 10s
 
 ## Files Processed
 
-- `channel playlist.m3u`: 1537 streams (486 M3U8, 869 VOD, 3 TS, 59 A1XS, 75 FAST, 0 Token, 35 Profile, 10 Other)
+- `channel playlist.m3u`: 1567 streams (525 Channels, 870 VODs, 53 PPV, 119 FAST)
 
 ## Summary
 
 | Metric | Count | Percentage |
 |--------|-------|-----------|
-| **Total Streams Found** | 1537 | 100% |
-| **Total Channel Streams** | 668 | 43.5% |
-| **Total VOD Streams** | 869 | 56.5% |
-| **Checked Streams** | 616 | 40.1% |
-| **Working Streams** | 511 | 83.0% |
-| **Failed Streams** | 105 | 17.0% |
-| **Skipped Streams** | 921 | 59.9% |
+| **Total Streams Found** | 1567 | 100.0% |
+| **Channels** | 525 | 33.5% |
+| **VODs** | 870 | 55.5% |
+| **PPV** | 53 | 3.4% |
+| **FAST** | 119 | 7.6% |
+| **Checked Streams** | 525 | 33.5% |
+| **Working Streams** | 353 | 67.2% |
+| **Failed Streams** | 172 | 32.8% |
+| **Skipped Streams** | 1042 | 66.5% |
 
 ## Stream Type Breakdown
 
 | Type | Working | Failed | Total Checked | Success Rate |
 |------|---------|--------|---------------|-------------|
-| **M3U8 Streams** | 335 | 100 | 435 | 77.0% |
-| **TS Streams** | 2 | 0 | 2 | 100.0% |
-| **A1XS Channels** | 54 | 5 | 59 | 91.5% |
-| **FAST Channels** | 75 | 0 | 75 | 100.0% |
-| **Profile URLs** | 35 | 0 | 35 | 100.0% |
-| **Other** | 10 | 0 | 10 | 100.0% |
+| **Channels** | 353 | 172 | 525 | 67.2% |
 
-## Failure Analysis (105 total failures)
+## Failure Analysis (172 total failures)
 
-### Unknown Errors (81 streams)
+### Unknown Errors (137 streams)
 *Unexpected errors*
 
 | Channel | Group | Type | Error | Code | File |
 |---------|-------|------|-------|------|---------|
-| ASPIRE | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| AXS TV | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| BBC NEWS | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| BEIN SPORTS | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| BET (EAST) | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| BET GOSPEL | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| BET HER (EAST) | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| BET JAMS | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| BET SOUL | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| BRAVO (EAST) | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| CBS SPORTS NETWORK | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| CLEO TV | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| CMT | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| CNBC WORLD | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| COMET | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| COZI TV | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| C•SPAN | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| DISCOVERY FAMILY | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| DISCOVERY LIFE | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| DISCOVERY SCIENCE | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| DISNEY CHANNEL (EAST) | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| DISNEY JR. | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| FOOD NETWORK | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| FOX BUSINESS NETWORK | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| FOX NEWS CHANNEL | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| FOX SOUL | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| FREE FORM | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| FUSE | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| FYI | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| GET TV | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| GRIT TV | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| HALLMARK DRAMA | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| HALLMARK MOVIES & MYSTERY | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| HBO FAMILY | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| HBO MOVIES | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| HGTV | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| HSN | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| INSP | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| INVESTIGATION DISCOVERY (ID) | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| ION PLUS (EAST) | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| LIFETIME (EAST) | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| LOVE NATURE | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| MAGNOLIA NETWORK | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| MGM+ | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| MGM+ MARQUEE | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| MOTOR TREND | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| MTV 2 | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| MTV CLASSIC | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| NEWS NATION | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| NFL RED ZONE | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| NICK JR. | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| NICKTOONS (EAST) | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| OUTDOOR CHANNEL | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| OUTSIDE TV | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| OVATION | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| OWN | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| OXYGEN TRUE CRIME | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| PURSUIT CHANNEL | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| QVC | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| REELZ | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| SHOWTIME 2 | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| SHOWTIME (WEST) | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| SHOWTIME NEXT | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| SHOWTIME WOMEN | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| SMITHSONIAN CHANNEL | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| SNY | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| SPORTSMAN CHANNEL | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| START TV | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| STARZ ENCORE CLASSIC | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| SUNDANCE TV | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| TENNIS CHANNEL | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| THE WEATHER CHANNEL | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| TLC | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| TRAVEL CHANNEL | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| TV LAND | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| TV ONE | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| UP TV | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| USA NETWORK | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| WILLOW 2 | USA | A1XS Cha | Connection refused | None | channel playlist.m3u |
-| ANTENNA TV | USA | M3U8 | Connection refused | None | channel playlist.m3u |
-| FANDUEL SPORTS NETWORK ARIZONA | USA | M3U8 | Connection refused | None | channel playlist.m3u |
+| ITV 3 | UK | Channel | Invalid URL 'https:/live//a1xs.vip/10000 | None | channel playlist.m3u |
+| NICK JR. | UK | Channel | Invalid URL 'https:/live//a1xs.vip/10000 | None | channel playlist.m3u |
+| SKY SPORTS CRICKET | UK | Channel | Invalid URL 'https:/live//a1xs.vip/20000 | None | channel playlist.m3u |
+| SKY SPORTS GOLF | UK | Channel | Invalid URL 'https:/live//a1xs.vip/20000 | None | channel playlist.m3u |
+| SKY SPORTS MAIN EVENT | UK | Channel | Invalid URL 'https:/live//a1xs.vip/20000 | None | channel playlist.m3u |
+| SKY SPORTS NFL | UK | Channel | Invalid URL 'https:/live//a1xs.vip/20000 | None | channel playlist.m3u |
+| SKY SPORTS PREMIER LEAGUE | UK | Channel | Invalid URL 'https:/live//a1xs.vip/20000 | None | channel playlist.m3u |
+| SKY SPORTS RACING | UK | Channel | Invalid URL 'https:/live//a1xs.vip/20000 | None | channel playlist.m3u |
+| SKY SPORTS TENNIS | UK | Channel | Invalid URL 'https:/live//a1xs.vip/20000 | None | channel playlist.m3u |
+| SKY SPORTS+ | UK | Channel | Invalid URL 'https:/live//a1xs.vip/20000 | None | channel playlist.m3u |
+| TNT SPORTS 1 | UK | Channel | Invalid URL 'https:/live//a1xs.vip/20000 | None | channel playlist.m3u |
+| TNT SPORTS 2 | UK | Channel | Invalid URL 'https:/live//a1xs.vip/20000 | None | channel playlist.m3u |
+| TNT SPORTS 3 | UK | Channel | Invalid URL 'https:/live//a1xs.vip/20000 | None | channel playlist.m3u |
+| TNT SPORTS 4 | UK | Channel | Invalid URL 'https:/live//a1xs.vip/20000 | None | channel playlist.m3u |
+| DISCOVERY | UK | Channel | Invalid URL 'https:/live//a1xs.vip/10000 | None | channel playlist.m3u |
+| MTV | UK | Channel | Invalid URL 'https:/live//a1xs.vip/10000 | None | channel playlist.m3u |
+| ACC NETWORK | USA | Channel | Invalid URL 'https:/live//a1xs.vip/40000 | None | channel playlist.m3u |
+| ALTITUDE SPORTS | USA | Channel | Invalid URL 'https:/live//a1xs.vip/40000 | None | channel playlist.m3u |
+| ANIMAL PLANET | USA | Channel | Invalid URL 'https:/live//a1xs.vip/30003 | None | channel playlist.m3u |
+| ASPIRE | USA | Channel | Connection refused | None | channel playlist.m3u |
+| AXS TV | USA | Channel | Connection refused | None | channel playlist.m3u |
+| BBC NEWS | USA | Channel | Connection refused | None | channel playlist.m3u |
+| BEIN SPORTS | USA | Channel | Connection refused | None | channel playlist.m3u |
+| BET (EAST) | USA | Channel | Connection refused | None | channel playlist.m3u |
+| BET GOSPEL | USA | Channel | Connection refused | None | channel playlist.m3u |
+| BET HER (EAST) | USA | Channel | Connection refused | None | channel playlist.m3u |
+| BET JAMS | USA | Channel | Connection refused | None | channel playlist.m3u |
+| BET SOUL | USA | Channel | Connection refused | None | channel playlist.m3u |
+| BRAVO (EAST) | USA | Channel | Connection refused | None | channel playlist.m3u |
+| CBS SPORTS NETWORK | USA | Channel | Connection refused | None | channel playlist.m3u |
+| CLEO TV | USA | Channel | Connection refused | None | channel playlist.m3u |
+| CMT | USA | Channel | Connection refused | None | channel playlist.m3u |
+| CNBC | USA | Channel | Invalid URL 'https:/live//a1xs.vip/30000 | None | channel playlist.m3u |
+| CNBC WORLD | USA | Channel | Connection refused | None | channel playlist.m3u |
+| COMET | USA | Channel | Connection refused | None | channel playlist.m3u |
+| COZI TV | USA | Channel | Connection refused | None | channel playlist.m3u |
+| C•SPAN | USA | Channel | Connection refused | None | channel playlist.m3u |
+| DISCOVERY | USA | Channel | Invalid URL 'https:/live//a1xs.vip/30003 | None | channel playlist.m3u |
+| DISCOVERY FAMILY | USA | Channel | Connection refused | None | channel playlist.m3u |
+| DISCOVERY LIFE | USA | Channel | Connection refused | None | channel playlist.m3u |
+| DISCOVERY SCIENCE | USA | Channel | Connection refused | None | channel playlist.m3u |
+| DISNEY CHANNEL (EAST) | USA | Channel | Connection refused | None | channel playlist.m3u |
+| DISNEY JR. | USA | Channel | Connection refused | None | channel playlist.m3u |
+| ESPN | USA | Channel | Invalid URL 'https:/live//a1xs.vip/40000 | None | channel playlist.m3u |
+| ESPN 2 | USA | Channel | Invalid URL 'https:/live//a1xs.vip/40000 | None | channel playlist.m3u |
+| ESPN U | USA | Channel | Invalid URL 'https:/live//a1xs.vip/40000 | None | channel playlist.m3u |
+| ESPNEWS | USA | Channel | Invalid URL 'https:/live//a1xs.vip/40000 | None | channel playlist.m3u |
+| FOOD NETWORK | USA | Channel | Connection refused | None | channel playlist.m3u |
+| FOX BUSINESS NETWORK | USA | Channel | Connection refused | None | channel playlist.m3u |
+| FOX NEWS CHANNEL | USA | Channel | Connection refused | None | channel playlist.m3u |
+| FOX SOUL | USA | Channel | Connection refused | None | channel playlist.m3u |
+| FREE FORM | USA | Channel | Connection refused | None | channel playlist.m3u |
+| FS1 | USA | Channel | Invalid URL 'https:/live//a1xs.vip/40000 | None | channel playlist.m3u |
+| FS2 | USA | Channel | Invalid URL 'https:/live//a1xs.vip/40000 | None | channel playlist.m3u |
+| FUSE | USA | Channel | Connection refused | None | channel playlist.m3u |
+| FYI | USA | Channel | Connection refused | None | channel playlist.m3u |
+| GET TV | USA | Channel | Connection refused | None | channel playlist.m3u |
+| GOLF CHANNEL | USA | Channel | Invalid URL 'https:/live//a1xs.vip/40000 | None | channel playlist.m3u |
+| GRIT TV | USA | Channel | Connection refused | None | channel playlist.m3u |
+| HALLMARK DRAMA | USA | Channel | Connection refused | None | channel playlist.m3u |
+| HALLMARK MOVIES & MYSTERY | USA | Channel | Connection refused | None | channel playlist.m3u |
+| HBO FAMILY | USA | Channel | Connection refused | None | channel playlist.m3u |
+| HBO MOVIES | USA | Channel | Connection refused | None | channel playlist.m3u |
+| HGTV | USA | Channel | Connection refused | None | channel playlist.m3u |
+| HSN | USA | Channel | Connection refused | None | channel playlist.m3u |
+| INSP | USA | Channel | Connection refused | None | channel playlist.m3u |
+| INVESTIGATION DISCOVERY (ID) | USA | Channel | Connection refused | None | channel playlist.m3u |
+| ION PLUS (EAST) | USA | Channel | Connection refused | None | channel playlist.m3u |
+| LIFETIME (EAST) | USA | Channel | Connection refused | None | channel playlist.m3u |
+| LOVE NATURE | USA | Channel | Connection refused | None | channel playlist.m3u |
+| MAGNOLIA NETWORK | USA | Channel | Connection refused | None | channel playlist.m3u |
+| MGM+ | USA | Channel | Connection refused | None | channel playlist.m3u |
+| MGM+ MARQUEE | USA | Channel | Connection refused | None | channel playlist.m3u |
+| MLB NETWORK | USA | Channel | Invalid URL 'https:/live//a1xs.vip/40000 | None | channel playlist.m3u |
+| MOTOR TREND | USA | Channel | Connection refused | None | channel playlist.m3u |
+| MSNBC | USA | Channel | Invalid URL 'https:/live//a1xs.vip/30000 | None | channel playlist.m3u |
+| MTV 2 | USA | Channel | Connection refused | None | channel playlist.m3u |
+| MTV CLASSIC | USA | Channel | Connection refused | None | channel playlist.m3u |
+| NEWS NATION | USA | Channel | Connection refused | None | channel playlist.m3u |
+| NFL RED ZONE | USA | Channel | Connection refused | None | channel playlist.m3u |
+| NICK JR. | USA | Channel | Connection refused | None | channel playlist.m3u |
+| NICKTOONS (EAST) | USA | Channel | Connection refused | None | channel playlist.m3u |
+| OUTDOOR CHANNEL | USA | Channel | Connection refused | None | channel playlist.m3u |
+| OUTSIDE TV | USA | Channel | Connection refused | None | channel playlist.m3u |
+| OVATION | USA | Channel | Connection refused | None | channel playlist.m3u |
+| OWN | USA | Channel | Connection refused | None | channel playlist.m3u |
+| OXYGEN TRUE CRIME | USA | Channel | Connection refused | None | channel playlist.m3u |
+| PURSUIT CHANNEL | USA | Channel | Connection refused | None | channel playlist.m3u |
+| QVC | USA | Channel | Connection refused | None | channel playlist.m3u |
+| REELZ | USA | Channel | Connection refused | None | channel playlist.m3u |
+| SHOWTIME 2 | USA | Channel | Connection refused | None | channel playlist.m3u |
+| SHOWTIME (WEST) | USA | Channel | Connection refused | None | channel playlist.m3u |
+| SHOWTIME NEXT | USA | Channel | Connection refused | None | channel playlist.m3u |
+| SHOWTIME WOMEN | USA | Channel | Connection refused | None | channel playlist.m3u |
+| SMITHSONIAN CHANNEL | USA | Channel | Connection refused | None | channel playlist.m3u |
+| SNY | USA | Channel | Connection refused | None | channel playlist.m3u |
+| SPECTRUM SPORTSNET | USA | Channel | Invalid URL 'https:/live//a1xs.vip/40000 | None | channel playlist.m3u |
+| SPORTSMAN CHANNEL | USA | Channel | Connection refused | None | channel playlist.m3u |
+| START TV | USA | Channel | Connection refused | None | channel playlist.m3u |
+| STARZ ENCORE CLASSIC | USA | Channel | Connection refused | None | channel playlist.m3u |
+| SUNDANCE TV | USA | Channel | Connection refused | None | channel playlist.m3u |
+| TEEN NICK | USA | Channel | Invalid URL 'https:/live//a1xs.vip/30003 | None | channel playlist.m3u |
+| TENNIS CHANNEL | USA | Channel | Connection refused | None | channel playlist.m3u |
+| THE WEATHER CHANNEL | USA | Channel | Connection refused | None | channel playlist.m3u |
+| TLC | USA | Channel | Connection refused | None | channel playlist.m3u |
+| TRAVEL CHANNEL | USA | Channel | Connection refused | None | channel playlist.m3u |
+| TV LAND | USA | Channel | Connection refused | None | channel playlist.m3u |
+| TV ONE | USA | Channel | Connection refused | None | channel playlist.m3u |
+| UP TV | USA | Channel | Connection refused | None | channel playlist.m3u |
+| USA NETWORK | USA | Channel | Connection refused | None | channel playlist.m3u |
+| WILLOW 2 | USA | Channel | Invalid URL 'https:/live//a1xs.vip/40000 | None | channel playlist.m3u |
+| WILLOW CRICKET | USA | Channel | Invalid URL 'https:/live//a1xs.vip/40000 | None | channel playlist.m3u |
+| ANTENNA TV | USA | Channel | Connection refused | None | channel playlist.m3u |
+| FANDUEL SPORTS NETWORK ARIZONA | USA | Channel | Connection refused | None | channel playlist.m3u |
+| PEACOCK PREMIER LEAGUE TV | USA | Channel | Invalid URL 'https:/live//a1xs.vip/11000 | None | channel playlist.m3u |
+| NESN UHD | USA | Channel | Invalid URL 'https:/live//a1xs.vip/40000 | None | channel playlist.m3u |
+| FOX SPORTS 501 | AUS | Channel | Invalid URL 'https:/live//a1xs.vip/70000 | None | channel playlist.m3u |
+| FOX SPORTS 502 | AUS | Channel | Invalid URL 'https:/live//a1xs.vip/70000 | None | channel playlist.m3u |
+| FOX SPORTS 503 | AUS | Channel | Invalid URL 'https:/live//a1xs.vip/70000 | None | channel playlist.m3u |
+| FOX SPORTS 504 | AUS | Channel | Invalid URL 'https:/live//a1xs.vip/70000 | None | channel playlist.m3u |
+| FOX SPORTS 505 | AUS | Channel | Invalid URL 'https:/live//a1xs.vip/70000 | None | channel playlist.m3u |
+| FOX SPORTS 506 | AUS | Channel | Invalid URL 'https:/live//a1xs.vip/70000 | None | channel playlist.m3u |
+| SKY SPORT PREMIER LEAGUE | NZ | Channel | Invalid URL 'https:/live//a1xs.vip/70000 | None | channel playlist.m3u |
+| SKY SPORT 1 | NZ | Channel | Invalid URL 'https:/live//a1xs.vip/70003 | None | channel playlist.m3u |
+| SKY SPORT 2 | NZ | Channel | Invalid URL 'https:/live//a1xs.vip/70003 | None | channel playlist.m3u |
+| SKY SPORT 3 | NZ | Channel | Invalid URL 'https:/live//a1xs.vip/70003 | None | channel playlist.m3u |
+| SKY SPORT 4 | NZ | Channel | Invalid URL 'https:/live//a1xs.vip/70003 | None | channel playlist.m3u |
+| SKY SPORT 5 | NZ | Channel | Invalid URL 'https:/live//a1xs.vip/70003 | None | channel playlist.m3u |
+| SKY SPORT 6 | NZ | Channel | Invalid URL 'https:/live//a1xs.vip/70003 | None | channel playlist.m3u |
+| SKY SPORT 7 | NZ | Channel | Invalid URL 'https:/live//a1xs.vip/70003 | None | channel playlist.m3u |
+| TSN 2 | CA | Channel | Invalid URL 'https:/live//a1xs.vip/60000 | None | channel playlist.m3u |
+| TSN 3 | CA | Channel | Invalid URL 'https:/live//a1xs.vip/60000 | None | channel playlist.m3u |
+| TSN 4 | CA | Channel | Invalid URL 'https:/live//a1xs.vip/60000 | None | channel playlist.m3u |
+| HUB PREMIER 1 | INT | Channel | Invalid URL 'https:/live//a1xs.vip/11000 | None | channel playlist.m3u |
+| HUB PREMIER 2 | INT | Channel | Invalid URL 'https:/live//a1xs.vip/11000 | None | channel playlist.m3u |
+| STAR SPORTS SELECT 1 | INT | Channel | Invalid URL 'https:/live//a1xs.vip/80000 | None | channel playlist.m3u |
+| STAR SPORTS SELECT 2 | INT | Channel | Invalid URL 'https:/live//a1xs.vip/80000 | None | channel playlist.m3u |
 
-### Not Found (404) (5 streams)
+### Not Found (404) (4 streams)
 *Stream URL no longer exists*
 
 | Channel | Group | Type | Error | Code | File |
 |---------|-------|------|-------|------|---------|
-| SKY SPORTS NFL | UK | A1XS Cha | Stream not found | 404 | channel playlist.m3u |
-| CTB PERTH | AUS | M3U8 | Stream not found | 404 | channel playlist.m3u |
-| INDO OZ TV | AUS | M3U8 | Stream not found | 404 | channel playlist.m3u |
-| BEATS RADIO | AR | M3U8 | Stream not found | 404 | channel playlist.m3u |
-| CANAL 5 PICO TRUNCADO | AR | M3U8 | Stream not found | 404 | channel playlist.m3u |
+| INDO OZ TV | AUS | Channel | Stream not found | 404 | channel playlist.m3u |
+| BEATS RADIO | AR | Channel | Stream not found | 404 | channel playlist.m3u |
+| CANAL 21 TV | AR | Channel | Stream not found | 404 | channel playlist.m3u |
+| YEMEN SHABAB CHANNEL | YE | Channel | Stream not found | 404 | channel playlist.m3u |
+
+### Server Errors (1 streams)
+*Server-side technical issues*
+
+| Channel | Group | Type | Error | Code | File |
+|---------|-------|------|-------|------|---------|
+| Fubo sports 1 | CA | Channel | Server error (502) | 502 | channel playlist.m3u |
 
 ### DNS Failures (1 streams)
 *Domain name resolution failed*
 
 | Channel | Group | Type | Error | Code | File |
 |---------|-------|------|-------|------|---------|
-| ABC AUSTRALIA VIETNAM | AUS | M3U8 | DNS resolution failed | None | channel playlist.m3u |
+| ABC AUSTRALIA VIETNAM | AUS | Channel | DNS resolution failed | None | channel playlist.m3u |
 
-### Connection Timeouts (4 streams)
+### Connection Timeouts (16 streams)
 *Server slow/overloaded or PPV preparing*
 
 | Channel | Group | Type | Error | Code | File |
 |---------|-------|------|-------|------|---------|
-| SKY SPORTS CRICKET | UK | A1XS Cha | Timeout after 10s | None | channel playlist.m3u |
-| ESPN | USA | A1XS Cha | Timeout after 10s | None | channel playlist.m3u |
-| ESPN 2 | USA | A1XS Cha | Timeout after 10s | None | channel playlist.m3u |
-| ALTERNA TV | AR | M3U8 | Timeout after 10s | None | channel playlist.m3u |
+| SKY SPORTS MAIN EVENT UHD | UK | Channel | Timeout after 10s | None | channel playlist.m3u |
+| TNT SPORTS ULTIMATE | UK | Channel | Timeout after 10s | None | channel playlist.m3u |
+| TLC | UK | Channel | Timeout after 10s | None | channel playlist.m3u |
+| COMEDY CENTRAL XTRA | UK | Channel | Timeout after 10s | None | channel playlist.m3u |
+| SKY MAX | UK | Channel | Timeout after 10s | None | channel playlist.m3u |
+| SKY REPLAY | UK | Channel | Timeout after 10s | None | channel playlist.m3u |
+| SKY SPORTS F1 UHD | UK | Channel | Timeout after 10s | None | channel playlist.m3u |
+| MUTV | UK | Channel | Timeout after 10s | None | channel playlist.m3u |
+| LFCTV | UK | Channel | Timeout after 10s | None | channel playlist.m3u |
+| RACING TV | UK | Channel | Timeout after 10s | None | channel playlist.m3u |
+| LALIGA TV | UK | Channel | Timeout after 10s | None | channel playlist.m3u |
+| TNT SPORTS 5 | UK | Channel | Timeout after 10s | None | channel playlist.m3u |
+| SKY RACING 1 | AUS | Channel | Timeout after 10s | None | channel playlist.m3u |
+| SKY SPORT 9 | NZ | Channel | Timeout after 10s | None | channel playlist.m3u |
+| NOW SPORTS 1 | HK | Channel | Timeout after 10s | None | channel playlist.m3u |
+| NOW SPORTS 2 | HK | Channel | Timeout after 10s | None | channel playlist.m3u |
 
-### Access Denied (14 streams)
+### Access Denied (13 streams)
 *Geo-blocked or authentication required*
 
 | Channel | Group | Type | Error | Code | File |
 |---------|-------|------|-------|------|---------|
-| BLAZE | UK | M3U8 | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
-| TV WAREHOUSE | UK | M3U8 | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
-| INSIDE CRIME | UK FAST | M3U8 | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
-| TG 4 | IE | M3U8 | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
-| AL MASHHAD | AE | M3U8 | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
-| ALARABIYA | AE | M3U8 | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
-| MBC 1 | AE | M3U8 | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
-| MBC 4 | AE | M3U8 | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
-| MBC 5 | AE | M3U8 | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
-| MBC BOLLYWOOD | AE | M3U8 | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
-| MBC DRAMA | AE | M3U8 | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
-| MBC PERSIA | AE | M3U8 | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
-| SPACETOON ARABIC | AE | M3U8 | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
-| WANASAH | AE | M3U8 | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
+| BLAZE | UK | Channel | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
+| TV WAREHOUSE | UK | Channel | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
+| TG 4 | IE | Channel | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
+| AL MASHHAD | AE | Channel | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
+| ALARABIYA | AE | Channel | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
+| MBC 1 | AE | Channel | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
+| MBC 4 | AE | Channel | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
+| MBC 5 | AE | Channel | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
+| MBC BOLLYWOOD | AE | Channel | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
+| MBC DRAMA | AE | Channel | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
+| MBC PERSIA | AE | Channel | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
+| SPACETOON ARABIC | AE | Channel | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
+| WANASAH | AE | Channel | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
 
 
-## Skipped Streams (921 total)
+## Skipped Streams (1042 total)
 
-### PPV/Event Channels (52 skipped)
+### PPV/Event Channels (53 skipped)
 *Enable "Check PPV" in workflow dispatch to test these*
 
 | Group | Count |
 |-------|---------|
-| UK EVENTS | 1 |
+| UK EVENTS | 2 |
 | USA EVENTS | 50 |
 | USA FAST | 1 |
 
-### VOD Files (869 skipped)
+### FAST Channels (119 skipped)
+*Enable "Check FAST" in workflow dispatch to test these*
+
+| Group | Count |
+|-------|---------|
+| IE FAST | 1 |
+| JP FAST | 4 |
+| UK FAST | 102 |
+| USA FAST | 12 |
+
+### VOD Files (870 skipped)
 *Enable "Check VODs" in workflow dispatch to test these*
 
 | Group | Count |
@@ -193,7 +273,7 @@
 | DOCPLAY | 1 |
 | Disney+ | 209 |
 | FMTV+ | 3 |
-| HBO MAX | 110 |
+| HBO MAX | 111 |
 | Hallmark+ | 1 |
 | NETFLIX | 22 |
 | Others | 84 |
@@ -209,43 +289,13 @@
 | Studiocanal Presents | 4 |
 
 
-## Other Stream Examples (10 shown)
-
-*These URLs don't match standard patterns (M3U8, TS, A1XS, Token, Profile, VOD)*
-
-| Channel | Group | URL |
-|---------|-------|-----|
-| TLC | UK | http://imediatv666.store:7777/lunarisports2913/sportsstuff29/112676 |
-| COMEDY CENTRAL | UK | http://imediatv666.store:7777/lunarisports2913/sportsstuff29/112640 |
-| COMEDY CENTRAL XTRA | UK | http://imediatv666.store:7777/lunarisports2913/sportsstuff29/112641 |
-| E4 | UK | http://imediatv666.store:7777/lunarisports2913/sportsstuff29/112646 |
-| Sportsnet 360 | CA | http://shpcafgj.mexamo.xyz/G36YB21A/FKVUQE5L/175777 |
-| Fubo sports 1 | CA | http://shpcafgj.mexamo.xyz/G36YB21A/FKVUQE5L/473384 |
-| Sportsnet Ontario HD | CA | http://shpcafgj.mexamo.xyz:80/G36YB21A/FKVUQE5L/175774 |
-| USA Network | CA | https://theariatv.github.io/channeldead.mp4 |
-| MBC ACTION | AE | http://213.57.91.138:8000/play/a05l |
-| NATIONAL GEOGRAPHIC ABU DHABI | AE | http://213.57.91.138:8000/play/a05a |
-
-
 ## Configuration Notes
 
-- **VOD Checking:** Disabled - Only URLs ending with /#.mkv are considered VOD files
+- **VOD Checking:** Disabled - URLs ending with #.mkv are VOD files
 - **PPV/Event Checking:** Disabled - UK EVENTS & USA EVENTS groups are automatically detected
-- **A1XS Detection:** URLs containing 'a1xs.vip' are classified as A1XS Channel URLs
-- **FAST Detection:** URLs with 'jmp2.uk/stvp-', 'pluto.tv', 'plex.tv', etc. are FAST channels
+- **FAST Checking:** Disabled - Groups containing 'FAST' are automatically detected
+- **Channel Detection:** All other streams are classified as regular channels
 - **Timeout:** 10 seconds per stream (PPV channels get 2x timeout)
-- **M3U8 Detection:** Matches URLs containing .m3u8 anywhere (handles tokens/parameters)
-- **TS Detection:** Identifies .ts stream URLs as separate category
-
-## Technical Details
-
-- **User-Agent:** Chrome 120 simulation for maximum compatibility
-- **Method:** HEAD for direct video files, GET with stream verification for live content
-- **A1XS Channels:** Detected by 'a1xs.vip' domain pattern
-- **FAST Channels:** Free Ad-Supported TV services (Pluto, Plex, Samsung, LG)
-- **Headers:** Enhanced with security headers and proper content type
-- **Rate Limiting:** Dynamic delays based on success rate
-- **Geographic Testing:** Tests run from GitHub Actions global infrastructure
 
 ## Manual Testing Options
 
@@ -253,8 +303,9 @@ To test specific content types:
 1. Go to **Actions** → **Check M3U Streams** → **Run workflow**
 2. Toggle **Check VODs** to test video-on-demand content
 3. Toggle **Check PPV** to test Pay-Per-View channels
-4. Adjust **Timeout** for slower connections
+4. Toggle **Check FAST** to test Free Ad-Supported TV channels
+5. Adjust **Timeout** for slower connections
 
 ---
-*Last updated: 2025-09-26 22:33:02 UTC*
+*Last updated: 2025-09-27 01:13:03 UTC*
 *Report generated automatically by GitHub Actions*

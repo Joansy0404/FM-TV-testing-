@@ -1,7 +1,7 @@
 # 📺 M3U Stream Status Report
 
-**📅 Generated on:** 2025-09-27 05:29:40 UTC  
-**⏱️ Duration:** 620.3 seconds  
+**📅 Generated on:** 2025-09-27 06:36:35 UTC  
+**⏱️ Duration:** 485.1 seconds  
 **⚙️ Configuration:** 🎬 VODs: ❌ Disabled, 🥊 PPV: ❌ Disabled, 📺 FAST: ❌ Disabled, ⏲️ Timeout: 10s
 
 ## 📂 Files Processed
@@ -18,17 +18,17 @@
 | **🥊 PPV** | 53 | 3.3% |
 | **📺 FAST** | 120 | 7.4% |
 | **🔍 Checked Streams** | 581 | 35.8% |
-| **✅ Working Streams** | 467 | 80.4% |
-| **❌ Failed Streams** | 114 | 19.6% |
+| **✅ Working Streams** | 476 | 81.9% |
+| **❌ Failed Streams** | 105 | 18.1% |
 | **⏭️ Skipped Streams** | 1043 | 64.2% |
 
 ## 🎯 Stream Type Breakdown
 
 | Type | Working | Failed | Total Checked | Success Rate |
 |------|---------|--------|---------------|-------------|
-| 📡 **Channels** | ✅ 467 | ❌ 114 | 581 | 80.4% |
+| 📡 **Channels** | ✅ 476 | ❌ 105 | 581 | 81.9% |
 
-## 🚨 Failure Analysis (114 total failures)
+## 🚨 Failure Analysis (105 total failures)
 
 ### 🚫 Connection Refused (81 streams)
 *Server actively refusing connections*
@@ -117,18 +117,15 @@
 | ANTENNA TV | USA | 📡 Channel | Connection refused | None | channel playlist.m3u |
 | FANDUEL SPORTS NETWORK ARIZONA | USA | 📡 Channel | Connection refused | None | channel playlist.m3u |
 
-### 🔍 Not Found (404) (9 streams)
+### 🔍 Not Found (404) (6 streams)
 *Stream URL no longer exists*
 
 | Channel | Group | Type | Error | Code | File |
 |---------|-------|------|-------|------|---------|
-| ARMENIA 1 | AM | 📡 Channel | Stream not found | 404 | channel playlist.m3u |
-| ARMENIA 2 | AM | 📡 Channel | Stream not found | 404 | channel playlist.m3u |
-| FIRST CHANNEL NEWS | AM | 📡 Channel | Stream not found | 404 | channel playlist.m3u |
+| SKY SPORTS NFL | UK | 📡 Channel | Stream not found | 404 | channel playlist.m3u |
 | BEATS RADIO | AR | 📡 Channel | Stream not found | 404 | channel playlist.m3u |
 | CANAL 4 SAN JUAN | AR | 📡 Channel | Stream not found | 404 | channel playlist.m3u |
 | CANAL 21 TV | AR | 📡 Channel | Stream not found | 404 | channel playlist.m3u |
-| CTB PERTH | AUS | 📡 Channel | Stream not found | 404 | channel playlist.m3u |
 | INDO OZ TV | AUS | 📡 Channel | Stream not found | 404 | channel playlist.m3u |
 | REDEMPTION TV MINISTRY | ZA | 📡 Channel | Stream not found | 404 | channel playlist.m3u |
 
@@ -151,21 +148,13 @@
 | WANASAH | AE | 📡 Channel | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
 | TG 4 | IE | 📡 Channel | Access denied (geo-blocked/auth required | 403 | channel playlist.m3u |
 
-### ⏰ Connection Timeouts (10 streams)
+### ⏰ Connection Timeouts (2 streams)
 *Server slow/overloaded or PPV preparing*
 
 | Channel | Group | Type | Error | Code | File |
 |---------|-------|------|-------|------|---------|
-| ESPN | USA | 📡 Channel | Timeout after 10s | None | channel playlist.m3u |
-| FS1 | USA | 📡 Channel | Timeout after 10s | None | channel playlist.m3u |
-| FS2 | USA | 📡 Channel | Timeout after 10s | None | channel playlist.m3u |
-| PEACOCK PREMIER LEAGUE TV | USA | 📡 Channel | Timeout after 10s | None | channel playlist.m3u |
-| CRIME+INVESTIGATION | UK | 📡 Channel | Timeout after 10s | None | channel playlist.m3u |
-| SKY SHOWCASE | UK | 📡 Channel | Timeout after 10s | None | channel playlist.m3u |
-| SKY SPORTS CRICKET | UK | 📡 Channel | Timeout after 10s | None | channel playlist.m3u |
-| SKY SPORTS NFL | UK | 📡 Channel | Timeout after 10s | None | channel playlist.m3u |
-| TNT SPORTS 2 | UK | 📡 Channel | Timeout after 10s | None | channel playlist.m3u |
-| TNT SPORTS 3 | UK | 📡 Channel | Timeout after 10s | None | channel playlist.m3u |
+| COMEDY CENTRAL XTRA | UK | 📡 Channel | Timeout after 10s | None | channel playlist.m3u |
+| RTÈ 2 | IE | 📡 Channel | Timeout after 10s | None | channel playlist.m3u |
 
 ### 🌐 DNS Failures (1 streams)
 *Domain name resolution failed*
@@ -173,6 +162,13 @@
 | Channel | Group | Type | Error | Code | File |
 |---------|-------|------|-------|------|---------|
 | ABC AUSTRALIA VIETNAM | AUS | 📡 Channel | DNS resolution failed | None | channel playlist.m3u |
+
+### 📡 Stream Errors (1 streams)
+*Stream exists but not readable*
+
+| Channel | Group | Type | Error | Code | File |
+|---------|-------|------|-------|------|---------|
+| PEACOCK PREMIER LEAGUE TV | USA | 📡 Channel | Empty stream response | 200 | channel playlist.m3u |
 
 
 ## ⏭️ Skipped Streams (1043 total)
@@ -244,5 +240,5 @@ To test specific content types:
 5. Adjust **⏱️ Timeout** for slower connections
 
 ---
-*📅 Last updated: 2025-09-27 05:29:40 UTC*
+*📅 Last updated: 2025-09-27 06:36:35 UTC*
 *🤖 Report generated automatically by GitHub Actions*

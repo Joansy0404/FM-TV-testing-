@@ -1,7 +1,7 @@
 # Smart Provider-Optimized Stream Check Report
 
-**Generated:** 2025-09-28 06:19 UTC  
-**Duration:** 310.5s (5.2m)  
+**Generated:** 2025-09-28 12:43 UTC  
+**Duration:** 330.1s (5.5m)  
 **Method:** Smart provider grouping with proxy optimization  
 **Scope:** 588 streams tested with unwrapped URL analysis  
 
@@ -11,7 +11,7 @@
 - **Failed:** 588 streams (100.0%)
 - **Total tested:** 588 streams
 
-**Performance:** 1.9 streams/second with smart provider optimization
+**Performance:** 1.8 streams/second with smart provider optimization
 
 ## Smart Provider Analysis
 

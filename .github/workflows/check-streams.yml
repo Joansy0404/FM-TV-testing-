@@ -1,4 +1,4 @@
-name: IPTV Stream Checker - FFmpeg Enhanced with Comprehensive Analysis
+name: IPTV Stream Checker - Fixed Validation
 
 on:
   workflow_dispatch:
@@ -21,18 +21,18 @@ on:
       timeout_seconds:
         description: 'Timeout per stream (seconds)'
         required: false
-        default: '10'
-        type: string
-      extended_timeout:
-        description: 'Extended timeout for failed streams (seconds)'
-        required: false
-        default: '15'
+        default: '8'
         type: string
       sample_size:
         description: 'Sample size (0=all streams, 500=recommended)'
         required: false
         default: '500'
         type: string
+      debug_mode:
+        description: 'Enable debug mode for failed streams'
+        required: false
+        default: false
+        type: boolean
   schedule:
     - cron: '0 */12 * * *'
 
@@ -40,9 +40,9 @@ permissions:
   contents: write
 
 jobs:
-  ffmpeg-enhanced-check:
+  improved-stream-check:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
 
     steps:
       - name: Checkout repository
@@ -53,25 +53,25 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: Install FFmpeg and dependencies
+      - name: Install dependencies
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y ffmpeg
+          sudo apt-get install -y ffmpeg curl
           python -m pip install --upgrade pip
           pip install requests
           
-          # Verify FFmpeg installation
-          ffmpeg -version
-          ffprobe -version
+          # Verify installations
+          ffmpeg -version | head -1
+          ffprobe -version | head -1
 
-      - name: IPTV Stream Validation with FFmpeg
+      - name: Fixed IPTV Stream Validation
         env:
           CHECK_VODS: ${{ github.event.inputs.check_vods || 'false' }}
           CHECK_PPV: ${{ github.event.inputs.check_ppv || 'false' }}
           CHECK_FAST: ${{ github.event.inputs.check_fast || 'false' }}
-          TIMEOUT_SECONDS: ${{ github.event.inputs.timeout_seconds || '10' }}
-          EXTENDED_TIMEOUT: ${{ github.event.inputs.extended_timeout || '15' }}
+          TIMEOUT_SECONDS: ${{ github.event.inputs.timeout_seconds || '8' }}
           SAMPLE_SIZE: ${{ github.event.inputs.sample_size || '500' }}
+          DEBUG_MODE: ${{ github.event.inputs.debug_mode || 'false' }}
         run: |
           python - << 'EOF'
           import requests
@@ -81,41 +81,39 @@ jobs:
           import time
           import random
           import json
+          import socket
           from datetime import datetime, timezone
-          from concurrent.futures import ThreadPoolExecutor, as_completed
+          from urllib.parse import urlparse
 
           # Configuration
           CHECK_VODS = os.getenv('CHECK_VODS', 'false').lower() == 'true'
           CHECK_PPV = os.getenv('CHECK_PPV', 'false').lower() == 'true'
           CHECK_FAST = os.getenv('CHECK_FAST', 'false').lower() == 'true'
-          TIMEOUT_SECONDS = int(os.getenv('TIMEOUT_SECONDS', '10'))
-          EXTENDED_TIMEOUT = int(os.getenv('EXTENDED_TIMEOUT', '15'))
+          TIMEOUT_SECONDS = int(os.getenv('TIMEOUT_SECONDS', '8'))
           SAMPLE_SIZE = int(os.getenv('SAMPLE_SIZE', '500'))
+          DEBUG_MODE = os.getenv('DEBUG_MODE', 'false').lower() == 'true'
 
-          print(f"FFmpeg-Enhanced IPTV Stream Validation Starting...")
+          print(f"Fixed IPTV Stream Validation Starting...")
           print(f"Config: VODs={CHECK_VODS}, PPV={CHECK_PPV}, FAST={CHECK_FAST}")
-          print(f"Timeouts: {TIMEOUT_SECONDS}s initial, {EXTENDED_TIMEOUT}s extended")
-          print(f"Sample size: {SAMPLE_SIZE if SAMPLE_SIZE > 0 else 'All streams'}")
+          print(f"Timeout: {TIMEOUT_SECONDS}s, Sample: {SAMPLE_SIZE if SAMPLE_SIZE > 0 else 'All'}")
+          print(f"Debug mode: {DEBUG_MODE}")
 
-          class FFmpegEnhancedChecker:
+          class ImprovedStreamChecker:
               def __init__(self):
                   self.start_time = time.time()
                   self.results = {
                       'working': [],
                       'geoblocked': [],
                       'failed': [],
-                      'ffmpeg_failed': []  # Streams that passed HTTP but failed FFmpeg
+                      'timeout': [],
+                      'debug_info': []
                   }
-                  self.min_data_threshold = 1024 * 500  # 500KB
-                  self.validation_stats = {
-                      'http_passed': 0,
-                      'http_failed': 0,
-                      'ffmpeg_passed': 0,
-                      'ffmpeg_failed': 0,
-                      'ffmpeg_timeout': 0,
-                      'ffmpeg_error': 0
-                  }
-                  self.detailed_failures = {}
+                  self.user_agents = [
+                      'VLC/3.0.12 LibVLC/3.0.12',
+                      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                      'ffmpeg/4.4.0',
+                      'IPTVChecker/2.0'
+                  ]
 
               def classify_stream_type(self, stream):
                   """Classify stream type"""
@@ -125,7 +123,7 @@ jobs:
                   
                   if url.endswith('#.mkv'):
                       return 'VOD'
-                  elif any(x in group for x in ['uk events', 'usa events', 'events']):
+                  elif any(x in group for x in ['uk events', 'usa events', 'events', 'ppv']):
                       return 'PPV'
                   elif 'fast' in group:
                       return 'FAST'
@@ -145,209 +143,219 @@ jobs:
                   
                   return True
 
-              def check_stream_http(self, url, timeout, retries=3):
-                  """HTTP-based stream validation (first pass)"""
-                  headers = {
-                      'User-Agent': 'IPTVChecker 1.0'
-                  }
-                  
-                  initial_timeout = 5
-                  
-                  def attempt_check(current_timeout):
-                      accumulated_data = 0
-                      stable_connection = True
-                      
-                      for attempt in range(retries):
-                          try:
-                              with requests.get(url, stream=True, 
-                                              timeout=(initial_timeout, current_timeout), 
-                                              headers=headers) as resp:
-                                  
-                                  # Rate limiting
-                                  if resp.status_code == 429:
-                                      time.sleep(2)
-                                      continue
-                                  
-                                  # Geo-blocking detection
-                                  elif resp.status_code in [403, 451, 426]:
-                                      return 'Geoblocked', resp.status_code, 0
-                                  
-                                  # Success case
-                                  elif resp.status_code == 200:
-                                      content_type = resp.headers.get('Content-Type', '')
-                                      
-                                      # Enhanced content type validation
-                                      valid_content_types = [
-                                          'video/mp2t',
-                                          'application/vnd.apple.mpegurl',
-                                          'application/x-mpegurl',
-                                          'video/x-ms-asf',
-                                          'application/octet-stream'
-                                      ]
-                                      
-                                      has_valid_content_type = (
-                                          any(ct in content_type for ct in valid_content_types) or
-                                          '.ts' in url or
-                                          '.m3u8' in url
-                                      )
-                                      
-                                      if has_valid_content_type:
-                                          # Read and analyze content
-                                          first_chunk = True
-                                          for chunk in resp.iter_content(1024 * 1024):  # 1MB chunks
-                                              if not chunk:
-                                                  stable_connection = False
-                                                  break
-
-                                              # Analyze first chunk for HTML/text content (common false positive)
-                                              if first_chunk and len(chunk) > 100:
-                                                  chunk_start = chunk[:500].lower()
-                                                  if (b'<html' in chunk_start or 
-                                                      b'<!doctype' in chunk_start or
-                                                      b'<title>' in chunk_start or
-                                                      b'error' in chunk_start):
-                                                      return 'Dead', resp.status_code, accumulated_data
-                                                  first_chunk = False
-
-                                              accumulated_data += len(chunk)
-                                              if accumulated_data >= self.min_data_threshold:
-                                                  return 'Alive', resp.status_code, accumulated_data
-
-                                          if not stable_connection:
-                                              return 'Dead', resp.status_code, accumulated_data
-                                      else:
-                                          return 'Dead', resp.status_code, 0
-                                  
-                                  # Other geo-block indicators
-                                  elif resp.status_code in [401, 423]:
-                                      return 'Geoblocked', resp.status_code, 0
-                                  else:
-                                      return 'Dead', resp.status_code, 0
-                                      
-                          except requests.ConnectionError:
-                              return 'Dead', None, 0
-                          except requests.Timeout:
-                              return 'Dead', None, 0
-                          except Exception as e:
-                              continue
-
-                      return 'Dead', None, 0
-
-                  # First attempt
-                  status, code, data_size = attempt_check(timeout)
-
-                  # Extended timeout retry
-                  if status == 'Dead' and EXTENDED_TIMEOUT > timeout:
-                      status, code, data_size = attempt_check(EXTENDED_TIMEOUT)
-
-                  return status, code, data_size
-
-              def verify_stream_ffmpeg(self, url):
-                  """FFmpeg verification (second pass - more accurate)"""
+              def test_connectivity(self, url):
+                  """Test basic connectivity to host"""
                   try:
-                      # Use FFmpeg to test stream for 5 seconds
-                      command = [
-                          'ffmpeg', '-i', url, '-t', '5', '-f', 'null', '-',
-                          '-v', 'quiet'  # Reduce output
+                      parsed = urlparse(url)
+                      host = parsed.hostname
+                      port = parsed.port or (443 if parsed.scheme == 'https' else 80)
+                      
+                      sock = socket.create_connection((host, port), timeout=3)
+                      sock.close()
+                      return True, "Connected"
+                  except Exception as e:
+                      return False, f"Connection failed: {str(e)[:50]}"
+
+              def relaxed_http_check(self, url):
+                  """More permissive HTTP validation"""
+                  for ua in self.user_agents:
+                      try:
+                          headers = {'User-Agent': ua}
+                          response = requests.get(url, stream=True, timeout=TIMEOUT_SECONDS, 
+                                                headers=headers, allow_redirects=True)
+                          
+                          # Check status code
+                          if response.status_code == 403:
+                              return 'Geoblocked', 403, 0, ua
+                          elif response.status_code == 404:
+                              continue  # Try next user agent
+                          elif response.status_code != 200:
+                              continue  # Try next user agent
+                          
+                          # Download and analyze content
+                          data_chunk = b''
+                          try:
+                              for chunk in response.iter_content(chunk_size=4096):
+                                  data_chunk += chunk
+                                  if len(data_chunk) > 16384:  # 16KB sample
+                                      break
+                              
+                              if len(data_chunk) < 512:
+                                  continue  # Too little data, try next UA
+                              
+                              # Analyze content
+                              is_html = (b'<html' in data_chunk.lower() or 
+                                       b'<!doctype' in data_chunk.lower() or
+                                       b'<title>' in data_chunk.lower())
+                              
+                              # Check for binary content (likely video)
+                              binary_ratio = len([b for b in data_chunk if b > 127]) / len(data_chunk)
+                              
+                              if not is_html and binary_ratio > 0.1:
+                                  return 'Working', response.status_code, len(data_chunk), ua
+                              elif not is_html and len(data_chunk) > 8192:
+                                  # Might be text-based stream format (m3u8 content)
+                                  if b'm3u8' in data_chunk.lower() or b'#extinf' in data_chunk.lower():
+                                      return 'Working', response.status_code, len(data_chunk), ua
+                                  
+                          except requests.exceptions.RequestException:
+                              continue
+                              
+                      except requests.exceptions.Timeout:
+                          continue
+                      except requests.exceptions.RequestException:
+                          continue
+                  
+                  return 'Failed', None, 0, None
+
+              def quick_ffprobe_test(self, url):
+                  """Lightweight ffprobe test"""
+                  try:
+                      cmd = [
+                          'ffprobe', '-v', 'error', '-timeout', f'{TIMEOUT_SECONDS * 1000000}',
+                          '-show_streams', '-select_streams', 'v:0', url
                       ]
                       
-                      start_time = time.time()
-                      result = subprocess.run(command, 
-                                            stdout=subprocess.PIPE, 
-                                            stderr=subprocess.PIPE, 
-                                            timeout=15)
-                      verification_time = time.time() - start_time
+                      result = subprocess.run(cmd, capture_output=True, 
+                                            timeout=TIMEOUT_SECONDS + 2, text=True)
                       
-                      if result.returncode == 0:
-                          return 'Alive', 'FFmpeg verification successful', verification_time
+                      if result.returncode == 0 and len(result.stdout.strip()) > 10:
+                          return True, "Video stream detected"
                       else:
-                          stderr_output = result.stderr.decode('utf-8', errors='ignore')
-                          return 'Dead', f"FFmpeg failed: {stderr_output[:100]}", verification_time
+                          return False, f"No video streams: {result.stderr[:50] if result.stderr else 'Unknown'}"
                           
                   except subprocess.TimeoutExpired:
-                      return 'Dead', 'FFmpeg verification timeout', 15
+                      return False, "ffprobe timeout"
                   except Exception as e:
-                      return 'Dead', f"FFmpeg error: {str(e)[:100]}", 0
+                      return False, f"ffprobe error: {str(e)[:50]}"
 
-              def get_stream_info_ffprobe(self, url):
-                  """Get detailed stream information using ffprobe"""
-                  try:
-                      command = [
-                          'ffprobe', '-v', 'quiet', '-print_format', 'json',
-                          '-show_streams', '-show_format',
-                          '-timeout', '10000000',  # 10 second timeout in microseconds
-                          url
-                      ]
-                      
-                      result = subprocess.run(command, 
-                                            stdout=subprocess.PIPE, 
-                                            stderr=subprocess.PIPE, 
-                                            timeout=12)
-                      
-                      if result.returncode == 0:
-                          info = json.loads(result.stdout.decode('utf-8'))
-                          
-                          # Extract video info
-                          video_info = {}
-                          audio_info = {}
-                          
-                          for stream in info.get('streams', []):
-                              if stream.get('codec_type') == 'video':
-                                  video_info = {
-                                      'codec': stream.get('codec_name', 'unknown').upper(),
-                                      'width': stream.get('width', 0),
-                                      'height': stream.get('height', 0),
-                                      'fps': self.parse_fps(stream.get('r_frame_rate', '0/0'))
-                                  }
-                              elif stream.get('codec_type') == 'audio':
-                                  audio_info = {
-                                      'codec': stream.get('codec_name', 'unknown').upper(),
-                                      'bitrate': int(stream.get('bit_rate', 0)) // 1000 if stream.get('bit_rate') else 0
-                                  }
-                          
-                          return video_info, audio_info
-                      else:
-                          return {}, {}
-                          
-                  except Exception as e:
-                      return {}, {}
-
-              def parse_fps(self, fps_str):
-                  """Parse frame rate from ffprobe format"""
-                  try:
-                      if '/' in fps_str:
-                          num, den = fps_str.split('/')
-                          return round(int(num) / int(den)) if int(den) > 0 else 0
-                      return int(float(fps_str))
-                  except:
-                      return 0
-
-              def format_resolution(self, video_info):
-                  """Format resolution string"""
-                  width = video_info.get('width', 0)
-                  height = video_info.get('height', 0)
+              def validate_stream_multi_method(self, stream):
+                  """Multi-method validation approach"""
+                  url = stream['url']
+                  name = stream['name']
+                  stream_type = self.classify_stream_type(stream)
                   
-                  if width >= 3840 and height >= 2160:
-                      return "4K"
-                  elif width >= 1920 and height >= 1080:
-                      return "1080p"
-                  elif width >= 1280 and height >= 720:
-                      return "720p"
-                  elif width > 0 and height > 0:
-                      return f"{width}x{height}"
-                  else:
-                      return "Unknown"
+                  validation_log = []
+                  
+                  # Method 1: Connectivity test
+                  conn_ok, conn_msg = self.test_connectivity(url)
+                  validation_log.append(f"Connectivity: {'OK' if conn_ok else 'FAIL'} - {conn_msg}")
+                  
+                  if not conn_ok:
+                      return {
+                          'status': 'Failed',
+                          'reason': f'No connectivity: {conn_msg}',
+                          'log': validation_log,
+                          'method': 'connectivity'
+                      }
+                  
+                  # Method 2: HTTP validation
+                  http_status, http_code, data_size, user_agent = self.relaxed_http_check(url)
+                  validation_log.append(f"HTTP: {http_status} - {http_code} - {data_size}B - UA: {user_agent}")
+                  
+                  if http_status == 'Geoblocked':
+                      return {
+                          'status': 'Geoblocked',
+                          'reason': f'HTTP {http_code} Forbidden',
+                          'log': validation_log,
+                          'method': 'http'
+                      }
+                  elif http_status == 'Working':
+                      # HTTP validation passed, now try ffprobe for extra confirmation
+                      ffprobe_ok, ffprobe_msg = self.quick_ffprobe_test(url)
+                      validation_log.append(f"ffprobe: {'OK' if ffprobe_ok else 'FAIL'} - {ffprobe_msg}")
+                      
+                      return {
+                          'status': 'Working',
+                          'reason': f'HTTP validated ({data_size}B) with UA: {user_agent}',
+                          'log': validation_log,
+                          'method': 'http',
+                          'ffprobe_confirmed': ffprobe_ok,
+                          'data_size': data_size,
+                          'user_agent': user_agent
+                      }
+                  
+                  # Method 3: Direct ffprobe test (sometimes works when HTTP fails)
+                  ffprobe_ok, ffprobe_msg = self.quick_ffprobe_test(url)
+                  validation_log.append(f"Direct ffprobe: {'OK' if ffprobe_ok else 'FAIL'} - {ffprobe_msg}")
+                  
+                  if ffprobe_ok:
+                      return {
+                          'status': 'Working',
+                          'reason': 'ffprobe detected video streams',
+                          'log': validation_log,
+                          'method': 'ffprobe'
+                      }
+                  
+                  return {
+                      'status': 'Failed',
+                      'reason': 'All validation methods failed',
+                      'log': validation_log,
+                      'method': 'all_failed'
+                  }
+
+              def debug_failed_stream(self, stream):
+                  """Debug a specific failed stream in detail"""
+                  url = stream['url']
+                  name = stream['name']
+                  
+                  debug_info = {
+                      'name': name,
+                      'url': url,
+                      'tests': []
+                  }
+                  
+                  print(f"\n=== DEBUGGING: {name} ===")
+                  
+                  # Test different approaches
+                  methods = [
+                      ('curl', ['curl', '-s', '-I', '--max-time', '5', url]),
+                      ('wget', ['wget', '--spider', '--timeout=5', url]),
+                      ('ffprobe_basic', ['ffprobe', '-v', 'error', '-timeout', '5000000', url]),
+                      ('ffprobe_streams', ['ffprobe', '-v', 'error', '-show_streams', '-timeout', '5000000', url])
+                  ]
+                  
+                  for method_name, cmd in methods:
+                      try:
+                          result = subprocess.run(cmd, capture_output=True, timeout=8, text=True)
+                          success = result.returncode == 0
+                          debug_info['tests'].append({
+                              'method': method_name,
+                              'success': success,
+                              'returncode': result.returncode,
+                              'stdout': result.stdout[:200] if result.stdout else '',
+                              'stderr': result.stderr[:200] if result.stderr else ''
+                          })
+                          print(f"  {method_name}: {'✓' if success else '✗'} (code: {result.returncode})")
+                      except subprocess.TimeoutExpired:
+                          debug_info['tests'].append({
+                              'method': method_name,
+                              'success': False,
+                              'error': 'timeout'
+                          })
+                          print(f"  {method_name}: ✗ (timeout)")
+                      except Exception as e:
+                          debug_info['tests'].append({
+                              'method': method_name,
+                              'success': False,
+                              'error': str(e)[:100]
+                          })
+                          print(f"  {method_name}: ✗ ({e})")
+                  
+                  return debug_info
 
               def parse_m3u(self, file_path):
                   """Parse M3U file"""
                   if not os.path.exists(file_path):
+                      print(f"M3U file not found: {file_path}")
                       return []
                       
                   streams = []
                   try:
                       with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
                           lines = f.readlines()
-                  except:
+                  except Exception as e:
+                      print(f"Error reading M3U file: {e}")
                       return []
                       
                   for i in range(len(lines)):
@@ -360,444 +368,328 @@ jobs:
                               
                               if i + 1 < len(lines):
                                   url = lines[i + 1].strip()
-                                  if url and not url.startswith('#') and 'http' in url:
+                                  if url and not url.startswith('#') and ('http' in url or 'rtmp' in url):
                                       streams.append({
                                           'name': name,
                                           'url': url,
                                           'group': group
                                       })
-                          except:
+                          except Exception as e:
                               continue
                   
+                  print(f"Parsed {len(streams)} streams from M3U file")
                   return streams
 
               def run_validation(self):
-                  """Run two-pass validation: HTTP then FFmpeg"""
+                  """Run improved validation"""
                   # Parse M3U
                   all_streams = self.parse_m3u('channel playlist.m3u')
                   if not all_streams:
-                      print("No streams found!")
+                      print("No streams found in M3U file!")
                       return
 
-                  # Filter and sample
+                  # Filter streams based on type preferences
                   test_streams = [s for s in all_streams if self.should_test_stream(s)]
                   
+                  # Apply sample size limit
                   if SAMPLE_SIZE > 0 and len(test_streams) > SAMPLE_SIZE:
                       test_streams = random.sample(test_streams, SAMPLE_SIZE)
                   
-                  print(f"Testing {len(test_streams)} streams (from {len(all_streams)} total)")
+                  print(f"\nTesting {len(test_streams)} streams (from {len(all_streams)} total)")
                   
                   # Count by type
-                  type_counts = {'Channel': 0, 'VOD': 0, 'PPV': 0, 'FAST': 0}
+                  type_counts = {}
                   for stream in test_streams:
                       stream_type = self.classify_stream_type(stream)
-                      type_counts[stream_type] += 1
+                      type_counts[stream_type] = type_counts.get(stream_type, 0) + 1
                   
                   print("Stream types to test:")
                   for stream_type, count in type_counts.items():
                       if count > 0:
                           print(f"  {stream_type}: {count}")
                   
-                  print(f"\nPhase 1: HTTP Validation")
-                  http_passed_streams = []
-                  
-                  # Phase 1: HTTP validation
+                  # Process streams
                   tested = 0
+                  working_count = 0
+                  
                   for stream in test_streams:
                       tested += 1
                       stream_type = self.classify_stream_type(stream)
+                      name = stream['name']
                       
-                      print(f"[{tested}/{len(test_streams)}] HTTP: {stream['name'][:40]}... ({stream_type})")
+                      print(f"[{tested}/{len(test_streams)}] Testing: {name[:50]}... ({stream_type})")
                       
-                      status, code, data_size = self.check_stream_http(stream['url'], TIMEOUT_SECONDS)
+                      # Validate stream
+                      result = self.validate_stream_multi_method(stream)
                       
-                      if status == 'Alive':
-                          self.validation_stats['http_passed'] += 1
-                          http_passed_streams.append(stream)
-                          print(f"  ✓ HTTP passed ({data_size // 1024}KB)")
-                      elif status == 'Geoblocked':
-                          self.validation_stats['http_failed'] += 1
-                          self.results['geoblocked'].append({
-                              'name': stream['name'],
-                              'type': stream_type,
-                              'group': stream['group'],
-                              'url': stream['url'],
-                              'http_status': code,
-                              'failure_reason': 'Geo-blocked'
-                          })
-                          print(f"  🔒 Geo-blocked (HTTP {code})")
-                      else:
-                          self.validation_stats['http_failed'] += 1
-                          failure_reason = f"HTTP failed (code: {code}, data: {data_size}B)"
-                          self.results['failed'].append({
-                              'name': stream['name'],
-                              'type': stream_type,
-                              'group': stream['group'],
-                              'url': stream['url'],
-                              'http_status': code,
-                              'failure_reason': failure_reason
-                          })
-                          print(f"  ✗ HTTP failed")
-                      
-                      time.sleep(0.05)  # Brief pause
-                  
-                  print(f"\nPhase 2: FFmpeg Verification ({len(http_passed_streams)} streams)")
-                  
-                  # Phase 2: FFmpeg verification for streams that passed HTTP
-                  verified = 0
-                  for stream in http_passed_streams:
-                      verified += 1
-                      stream_type = self.classify_stream_type(stream)
-                      
-                      print(f"[{verified}/{len(http_passed_streams)}] FFmpeg: {stream['name'][:40]}...")
-                      
-                      ffmpeg_status, ffmpeg_msg, verification_time = self.verify_stream_ffmpeg(stream['url'])
-                      
-                      if ffmpeg_status == 'Alive':
-                          self.validation_stats['ffmpeg_passed'] += 1
-                          
-                          # Get detailed stream info
-                          video_info, audio_info = self.get_stream_info_ffprobe(stream['url'])
-                          
+                      # Process result
+                      if result['status'] == 'Working':
+                          working_count += 1
                           self.results['working'].append({
-                              'name': stream['name'],
+                              'name': name,
                               'type': stream_type,
                               'group': stream['group'],
                               'url': stream['url'],
-                              'video_info': video_info,
-                              'audio_info': audio_info,
-                              'verification_time': verification_time
+                              'validation_method': result['method'],
+                              'reason': result['reason'],
+                              'ffprobe_confirmed': result.get('ffprobe_confirmed', False),
+                              'data_size': result.get('data_size', 0),
+                              'user_agent': result.get('user_agent', 'Unknown')
                           })
+                          method = result['method']
+                          ffprobe_status = "✓" if result.get('ffprobe_confirmed') else "?"
+                          print(f"  ✅ WORKING ({method}) ffprobe:{ffprobe_status}")
                           
-                          resolution = self.format_resolution(video_info)
-                          print(f"  ✅ Verified ({resolution}, {verification_time:.1f}s)")
+                      elif result['status'] == 'Geoblocked':
+                          self.results['geoblocked'].append({
+                              'name': name,
+                              'type': stream_type,
+                              'group': stream['group'],
+                              'url': stream['url'],
+                              'reason': result['reason']
+                          })
+                          print(f"  🔒 GEO-BLOCKED")
+                          
                       else:
-                          self.validation_stats['ffmpeg_failed'] += 1
-                          if 'timeout' in ffmpeg_msg.lower():
-                              self.validation_stats['ffmpeg_timeout'] += 1
-                          else:
-                              self.validation_stats['ffmpeg_error'] += 1
-                          
-                          self.results['ffmpeg_failed'].append({
-                              'name': stream['name'],
+                          self.results['failed'].append({
+                              'name': name,
                               'type': stream_type,
                               'group': stream['group'],
                               'url': stream['url'],
-                              'ffmpeg_error': ffmpeg_msg,
-                              'verification_time': verification_time
+                              'reason': result['reason'],
+                              'validation_log': result.get('log', [])
                           })
-                          print(f"  ❌ FFmpeg failed")
+                          print(f"  ❌ FAILED")
+                      
+                      # Brief pause to avoid overwhelming servers
+                      time.sleep(0.1)
+                  
+                  print(f"\nValidation completed: {working_count}/{len(test_streams)} working")
+                  
+                  # Debug mode: analyze some failed streams
+                  if DEBUG_MODE and self.results['failed']:
+                      print("\n" + "="*60)
+                      print("DEBUG MODE: Analyzing failed streams")
+                      print("="*60)
+                      
+                      # Debug first 3 failed streams
+                      for stream in self.results['failed'][:3]:
+                          debug_info = self.debug_failed_stream(stream)
+                          self.results['debug_info'].append(debug_info)
 
-              def generate_comprehensive_report(self):
-                  """Generate detailed report with FFmpeg analysis"""
+              def generate_report(self):
+                  """Generate validation report"""
                   duration = time.time() - self.start_time
                   
                   total_tested = (len(self.results['working']) + 
                                 len(self.results['geoblocked']) + 
-                                len(self.results['failed']) +
-                                len(self.results['ffmpeg_failed']))
+                                len(self.results['failed']))
                   
                   working_count = len(self.results['working'])
                   geo_count = len(self.results['geoblocked'])
                   failed_count = len(self.results['failed'])
-                  ffmpeg_failed_count = len(self.results['ffmpeg_failed'])
                   
-                  http_passed = self.validation_stats['http_passed']
-                  ffmpeg_success_rate = (working_count / http_passed * 100) if http_passed > 0 else 0
-                  overall_success_rate = (working_count / total_tested * 100) if total_tested > 0 else 0
+                  success_rate = (working_count / total_tested * 100) if total_tested > 0 else 0
                   
-                  report = f"# FFmpeg-Enhanced IPTV Stream Validation Report\n\n"
+                  report = f"# Improved IPTV Stream Validation Report\n\n"
                   report += f"**Generated:** {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}  \n"
                   report += f"**Duration:** {duration:.1f}s ({duration/60:.1f}m)  \n"
-                  report += f"**Method:** Two-pass validation (HTTP + FFmpeg verification)  \n"
-                  report += f"**Sample:** {total_tested} streams tested  \n\n"
+                  report += f"**Method:** Multi-method validation (connectivity + HTTP + ffprobe)  \n"
+                  report += f"**Sample:** {total_tested} streams tested  \n"
+                  report += f"**Debug Mode:** {'Enabled' if DEBUG_MODE else 'Disabled'}  \n\n"
                   
-                  # Summary
+                  # Executive Summary
                   report += "## Executive Summary\n\n"
-                  report += f"- **✅ Verified Working:** {working_count} streams ({overall_success_rate:.1f}%)\n"
-                  report += f"- **🔒 Geo-blocked:** {geo_count} streams ({(geo_count/total_tested*100) if total_tested > 0 else 0:.1f}%)\n"
-                  report += f"- **❌ HTTP Failed:** {failed_count} streams ({(failed_count/total_tested*100) if total_tested > 0 else 0:.1f}%)\n"
-                  report += f"- **⚠️ FFmpeg Failed:** {ffmpeg_failed_count} streams ({(ffmpeg_failed_count/total_tested*100) if total_tested > 0 else 0:.1f}%)\n"
+                  report += f"- **✅ Working Streams:** {working_count} ({success_rate:.1f}%)\n"
+                  report += f"- **🔒 Geo-blocked:** {geo_count} ({(geo_count/total_tested*100) if total_tested > 0 else 0:.1f}%)\n"
+                  report += f"- **❌ Failed Streams:** {failed_count} ({(failed_count/total_tested*100) if total_tested > 0 else 0:.1f}%)\n"
                   report += f"- **📊 Total Tested:** {total_tested} streams\n\n"
                   
-                  # Validation Pipeline Analysis
-                  report += "## Validation Pipeline Analysis\n\n"
-                  report += "| Stage | Passed | Failed | Success Rate | Notes |\n"
-                  report += "|-------|--------|--------|-------------|--------|\n"
-                  report += f"| HTTP Validation | {http_passed} | {self.validation_stats['http_failed']} | {(http_passed/(http_passed + self.validation_stats['http_failed'])*100) if (http_passed + self.validation_stats['http_failed']) > 0 else 0:.1f}% | Content download + type validation |\n"
-                  report += f"| FFmpeg Verification | {working_count} | {ffmpeg_failed_count} | {ffmpeg_success_rate:.1f}% | Actual video stream validation |\n"
-                  report += f"| **Overall Pipeline** | **{working_count}** | **{total_tested - working_count}** | **{overall_success_rate:.1f}%** | **End-to-end accuracy** |\n\n"
-                  
-                  # Performance metrics
-                  if duration > 0:
-                      http_rate = total_tested / duration
-                      ffmpeg_rate = http_passed / duration if http_passed > 0 else 0
-                      report += f"**Performance:** {http_rate:.2f} streams/sec HTTP validation, {ffmpeg_rate:.2f} streams/sec FFmpeg verification\n\n"
-                  
-                  # Stream type breakdown
-                  type_stats = {}
-                  for category in ['working', 'geoblocked', 'failed', 'ffmpeg_failed']:
-                      for stream in self.results[category]:
-                          stream_type = stream['type']
-                          if stream_type not in type_stats:
-                              type_stats[stream_type] = {'working': 0, 'geoblocked': 0, 'failed': 0, 'ffmpeg_failed': 0, 'total': 0}
-                          type_stats[stream_type][category] += 1
-                          type_stats[stream_type]['total'] += 1
-                  
-                  if type_stats:
-                      report += "## Stream Type Analysis\n\n"
-                      report += "| Type | Verified Working | Geo-blocked | HTTP Failed | FFmpeg Failed | Total | Success Rate |\n"
-                      report += "|------|-----------------|-------------|-------------|---------------|-------|-------------|\n"
-                      
-                      for stream_type, stats in type_stats.items():
-                          success = (stats['working'] / stats['total'] * 100) if stats['total'] > 0 else 0
-                          report += f"| {stream_type} | {stats['working']} | {stats['geoblocked']} | {stats['failed']} | {stats['ffmpeg_failed']} | {stats['total']} | {success:.1f}% |\n"
-                      
-                      report += "\n"
-                  
-                  # Working streams with details
+                  # Validation method breakdown
                   if self.results['working']:
-                      report += "## Verified Working Streams\n\n"
-                      report += "| Channel | Type | Resolution | Video Codec | Audio | FPS | Group |\n"
-                      report += "|---------|------|------------|-------------|-------|-----|--------|\n"
+                      method_counts = {}
+                      ffprobe_confirmed = 0
                       
-                      for stream in self.results['working'][:20]:
+                      for stream in self.results['working']:
+                          method = stream.get('validation_method', 'unknown')
+                          method_counts[method] = method_counts.get(method, 0) + 1
+                          if stream.get('ffprobe_confirmed'):
+                              ffprobe_confirmed += 1
+                      
+                      report += "## Validation Method Analysis\n\n"
+                      for method, count in method_counts.items():
+                          percentage = (count / working_count * 100)
+                          report += f"- **{method.upper()}:** {count} streams ({percentage:.1f}%)\n"
+                      
+                      report += f"\n**FFprobe Confirmation:** {ffprobe_confirmed}/{working_count} streams ({(ffprobe_confirmed/working_count*100):.1f}%)\n\n"
+                  
+                  # Working streams details
+                  if self.results['working']:
+                      report += "## Working Streams Sample\n\n"
+                      report += "| Channel | Type | Method | FFprobe | User Agent | Group |\n"
+                      report += "|---------|------|--------|---------|------------|--------|\n"
+                      
+                      for stream in self.results['working'][:15]:
                           name = stream['name'][:25].replace('|', '\\|')
                           stream_type = stream['type']
-                          
-                          video_info = stream.get('video_info', {})
-                          audio_info = stream.get('audio_info', {})
-                          
-                          resolution = self.format_resolution(video_info)
-                          video_codec = video_info.get('codec', 'Unknown')
-                          fps = video_info.get('fps', 0)
-                          fps_str = f"{fps}" if fps > 0 else "N/A"
-                          
-                          audio_str = f"{audio_info.get('bitrate', 0)}k {audio_info.get('codec', 'Unknown')}" if audio_info.get('codec') else "N/A"
+                          method = stream.get('validation_method', 'unknown')
+                          ffprobe = "✓" if stream.get('ffprobe_confirmed') else "✗"
+                          ua = stream.get('user_agent', 'Unknown')[:15]
                           group = stream['group'][:15].replace('|', '\\|')
                           
-                          report += f"| {name} | {stream_type} | {resolution} | {video_codec} | {audio_str} | {fps_str} | {group} |\n"
+                          report += f"| {name} | {stream_type} | {method} | {ffprobe} | {ua} | {group} |\n"
                       
                       report += "\n"
                   
-                  # FFmpeg failures (false positives from HTTP)
-                  if self.results['ffmpeg_failed']:
-                      report += "## FFmpeg Verification Failures\n\n"
-                      report += "*These streams passed HTTP validation but failed FFmpeg verification (false positives)*\n\n"
-                      report += "| Channel | Type | Group | Error Reason |\n"
-                      report += "|---------|------|-------|---------------|\n"
+                  # Failed streams analysis
+                  if self.results['failed']:
+                      report += "## Failed Streams Analysis\n\n"
                       
-                      for stream in self.results['ffmpeg_failed'][:15]:
+                      # Count failure reasons
+                      failure_reasons = {}
+                      for stream in self.results['failed']:
+                          reason = stream.get('reason', 'Unknown')[:50]
+                          failure_reasons[reason] = failure_reasons.get(reason, 0) + 1
+                      
+                      report += "**Failure Reasons:**\n"
+                      for reason, count in sorted(failure_reasons.items(), key=lambda x: x[1], reverse=True):
+                          report += f"- {reason}: {count} streams\n"
+                      
+                      report += f"\n**Sample Failed Streams:**\n\n"
+                      report += "| Channel | Type | Reason | Group |\n"
+                      report += "|---------|------|--------|--------|\n"
+                      
+                      for stream in self.results['failed'][:10]:
                           name = stream['name'][:30].replace('|', '\\|')
                           stream_type = stream['type']
-                          group = stream['group'][:20].replace('|', '\\|')
-                          error = stream['ffmpeg_error'][:50].replace('|', '\\|')
-                          report += f"| {name} | {stream_type} | {group} | {error} |\n"
+                          reason = stream.get('reason', 'Unknown')[:40].replace('|', '\\|')
+                          group = stream['group'][:15].replace('|', '\\|')
+                          
+                          report += f"| {name} | {stream_type} | {reason} | {group} |\n"
                       
-                      report += f"\n**Total FFmpeg failures:** {len(self.results['ffmpeg_failed'])} streams\n"
-                      report += f"**Timeout failures:** {self.validation_stats['ffmpeg_timeout']} streams\n"
-                      report += f"**Error failures:** {self.validation_stats['ffmpeg_error']} streams\n\n"
+                      report += "\n"
                   
                   # Geo-blocked streams
                   if self.results['geoblocked']:
                       report += "## Geo-blocked Streams\n\n"
-                      report += "| Channel | Type | Group | HTTP Status |\n"
-                      report += "|---------|------|-------|-------------|\n"
+                      report += "| Channel | Type | Group |\n"
+                      report += "|---------|------|---------|\n"
                       
                       for stream in self.results['geoblocked'][:10]:
                           name = stream['name'][:30].replace('|', '\\|')
                           stream_type = stream['type']
-                          group = stream['group'][:20].replace('|', '\\|')
-                          status = stream.get('http_status', 'Unknown')
-                          report += f"| {name} | {stream_type} | {group} | {status} |\n"
+                          group = stream['group'][:15].replace('|', '\\|')
+                          
+                          report += f"| {name} | {stream_type} | {group} |\n"
                       
                       report += "\n"
                   
-                  # Analysis and recommendations
-                  report += "## Technical Analysis & Recommendations\n\n"
+                  # Debug information
+                  if DEBUG_MODE and self.results['debug_info']:
+                      report += "## Debug Information\n\n"
+                      for debug in self.results['debug_info']:
+                          report += f"### {debug['name']}\n\n"
+                          for test in debug['tests']:
+                              status = "✓" if test['success'] else "✗"
+                              method = test['method']
+                              report += f"- **{method}:** {status}\n"
+                              if 'error' in test:
+                                  report += f"  - Error: {test['error']}\n"
+                              elif test.get('returncode') != 0:
+                                  report += f"  - Return code: {test['returncode']}\n"
+                                  if test.get('stderr'):
+                                      report += f"  - Error: {test['stderr'][:100]}\n"
+                          report += "\n"
                   
-                  false_positive_rate = (ffmpeg_failed_count / http_passed * 100) if http_passed > 0 else 0
-                  report += f"**False Positive Analysis:**\n"
-                  report += f"- HTTP validation passed: {http_passed} streams\n"
-                  report += f"- FFmpeg verification failed: {ffmpeg_failed_count} streams\n"
-                  report += f"- False positive rate: {false_positive_rate:.1f}%\n\n"
+                  # Recommendations
+                  report += "## Recommendations\n\n"
                   
-                  if false_positive_rate > 20:
-                      report += f"**High False Positive Rate Detected ({false_positive_rate:.1f}%)**\n"
-                      report += f"- Many streams are returning non-video content (HTML pages, errors, etc.)\n"
-                      report += f"- HTTP validation needs stricter content analysis\n"
-                      report += f"- FFmpeg verification is essential for accuracy\n\n"
+                  if success_rate < 10:
+                      report += f"**Low Success Rate ({success_rate:.1f}%)**\n"
+                      report += f"- Most streams appear to be offline or inaccessible\n"
+                      report += f"- Consider using a VPN or proxy for geo-blocked content\n"
+                      report += f"- Check if the stream source is still valid\n\n"
                   
-                  if overall_success_rate < 10:
-                      report += f"**Low Success Rate Analysis ({overall_success_rate:.1f}%)**\n"
-                      report += f"- Most streams appear to be offline or problematic\n"
-                      report += f"- Consider testing different stream sources\n"
-                      report += f"- Check if proxy/geo-unblocking is needed\n\n"
-                  
-                  report += f"**Optimization Recommendations:**\n"
-                  if self.validation_stats['ffmpeg_timeout'] > 5:
-                      report += f"- Reduce FFmpeg timeout (current: 15s) for faster processing\n"
-                  if false_positive_rate > 10:
-                      report += f"- Implement stricter HTTP content validation to reduce false positives\n"
                   if geo_count > working_count:
-                      report += f"- Consider adding proxy support for geo-blocked content\n"
-                  if duration > 1800:  # 30 minutes
-                      report += f"- Consider reducing sample size for faster routine checks\n"
+                      report += f"**High Geo-blocking Rate**\n"
+                      report += f"- {geo_count} streams are geo-blocked\n"
+                      report += f"- Consider implementing proxy support\n"
+                      report += f"- Test from different geographic locations\n\n"
                   
-                  report += f"\n## Validation Methodology\n\n"
-                  report += f"**Two-Pass Validation Process:**\n\n"
-                  report += f"1. **HTTP Validation (Phase 1):**\n"
-                  report += f"   - Downloads {self.min_data_threshold // 1024}KB of stream data\n"
-                  report += f"   - Validates IPTV-specific content types\n"
-                  report += f"   - Detects HTML error pages and non-video content\n"
-                  report += f"   - Identifies geo-blocking (HTTP 403, 451, 426)\n"
-                  report += f"   - {TIMEOUT_SECONDS}s initial, {EXTENDED_TIMEOUT}s extended timeout\n\n"
+                  report += f"**Performance:**\n"
+                  if duration > 0:
+                      rate = total_tested / duration
+                      report += f"- Testing rate: {rate:.2f} streams/second\n"
+                      report += f"- Average time per stream: {(duration/total_tested):.2f}s\n"
                   
-                  report += f"2. **FFmpeg Verification (Phase 2):**\n"
-                  report += f"   - Only tests streams that passed HTTP validation\n"
-                  report += f"   - Attempts to decode actual video stream for 5 seconds\n"
-                  report += f"   - Eliminates false positives from HTTP validation\n"
-                  report += f"   - Extracts detailed video/audio information\n"
-                  report += f"   - 15 second timeout per verification\n\n"
-                  
-                  report += f"**Key Improvements Over Basic Methods:**\n"
-                  report += f"- Eliminates false positives from error pages\n"
-                  report += f"- Provides actual video codec and resolution information\n"
-                  report += f"- Confirms streams contain decodable video data\n"
-                  report += f"- Two-tier approach balances speed with accuracy\n\n"
-                  
-                  # Configuration
-                  report += f"## Configuration Details\n\n"
-                  content_types = []
-                  if CHECK_VODS: content_types.append("VODs")
-                  if CHECK_PPV: content_types.append("PPV")
-                  if CHECK_FAST: content_types.append("FAST")
-                  if not content_types: content_types.append("Channels only")
-                  
-                  report += f"- **Content Types:** {', '.join(content_types)}\n"
-                  report += f"- **HTTP Timeouts:** {TIMEOUT_SECONDS}s initial, {EXTENDED_TIMEOUT}s extended\n"
-                  report += f"- **FFmpeg Timeout:** 15s per verification\n"
-                  report += f"- **Sample Size:** {SAMPLE_SIZE if SAMPLE_SIZE > 0 else 'All streams'}\n"
-                  report += f"- **Data Threshold:** {self.min_data_threshold // 1024}KB minimum for HTTP validation\n"
-                  report += f"- **FFmpeg Version:** {self.get_ffmpeg_version()}\n\n"
-                  
-                  # Debugging information
-                  report += f"## Debugging Information\n\n"
-                  report += f"**For further optimization, consider:**\n"
-                  report += f"- **Proxy Integration:** Add proxy support for {geo_count} geo-blocked streams\n"
-                  report += f"- **Content Analysis:** Enhance HTTP validation to reduce {ffmpeg_failed_count} false positives\n"
-                  report += f"- **Provider Grouping:** Group by actual stream providers for targeted testing\n"
-                  report += f"- **Timeout Optimization:** Current FFmpeg timeout may be too conservative\n"
-                  report += f"- **Batch Processing:** Parallel FFmpeg verification could improve speed\n\n"
-                  
-                  if len(self.results['working']) > 0:
-                      avg_verification_time = sum(s.get('verification_time', 0) for s in self.results['working']) / len(self.results['working'])
-                      report += f"**Performance Metrics:**\n"
-                      report += f"- Average FFmpeg verification time: {avg_verification_time:.1f}s\n"
-                      report += f"- HTTP validation efficiency: {(http_passed / total_tested * 100):.1f}% pass rate\n"
-                      report += f"- FFmpeg verification efficiency: {(working_count / http_passed * 100) if http_passed > 0 else 0:.1f}% pass rate\n\n"
-                  
-                  # Error patterns for debugging
-                  if self.results['ffmpeg_failed']:
-                      error_patterns = {}
-                      for stream in self.results['ffmpeg_failed']:
-                          error = stream.get('ffmpeg_error', 'Unknown')
-                          # Extract error type
-                          if 'timeout' in error.lower():
-                              error_type = 'Timeout'
-                          elif 'connection' in error.lower():
-                              error_type = 'Connection Error'
-                          elif 'invalid' in error.lower():
-                              error_type = 'Invalid Format'
-                          elif 'not found' in error.lower():
-                              error_type = 'Stream Not Found'
-                          else:
-                              error_type = 'Other'
-                          
-                          error_patterns[error_type] = error_patterns.get(error_type, 0) + 1
-                      
-                      report += f"**FFmpeg Error Patterns:**\n"
-                      for error_type, count in sorted(error_patterns.items(), key=lambda x: x[1], reverse=True):
-                          report += f"- {error_type}: {count} streams\n"
-                      report += f"\n"
+                  report += f"\n## Methodology Improvements\n\n"
+                  report += f"This validation uses a more permissive approach:\n"
+                  report += f"- Tests connectivity before HTTP validation\n"
+                  report += f"- Uses multiple User-Agent strings for better compatibility\n"
+                  report += f"- Accepts various content types (binary data, m3u8 playlists)\n"
+                  report += f"- Uses ffprobe for additional stream verification\n"
+                  report += f"- Provides detailed debugging when enabled\n"
+                  report += f"- Reduced false negatives compared to strict validation\n\n"
                   
                   report += f"---\n"
-                  report += f"*FFmpeg-enhanced validation completed in {duration:.1f} seconds*  \n"
-                  report += f"*Two-pass methodology ensures high accuracy with detailed stream analysis*  \n"
-                  report += f"*False positive rate: {false_positive_rate:.1f}% (HTTP pass, FFmpeg fail)*\n"
+                  report += f"*Improved validation completed in {duration:.1f} seconds*\n"
                   
                   return report
 
-              def get_ffmpeg_version(self):
-                  """Get FFmpeg version for debugging"""
-                  try:
-                      result = subprocess.run(['ffmpeg', '-version'], 
-                                            stdout=subprocess.PIPE, 
-                                            stderr=subprocess.PIPE, 
-                                            timeout=5)
-                      if result.returncode == 0:
-                          version_line = result.stdout.decode().split('\n')[0]
-                          return version_line.split()[2] if len(version_line.split()) > 2 else "Unknown"
-                  except:
-                      pass
-                  return "Unknown"
-
               def run(self):
-                  """Main execution"""
-                  print("Starting FFmpeg-Enhanced IPTV Stream Validation...")
+                  """Main execution function"""
+                  print("Starting Improved IPTV Stream Validation...")
                   
                   # Run validation
                   self.run_validation()
                   
-                  # Generate comprehensive report
-                  print("\nGenerating comprehensive validation report...")
-                  report = self.generate_comprehensive_report()
+                  # Generate report
+                  print("\nGenerating validation report...")
+                  report = self.generate_report()
                   
+                  # Save report
                   try:
                       with open('report.md', 'w', encoding='utf-8') as f:
                           f.write(report)
-                      print("Comprehensive report generated successfully!")
+                      print("Report saved successfully!")
                   except Exception as e:
-                      print(f"Error writing report: {e}")
-                      # Fallback
+                      print(f"Error saving report: {e}")
                       with open('report.md', 'w', encoding='utf-8') as f:
-                          f.write(f"# FFmpeg IPTV Validation Report\nError: {e}\n")
+                          f.write(f"# IPTV Validation Report\nError generating report: {e}\n")
                   
                   # Final summary
                   duration = time.time() - self.start_time
-                  total = (len(self.results['working']) + 
-                          len(self.results['geoblocked']) + 
-                          len(self.results['failed']) +
-                          len(self.results['ffmpeg_failed']))
                   working = len(self.results['working'])
-                  http_passed = self.validation_stats['http_passed']
+                  total = working + len(self.results['geoblocked']) + len(self.results['failed'])
                   
-                  print(f"\nFFmpeg-Enhanced Validation Complete:")
-                  print(f"Duration: {duration:.1f}s ({duration/60:.1f}m)")
-                  print(f"HTTP validation: {http_passed}/{total} passed")
-                  print(f"FFmpeg verification: {working}/{http_passed} passed")
-                  print(f"Final results: {working}/{total} verified working ({(working/total*100) if total > 0 else 0:.1f}%)")
-                  print(f"False positives eliminated: {len(self.results['ffmpeg_failed'])}")
+                  print(f"\n{'='*50}")
+                  print(f"VALIDATION COMPLETE")
+                  print(f"{'='*50}")
+                  print(f"Duration: {duration:.1f}s")
+                  print(f"Working: {working}/{total} ({(working/total*100) if total > 0 else 0:.1f}%)")
                   print(f"Geo-blocked: {len(self.results['geoblocked'])}")
+                  print(f"Failed: {len(self.results['failed'])}")
+                  if DEBUG_MODE:
+                      print(f"Debug info collected for {len(self.results['debug_info'])} streams")
 
-          # Run the FFmpeg-enhanced checker
-          checker = FFmpegEnhancedChecker()
+          # Run the improved checker
+          checker = ImprovedStreamChecker()
           checker.run()
           EOF
 
-      - name: Commit FFmpeg validation report
+      - name: Commit validation report
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "github-actions[bot]"
           
           if [[ -f "report.md" ]]; then
-            # Check for unstaged changes and handle them
+            # Handle any unstaged changes
             if ! git diff --quiet; then
               echo "Unstaged changes detected, adding them..."
               git add .
             fi
             
-            # Pull with merge strategy instead of rebase to avoid conflicts
+            # Pull latest changes with merge strategy
             git pull origin main --no-rebase || {
               echo "Pull failed, continuing with local changes..."
             }
@@ -805,28 +697,35 @@ jobs:
             # Add the report file
             git add report.md
             
+            # Check if there are changes to commit
             if ! git diff --staged --quiet; then
-              # Extract metrics for commit message with safe defaults
-              WORKING=$(grep -o "Verified Working.*(" report.md 2>/dev/null | head -1 | grep -o '[0-9]*' | head -1 || echo "0")
-              TOTAL=$(grep -o "Total Tested.*(" report.md 2>/dev/null | head -1 | grep -o '[0-9]*' | head -1 || echo "1")
-              FALSE_POS=$(grep -o "False positives eliminated: [0-9]*" report.md 2>/dev/null | grep -o '[0-9]*' || echo "0")
+              # Extract metrics safely with regex validation
+              WORKING=$(grep -o "Working Streams.*(" report.md 2>/dev/null | head -1 | grep -o '[0-9]\+' | head -1 || echo "0")
+              TOTAL=$(grep -o "Total Tested.*(" report.md 2>/dev/null | head -1 | grep -o '[0-9]\+' | head -1 || echo "1")
+              GEO=$(grep -o "Geo-blocked.*(" report.md 2>/dev/null | head -1 | grep -o '[0-9]\+' | head -1 || echo "0")
               
-              # Ensure we have valid numbers to avoid division by zero
-              if [[ "$WORKING" =~ ^[0-9]+$ ]] && [[ "$TOTAL" =~ ^[0-9]+$ ]] && [[ "$TOTAL" != "0" ]]; then
-                SUCCESS_RATE=$(( WORKING * 100 / TOTAL ))
-                COMMIT_MSG="FFmpeg IPTV validation - ${WORKING}/${TOTAL} verified (${SUCCESS_RATE}%)"
-              else
-                COMMIT_MSG="FFmpeg IPTV validation - results available"
-              fi
+              # Validate extracted numbers
+              if ! [[ "$WORKING" =~ ^[0-9]+$ ]]; then WORKING="0"; fi
+              if ! [[ "$TOTAL" =~ ^[0-9]+$ ]] || [[ "$TOTAL" == "0" ]]; then TOTAL="1"; fi
+              if ! [[ "$GEO" =~ ^[0-9]+$ ]]; then GEO="0"; fi
               
-              if [[ "$FALSE_POS" =~ ^[0-9]+$ ]] && [[ "$FALSE_POS" != "0" ]]; then
-                COMMIT_MSG="$COMMIT_MSG, ${FALSE_POS} false positives eliminated"
+              # Calculate success rate safely
+              SUCCESS_RATE=$(( WORKING * 100 / TOTAL ))
+              
+              # Build commit message
+              COMMIT_MSG="IPTV validation - ${WORKING}/${TOTAL} working (${SUCCESS_RATE}%)"
+              
+              if [[ "$GEO" != "0" ]]; then
+                COMMIT_MSG="$COMMIT_MSG, ${GEO} geo-blocked"
               fi
               
               COMMIT_MSG="$COMMIT_MSG - $(date -u '+%m/%d %H:%M UTC')"
               
+              # Commit and push
               git commit -m "$COMMIT_MSG"
               git push origin main
+              
+              echo "Report committed successfully"
             else
               echo "No changes to commit"
             fi

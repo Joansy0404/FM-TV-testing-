@@ -1,32 +1,37 @@
-name: Simple Reliable Stream Checker
+name: IPTV Stream Checker - Enhanced with Robust Validation
 
 on:
   workflow_dispatch:
     inputs:
       check_vods:
-        description: 'Check VOD files'
+        description: 'Check VOD files (URLs ending with #.mkv)'
         required: false
         default: false
         type: boolean
       check_ppv:
-        description: 'Check PPV channels'
+        description: 'Check PPV channels (may be offline)'
         required: false
         default: false
         type: boolean
       check_fast:
-        description: 'Check FAST channels'
+        description: 'Check FAST channels (Free Ad-Supported TV)'
         required: false
         default: false
-        type: boolean
-      use_proxies:
-        description: 'Use proxies for geo-blocked content'
-        required: false
-        default: true
         type: boolean
       timeout_seconds:
         description: 'Timeout per stream (seconds)'
         required: false
-        default: '6'
+        default: '10'
+        type: string
+      extended_timeout:
+        description: 'Extended timeout for failed streams (seconds)'
+        required: false
+        default: '15'
+        type: string
+      sample_size:
+        description: 'Sample size (0=all streams)'
+        required: false
+        default: '100'
         type: string
   schedule:
     - cron: '0 */6 * * *'
@@ -35,134 +40,176 @@ permissions:
   contents: write
 
 jobs:
-  simple-check:
+  iptv-check:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Python
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.x'
 
       - name: Install dependencies
         run: |
-          pip install requests aiohttp asyncio
+          python -m pip install --upgrade pip
+          pip install requests
 
-      - name: Simple Reliable Stream Check
+      - name: IPTV Stream Validation Check
         env:
           CHECK_VODS: ${{ github.event.inputs.check_vods || 'false' }}
           CHECK_PPV: ${{ github.event.inputs.check_ppv || 'false' }}
           CHECK_FAST: ${{ github.event.inputs.check_fast || 'false' }}
-          USE_PROXIES: ${{ github.event.inputs.use_proxies || 'true' }}
-          TIMEOUT_SECONDS: ${{ github.event.inputs.timeout_seconds || '6' }}
+          TIMEOUT_SECONDS: ${{ github.event.inputs.timeout_seconds || '10' }}
+          EXTENDED_TIMEOUT: ${{ github.event.inputs.extended_timeout || '15' }}
+          SAMPLE_SIZE: ${{ github.event.inputs.sample_size || '100' }}
         run: |
           python - << 'EOF'
           import requests
-          import asyncio
-          import aiohttp
-          import random
-          import time
           import os
           import re
+          import time
+          import random
           from datetime import datetime, timezone
-          from concurrent.futures import ThreadPoolExecutor, as_completed
 
-          # Simple Config
+          # Configuration
           CHECK_VODS = os.getenv('CHECK_VODS', 'false').lower() == 'true'
           CHECK_PPV = os.getenv('CHECK_PPV', 'false').lower() == 'true'
           CHECK_FAST = os.getenv('CHECK_FAST', 'false').lower() == 'true'
-          USE_PROXIES = os.getenv('USE_PROXIES', 'true').lower() == 'true'
-          TIMEOUT_SECONDS = int(os.getenv('TIMEOUT_SECONDS', '6'))
+          TIMEOUT_SECONDS = int(os.getenv('TIMEOUT_SECONDS', '10'))
+          EXTENDED_TIMEOUT = int(os.getenv('EXTENDED_TIMEOUT', '15'))
+          SAMPLE_SIZE = int(os.getenv('SAMPLE_SIZE', '100'))
 
-          class SimpleStreamChecker:
+          print(f"IPTV Stream Validation Starting...")
+          print(f"Config: VODs={CHECK_VODS}, PPV={CHECK_PPV}, FAST={CHECK_FAST}")
+          print(f"Timeouts: {TIMEOUT_SECONDS}s initial, {EXTENDED_TIMEOUT}s extended")
+
+          class IPTVStreamChecker:
               def __init__(self):
                   self.start_time = time.time()
-                  self.working_proxies = []
                   self.results = {
-                      'working_direct': 0,
-                      'working_via_proxy': 0,
-                      'failed': 0,
-                      'total_tested': 0,
-                      'samples': []
+                      'working': [],
+                      'geoblocked': [],
+                      'failed': [],
+                      'skipped': []
                   }
+                  self.min_data_threshold = 1024 * 500  # 500KB minimum like IPTV checker
 
-              def get_working_proxies(self):
-                  """Get working proxies from multiple sources - keep it simple"""
-                  if not USE_PROXIES:
-                      return []
+              def classify_stream_type(self, stream):
+                  """Classify stream type"""
+                  url = stream['url']
+                  name = stream['name'].lower()
+                  group = stream['group'].lower()
                   
-                  print("Getting working proxies...")
-                  
-                  proxy_sources = [
-                      "https://cdn.jsdelivr.net/gh/proxifly/free-proxy-list@main/proxies/all/data.txt",
-                      "https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list-raw.txt"
-                  ]
-                  
-                  all_proxies = []
-                  
-                  for source in proxy_sources:
-                      try:
-                          response = requests.get(source, timeout=15)
-                          if response.status_code == 200:
-                              for line in response.text.split('\n'):
-                                  line = line.strip()
-                                  if ':' in line:
-                                      match = re.search(r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):(\d+)', line)
-                                      if match:
-                                          ip, port = match.groups()
-                                          if not ip.startswith(('10.', '192.168.', '127.')):
-                                              all_proxies.append(f"http://{ip}:{port}")
-                      except:
-                          continue
-                  
-                  if not all_proxies:
-                      return []
-                  
-                  # Test proxies quickly - keep only the good ones
-                  unique_proxies = list(set(all_proxies))
-                  working = []
-                  
-                  print(f"Testing {min(40, len(unique_proxies))} proxies...")
-                  
-                  with ThreadPoolExecutor(max_workers=20) as executor:
-                      futures = {
-                          executor.submit(self.test_proxy, proxy): proxy 
-                          for proxy in unique_proxies[:40]
-                      }
-                      
-                      for future in as_completed(futures, timeout=45):
-                          try:
-                              proxy = futures[future]
-                              if future.result():
-                                  working.append(proxy)
-                                  print(f"  Working: {len(working)} - {proxy.split('/')[-1]}")
-                                  if len(working) >= 10:  # Stop at 10 working proxies
-                                      break
-                          except:
-                              continue
-                  
-                  print(f"Proxy setup: {len(working)} working proxies ready")
-                  return working
+                  if url.endswith('#.mkv'):
+                      return 'VOD'
+                  elif any(x in group for x in ['uk events', 'usa events', 'events']):
+                      return 'PPV'
+                  elif 'fast' in group:
+                      return 'FAST'
+                  else:
+                      return 'Channel'
 
-              def test_proxy(self, proxy_url):
-                  """Simple proxy test"""
-                  try:
-                      proxies = {'http': proxy_url, 'https': proxy_url}
-                      response = requests.get(
-                          "http://httpbin.org/ip",
-                          proxies=proxies,
-                          timeout=7
-                      )
-                      return response.status_code == 200 and 'origin' in response.text
-                  except:
+              def should_test_stream(self, stream):
+                  """Check if stream should be tested"""
+                  stream_type = self.classify_stream_type(stream)
+                  
+                  if stream_type == 'VOD' and not CHECK_VODS:
                       return False
+                  elif stream_type == 'PPV' and not CHECK_PPV:
+                      return False
+                  elif stream_type == 'FAST' and not CHECK_FAST:
+                      return False
+                  
+                  return True
+
+              def check_stream_robust(self, url, timeout, retries=3):
+                  """
+                  Robust stream checking based on IPTV checker methodology
+                  Tests with actual content download and validation
+                  """
+                  headers = {
+                      'User-Agent': 'IPTVChecker 1.0'  # Using same UA as IPTV checker
+                  }
+                  
+                  initial_timeout = 5
+                  max_timeout = timeout
+
+                  def attempt_check(current_timeout):
+                      accumulated_data = 0
+                      stable_connection = True
+                      
+                      for attempt in range(retries):
+                          try:
+                              with requests.get(url, stream=True, 
+                                              timeout=(initial_timeout, current_timeout), 
+                                              headers=headers) as resp:
+                                  
+                                  # Check for rate limiting
+                                  if resp.status_code == 429:
+                                      print(f"    Rate limit, retrying...")
+                                      time.sleep(2)
+                                      continue
+                                  
+                                  # Check for geo-blocking indicators (from IPTV checker)
+                                  elif resp.status_code in [403, 451, 426]:
+                                      return 'Geoblocked'
+                                  
+                                  # Check for success
+                                  elif resp.status_code == 200:
+                                      content_type = resp.headers.get('Content-Type', '')
+                                      
+                                      # Validate content type (from IPTV checker logic)
+                                      if (('video/mp2t' in content_type) or 
+                                          ('.ts' in url) or 
+                                          ('application/vnd.apple.mpegurl' in content_type) or
+                                          ('application/x-mpegurl' in content_type.lower())):
+                                          
+                                          # Read and validate actual stream content
+                                          for chunk in resp.iter_content(1024 * 1024):  # 1MB chunks
+                                              if not chunk:
+                                                  stable_connection = False
+                                                  break
+
+                                              accumulated_data += len(chunk)
+                                              if accumulated_data >= self.min_data_threshold:
+                                                  return 'Alive'
+
+                                          if not stable_connection:
+                                              return 'Dead'
+                                      else:
+                                          return 'Dead'
+                                  
+                                  # Check for other potential geo-block indicators
+                                  elif resp.status_code in [401, 423]:
+                                      return 'Geoblocked'
+                                  else:
+                                      return 'Dead'
+                                      
+                          except requests.ConnectionError:
+                              return 'Dead'
+                          except requests.Timeout:
+                              return 'Dead'
+                          except Exception as e:
+                              continue
+
+                      return 'Dead'
+
+                  # First attempt with normal timeout
+                  status = attempt_check(timeout)
+
+                  # If dead, retry with extended timeout (like IPTV checker)
+                  if status == 'Dead' and EXTENDED_TIMEOUT > timeout:
+                      print(f"    Retrying with extended timeout ({EXTENDED_TIMEOUT}s)...")
+                      status = attempt_check(EXTENDED_TIMEOUT)
+
+                  return status
 
               def parse_m3u(self, file_path):
-                  """Simple M3U parsing"""
+                  """Parse M3U file"""
                   if not os.path.exists(file_path):
                       return []
                       
@@ -194,281 +241,238 @@ jobs:
                   
                   return streams
 
-              def classify_stream_type(self, stream):
-                  """Simple stream classification"""
-                  url = stream['url']
-                  name = stream['name'].lower()
-                  group = stream['group'].lower()
-                  
-                  if url.endswith('#.mkv'):
-                      return 'VOD'
-                  elif any(x in group for x in ['uk events', 'usa events', 'events']) or any(x in name for x in ['ppv', 'boxing', 'ufc']):
-                      return 'PPV'
-                  elif 'fast' in group:
-                      return 'FAST'
-                  else:
-                      return 'Channel'
+              def run_validation(self):
+                  """Run IPTV validation on streams"""
+                  # Parse M3U
+                  all_streams = self.parse_m3u('channel playlist.m3u')
+                  if not all_streams:
+                      print("No streams found!")
+                      return
 
-              def should_test_stream(self, stream):
-                  """Simple inclusion logic"""
-                  stream_type = self.classify_stream_type(stream)
+                  # Filter streams to test
+                  test_streams = [s for s in all_streams if self.should_test_stream(s)]
                   
-                  if stream_type == 'Channel':
-                      return True
-                  elif stream_type == 'VOD' and CHECK_VODS:
-                      return True
-                  elif stream_type == 'PPV' and CHECK_PPV:
-                      return True
-                  elif stream_type == 'FAST' and CHECK_FAST:
-                      return True
+                  # Apply sample size limit
+                  if SAMPLE_SIZE > 0 and len(test_streams) > SAMPLE_SIZE:
+                      test_streams = random.sample(test_streams, SAMPLE_SIZE)
                   
-                  return False
-
-              async def test_stream_simple(self, session, stream):
-                  """Simple stream test - just check if server responds OK"""
-                  try:
-                      # Use GET with minimal headers - simpler than complex validation
-                      headers = {
-                          'User-Agent': 'Mozilla/5.0 (compatible; StreamChecker)',
-                          'Accept': '*/*'
+                  print(f"Testing {len(test_streams)} streams (from {len(all_streams)} total)")
+                  
+                  # Count by type
+                  type_counts = {'Channel': 0, 'VOD': 0, 'PPV': 0, 'FAST': 0}
+                  for stream in test_streams:
+                      stream_type = self.classify_stream_type(stream)
+                      type_counts[stream_type] += 1
+                  
+                  print("Stream types to test:")
+                  for stream_type, count in type_counts.items():
+                      if count > 0:
+                          print(f"  {stream_type}: {count}")
+                  
+                  # Test streams
+                  tested = 0
+                  for stream in test_streams:
+                      tested += 1
+                      stream_type = self.classify_stream_type(stream)
+                      
+                      print(f"[{tested}/{len(test_streams)}] Testing: {stream['name'][:40]}... ({stream_type})")
+                      
+                      # Use robust checking method
+                      status = self.check_stream_robust(stream['url'], TIMEOUT_SECONDS)
+                      
+                      # Categorize results
+                      stream_result = {
+                          'name': stream['name'],
+                          'type': stream_type,
+                          'group': stream['group'],
+                          'url': stream['url'],
+                          'status': status
                       }
                       
-                      timeout = aiohttp.ClientTimeout(total=TIMEOUT_SECONDS)
+                      if status == 'Alive':
+                          self.results['working'].append(stream_result)
+                          print(f"  ✅ Working")
+                      elif status == 'Geoblocked':
+                          self.results['geoblocked'].append(stream_result)
+                          print(f"  🔒 Geo-blocked")
+                      else:
+                          self.results['failed'].append(stream_result)
+                          print(f"  ❌ Failed")
                       
-                      async with session.get(stream['url'], headers=headers, timeout=timeout) as response:
-                          # Accept any non-error response
-                          if response.status < 400:
-                              return {'status': 'working', 'code': response.status}
-                          elif response.status == 403:
-                              return {'status': 'geo_blocked', 'code': 403}
-                          else:
-                              return {'status': 'failed', 'code': response.status}
-                              
-                  except asyncio.TimeoutError:
-                      return {'status': 'failed', 'error': 'timeout'}
-                  except Exception as e:
-                      if '403' in str(e):
-                          return {'status': 'geo_blocked', 'error': 'geo_blocked'}
-                      return {'status': 'failed', 'error': 'connection_error'}
+                      # Brief pause
+                      time.sleep(0.1)
 
-              def test_stream_via_proxy(self, stream, proxy_url):
-                  """Simple proxy test"""
-                  try:
-                      proxies = {'http': proxy_url, 'https': proxy_url}
-                      headers = {
-                          'User-Agent': 'Mozilla/5.0 (compatible; StreamChecker)',
-                          'Accept': '*/*'
-                      }
-                      
-                      response = requests.get(
-                          stream['url'],
-                          proxies=proxies,
-                          headers=headers,
-                          timeout=TIMEOUT_SECONDS + 2
-                      )
-                      
-                      return response.status_code < 400
-                      
-                  except:
-                      return False
-
-              async def process_streams(self, streams):
-                  """Simple stream processing"""
-                  print(f"Testing {len(streams)} streams...")
-                  
-                  connector = aiohttp.TCPConnector(limit=100, limit_per_host=25)
-                  timeout = aiohttp.ClientTimeout(total=TIMEOUT_SECONDS + 2)
-                  
-                  async with aiohttp.ClientSession(connector=connector, timeout=timeout) as session:
-                      # Process in batches
-                      batch_size = 50
-                      
-                      for i in range(0, len(streams), batch_size):
-                          batch = streams[i:i + batch_size]
-                          batch_num = i // batch_size + 1
-                          total_batches = (len(streams) + batch_size - 1) // batch_size
-                          
-                          print(f"  Batch {batch_num}/{total_batches}: Testing {len(batch)} streams...")
-                          
-                          # Test batch
-                          tasks = [self.test_stream_simple(session, stream) for stream in batch]
-                          results = await asyncio.gather(*tasks, return_exceptions=True)
-                          
-                          # Process results
-                          batch_working = 0
-                          batch_geo_recovered = 0
-                          
-                          for stream, result in zip(batch, results):
-                              if isinstance(result, dict):
-                                  self.results['total_tested'] += 1
-                                  stream_type = self.classify_stream_type(stream)
-                                  
-                                  if result['status'] == 'working':
-                                      self.results['working_direct'] += 1
-                                      batch_working += 1
-                                      
-                                      # Store sample
-                                      if len(self.results['samples']) < 100:
-                                          self.results['samples'].append({
-                                              'name': stream['name'][:45],
-                                              'status': 'working_direct',
-                                              'type': stream_type
-                                          })
-                                  
-                                  elif result['status'] == 'geo_blocked' and self.working_proxies:
-                                      # Try a random proxy for geo-blocked streams
-                                      proxy = random.choice(self.working_proxies)
-                                      if self.test_stream_via_proxy(stream, proxy):
-                                          self.results['working_via_proxy'] += 1
-                                          batch_working += 1
-                                          batch_geo_recovered += 1
-                                          
-                                          if len(self.results['samples']) < 100:
-                                              self.results['samples'].append({
-                                                  'name': stream['name'][:45],
-                                                  'status': 'working_via_proxy',
-                                                  'type': stream_type
-                                              })
-                                      else:
-                                          self.results['failed'] += 1
-                                  
-                                  else:
-                                      self.results['failed'] += 1
-                          
-                          print(f"    Results: {batch_working}/{len(batch)} working" + 
-                                (f" ({batch_geo_recovered} via proxy)" if batch_geo_recovered > 0 else ""))
-                          
-                          # Brief pause between batches
-                          await asyncio.sleep(0.5)
-
-              def generate_simple_report(self):
-                  """Simple, clear report"""
+              def generate_report(self):
+                  """Generate comprehensive report"""
                   duration = time.time() - self.start_time
-                  total_working = self.results['working_direct'] + self.results['working_via_proxy']
-                  total_tested = self.results['total_tested']
                   
-                  success_rate = (total_working / total_tested * 100) if total_tested > 0 else 0
+                  total_tested = (len(self.results['working']) + 
+                                len(self.results['geoblocked']) + 
+                                len(self.results['failed']))
                   
-                  report = f"# Simple Stream Check Report\n\n"
+                  working_count = len(self.results['working'])
+                  geo_count = len(self.results['geoblocked'])
+                  failed_count = len(self.results['failed'])
+                  
+                  success_rate = (working_count / total_tested * 100) if total_tested > 0 else 0
+                  
+                  report = f"# IPTV Stream Validation Report\n\n"
                   report += f"**Generated:** {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}  \n"
                   report += f"**Duration:** {duration:.1f}s ({duration/60:.1f}m)  \n"
-                  report += f"**Method:** Simple and reliable - back to basics  \n\n"
+                  report += f"**Method:** Robust content validation (IPTV Checker methodology)  \n"
+                  report += f"**Sample:** {total_tested} streams tested  \n\n"
                   
                   # Summary
                   report += "## Summary\n\n"
-                  report += f"- **Working (Direct):** {self.results['working_direct']} streams\n"
-                  if self.results['working_via_proxy'] > 0:
-                      report += f"- **Working (Via Proxy):** {self.results['working_via_proxy']} streams\n"
-                  report += f"- **Total Working:** {total_working} streams ({success_rate:.1f}%)\n"
-                  report += f"- **Failed:** {self.results['failed']} streams\n"
-                  report += f"- **Total Tested:** {total_tested} streams\n"
-                  if USE_PROXIES:
-                      report += f"- **Available Proxies:** {len(self.working_proxies)}\n"
-                  report += "\n"
+                  report += f"- **✅ Working:** {working_count} streams ({success_rate:.1f}%)\n"
+                  report += f"- **🔒 Geo-blocked:** {geo_count} streams ({(geo_count/total_tested*100) if total_tested > 0 else 0:.1f}%)\n"
+                  report += f"- **❌ Failed:** {failed_count} streams ({(failed_count/total_tested*100) if total_tested > 0 else 0:.1f}%)\n"
+                  report += f"- **📊 Total tested:** {total_tested} streams\n\n"
                   
                   # Performance
                   if duration > 0:
                       rate = total_tested / duration
-                      report += f"**Performance:** {rate:.1f} streams/second\n\n"
+                      report += f"**Performance:** {rate:.1f} streams/second with content validation\n\n"
                   
-                  # Sample working streams
-                  working_samples = [s for s in self.results['samples'] if 'working' in s['status']][:25]
+                  # Stream type breakdown
+                  type_stats = {}
+                  for category in ['working', 'geoblocked', 'failed']:
+                      for stream in self.results[category]:
+                          stream_type = stream['type']
+                          if stream_type not in type_stats:
+                              type_stats[stream_type] = {'working': 0, 'geoblocked': 0, 'failed': 0, 'total': 0}
+                          type_stats[stream_type][category] += 1
+                          type_stats[stream_type]['total'] += 1
                   
-                  if working_samples:
-                      report += "## Sample Working Streams\n\n"
-                      report += "| Stream Name | Status | Type |\n"
-                      report += "|-------------|--------|------|\n"
+                  if type_stats:
+                      report += "## Stream Type Analysis\n\n"
+                      report += "| Type | Working | Geo-blocked | Failed | Total | Success Rate |\n"
+                      report += "|------|---------|-------------|--------|-------|-------------|\n"
                       
-                      for sample in working_samples:
-                          status_icon = '✅' if sample['status'] == 'working_direct' else '🌐'
-                          status_text = 'Direct' if sample['status'] == 'working_direct' else 'Via Proxy'
-                          report += f"| {sample['name']} | {status_icon} {status_text} | {sample['type']} |\n"
+                      for stream_type, stats in type_stats.items():
+                          success = (stats['working'] / stats['total'] * 100) if stats['total'] > 0 else 0
+                          report += f"| {stream_type} | {stats['working']} | {stats['geoblocked']} | {stats['failed']} | {stats['total']} | {success:.1f}% |\n"
                       
                       report += "\n"
-                  else:
-                      report += "## No Working Streams Found\n\n"
-                      report += "This might indicate:\n"
-                      report += "- Network connectivity issues\n"
-                      report += "- All streams are currently offline\n"
-                      report += "- Timeout settings too aggressive\n"
-                      report += "- Need to enable other content types (VODs, PPV, FAST)\n\n"
                   
-                  # Configuration
+                  # Sample working streams
+                  if self.results['working']:
+                      report += "## Sample Working Streams\n\n"
+                      report += "| Channel | Type | Group |\n"
+                      report += "|---------|------|---------|\n"
+                      
+                      for stream in self.results['working'][:15]:
+                          name = stream['name'][:35].replace('|', '\\|')
+                          stream_type = stream['type']
+                          group = stream['group'][:25].replace('|', '\\|')
+                          report += f"| {name} | {stream_type} | {group} |\n"
+                      
+                      report += "\n"
+                  
+                  # Geo-blocked streams
+                  if self.results['geoblocked']:
+                      report += "## Geo-blocked Streams\n\n"
+                      report += "| Channel | Type | Group |\n"
+                      report += "|---------|------|---------|\n"
+                      
+                      for stream in self.results['geoblocked'][:10]:
+                          name = stream['name'][:35].replace('|', '\\|')
+                          stream_type = stream['type']
+                          group = stream['group'][:25].replace('|', '\\|')
+                          report += f"| {name} | {stream_type} | {group} |\n"
+                      
+                      report += "\n"
+                  
+                  # Sample failed streams
+                  if self.results['failed']:
+                      report += "## Sample Failed Streams\n\n"
+                      report += "| Channel | Type | Group |\n"
+                      report += "|---------|------|---------|\n"
+                      
+                      for stream in self.results['failed'][:10]:
+                          name = stream['name'][:35].replace('|', '\\|')
+                          stream_type = stream['type']
+                          group = stream['group'][:25].replace('|', '\\|')
+                          report += f"| {name} | {stream_type} | {group} |\n"
+                      
+                      report += "\n"
+                  
+                  # Methodology notes
+                  report += "## Validation Methodology\n\n"
+                  report += "This checker uses robust IPTV validation techniques:\n\n"
+                  report += f"- **Content Validation:** Downloads {self.min_data_threshold // 1024}KB of actual stream data\n"
+                  report += f"- **Content-Type Checking:** Validates IPTV-specific MIME types\n"
+                  report += f"- **Retry Logic:** {TIMEOUT_SECONDS}s initial timeout, {EXTENDED_TIMEOUT}s extended\n"
+                  report += f"- **Geo-blocking Detection:** Identifies HTTP 403, 451, 426 status codes\n"
+                  report += f"- **Rate Limit Handling:** Automatic retry with delays\n"
+                  report += f"- **Streaming Verification:** Tests actual data flow, not just HTTP responses\n\n"
+                  
                   report += "## Configuration\n\n"
-                  report += f"- **Test Method:** Simple GET requests (no complex validation)\n"
-                  report += f"- **Content Types:** Channels"
-                  if CHECK_VODS: report += ", VODs"
-                  if CHECK_PPV: report += ", PPV"
-                  if CHECK_FAST: report += ", FAST"
-                  report += "\n"
-                  report += f"- **Timeout:** {TIMEOUT_SECONDS}s per stream\n"
-                  report += f"- **Proxy Support:** {'Enabled' if USE_PROXIES else 'Disabled'}\n"
-                  if USE_PROXIES and self.working_proxies:
-                      report += f"- **Geo-unblocking:** {len(self.working_proxies)} proxies available\n"
+                  content_types = []
+                  if CHECK_VODS: content_types.append("VODs")
+                  if CHECK_PPV: content_types.append("PPV")
+                  if CHECK_FAST: content_types.append("FAST")
+                  if not content_types: content_types.append("Channels only")
                   
-                  report += f"\n*Simple, reliable stream testing - less complexity, more accuracy*\n"
+                  report += f"- **Content Types:** {', '.join(content_types)}\n"
+                  report += f"- **Timeouts:** {TIMEOUT_SECONDS}s initial, {EXTENDED_TIMEOUT}s extended\n"
+                  report += f"- **Sample Size:** {SAMPLE_SIZE if SAMPLE_SIZE > 0 else 'All streams'}\n"
+                  report += f"- **Validation Threshold:** {self.min_data_threshold // 1024}KB minimum data\n\n"
+                  
+                  report += "---\n"
+                  report += f"*IPTV validation completed in {duration:.1f} seconds*  \n"
+                  report += f"*Uses proven IPTV Checker methodology for accurate results*\n"
                   
                   return report
 
-              async def run(self):
-                  """Main execution - keep it simple"""
-                  print("Simple Reliable Stream Checker starting...")
+              def run(self):
+                  """Main execution"""
+                  print("Starting IPTV Stream Validation...")
                   
-                  # Get proxies if needed
-                  if USE_PROXIES:
-                      self.working_proxies = self.get_working_proxies()
-                  
-                  # Parse streams
-                  all_streams = self.parse_m3u('channel playlist.m3u')
-                  if not all_streams:
-                      print("No streams found")
-                      return
-                  
-                  # Filter streams
-                  test_streams = [s for s in all_streams if self.should_test_stream(s)]
-                  
-                  channels = [s for s in test_streams if self.classify_stream_type(s) == 'Channel']
-                  print(f"Found {len(channels)} channel streams to test")
-                  
-                  # Process all channel streams
-                  await self.process_streams(channels)
+                  # Run validation
+                  self.run_validation()
                   
                   # Generate report
-                  print("Generating report...")
-                  report = self.generate_simple_report()
+                  print("\nGenerating validation report...")
+                  report = self.generate_report()
                   
-                  with open('report.md', 'w', encoding='utf-8') as f:
-                      f.write(report)
+                  try:
+                      with open('report.md', 'w', encoding='utf-8') as f:
+                          f.write(report)
+                      print("Report generated successfully!")
+                  except Exception as e:
+                      print(f"Error writing report: {e}")
+                      # Fallback
+                      with open('report.md', 'w', encoding='utf-8') as f:
+                          f.write(f"# IPTV Validation Report\nError: {e}\n")
                   
-                  # Summary
+                  # Final summary
                   duration = time.time() - self.start_time
-                  total_working = self.results['working_direct'] + self.results['working_via_proxy']
-                  print(f"\nSimple check complete:")
+                  total = (len(self.results['working']) + 
+                          len(self.results['geoblocked']) + 
+                          len(self.results['failed']))
+                  working = len(self.results['working'])
+                  
+                  print(f"\nIPTV Validation Complete:")
                   print(f"Duration: {duration:.1f}s ({duration/60:.1f}m)")
-                  print(f"Working: {total_working}/{self.results['total_tested']} ({(total_working/self.results['total_tested']*100) if self.results['total_tested'] > 0 else 0:.1f}%)")
-                  print(f"Direct: {self.results['working_direct']}, Via proxy: {self.results['working_via_proxy']}")
+                  print(f"Results: {working}/{total} working ({(working/total*100) if total > 0 else 0:.1f}%)")
+                  print(f"Geo-blocked: {len(self.results['geoblocked'])}")
 
-          # Run the simple checker
-          checker = SimpleStreamChecker()
-          asyncio.run(checker.run())
+          # Run the IPTV checker
+          checker = IPTVStreamChecker()
+          checker.run()
           EOF
 
-      - name: Commit simple report
+      - name: Commit IPTV validation report
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "github-actions[bot]"
           
           if [[ -f "report.md" ]]; then
-            git stash push -m "temp-$(date +%s)" || echo "Nothing to stash"
-            git fetch origin main
-            git reset --hard origin/main
-            git stash list | head -1 | grep temp && git stash pop || echo "No temp stash"
-            
+            git pull origin main --rebase || true
             git add report.md
             if ! git diff --staged --quiet; then
-              COMMIT_MSG="Simple stream check - $(date -u '+%m/%d %H:%M')"
-              git commit -m "$COMMIT_MSG"
+              git commit -m "IPTV validation report - $(date -u '+%m/%d %H:%M UTC')"
               git push origin main
-              echo "Simple report committed"
             fi
           fi

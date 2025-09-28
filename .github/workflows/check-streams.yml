@@ -791,25 +791,45 @@ jobs:
           git config --local user.name "github-actions[bot]"
           
           if [[ -f "report.md" ]]; then
-            git pull origin main --rebase || true
+            # Check for unstaged changes and handle them
+            if ! git diff --quiet; then
+              echo "Unstaged changes detected, adding them..."
+              git add .
+            fi
+            
+            # Pull with merge strategy instead of rebase to avoid conflicts
+            git pull origin main --no-rebase || {
+              echo "Pull failed, continuing with local changes..."
+            }
+            
+            # Add the report file
             git add report.md
+            
             if ! git diff --staged --quiet; then
-              # Extract metrics for commit message
-              WORKING=$(grep -o "Verified Working.*(" report.md | head -1 | grep -o '[0-9]*' | head -1 || echo "?")
-              TOTAL=$(grep -o "Total Tested.*(" report.md | head -1 | grep -o '[0-9]*' | head -1 || echo "?")
-              FALSE_POS=$(grep -o "False positives eliminated: [0-9]*" report.md | grep -o '[0-9]*' || echo "0")
+              # Extract metrics for commit message with safe defaults
+              WORKING=$(grep -o "Verified Working.*(" report.md 2>/dev/null | head -1 | grep -o '[0-9]*' | head -1 || echo "0")
+              TOTAL=$(grep -o "Total Tested.*(" report.md 2>/dev/null | head -1 | grep -o '[0-9]*' | head -1 || echo "1")
+              FALSE_POS=$(grep -o "False positives eliminated: [0-9]*" report.md 2>/dev/null | grep -o '[0-9]*' || echo "0")
               
-              COMMIT_MSG="FFmpeg IPTV validation"
-              if [[ "$WORKING" != "?" ]] && [[ "$TOTAL" != "?" ]]; then
-                SUCCESS_RATE=$(( WORKING * 100 / TOTAL )) 2>/dev/null || SUCCESS_RATE="?"
-                COMMIT_MSG="$COMMIT_MSG - ${WORKING}/${TOTAL} verified (${SUCCESS_RATE}%)"
+              # Ensure we have valid numbers to avoid division by zero
+              if [[ "$WORKING" =~ ^[0-9]+$ ]] && [[ "$TOTAL" =~ ^[0-9]+$ ]] && [[ "$TOTAL" != "0" ]]; then
+                SUCCESS_RATE=$(( WORKING * 100 / TOTAL ))
+                COMMIT_MSG="FFmpeg IPTV validation - ${WORKING}/${TOTAL} verified (${SUCCESS_RATE}%)"
+              else
+                COMMIT_MSG="FFmpeg IPTV validation - results available"
               fi
-              if [[ "$FALSE_POS" != "?" ]] && [[ "$FALSE_POS" != "0" ]]; then
+              
+              if [[ "$FALSE_POS" =~ ^[0-9]+$ ]] && [[ "$FALSE_POS" != "0" ]]; then
                 COMMIT_MSG="$COMMIT_MSG, ${FALSE_POS} false positives eliminated"
               fi
+              
               COMMIT_MSG="$COMMIT_MSG - $(date -u '+%m/%d %H:%M UTC')"
               
               git commit -m "$COMMIT_MSG"
               git push origin main
+            else
+              echo "No changes to commit"
             fi
+          else
+            echo "No report.md file found"
           fi

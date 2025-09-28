@@ -1,4 +1,4 @@
-name: Check M3U Streams - Optimized Enhanced Version
+name: Check M3U Streams - Enhanced Performance Version
 
 on:
   workflow_dispatch:
@@ -57,10 +57,10 @@ permissions:
 jobs:
   check-streams:
     runs-on: ubuntu-latest
-    timeout-minutes: 120  # Reduced to 2 hours
+    timeout-minutes: 120
 
     steps:
-      - name: 📥 Checkout repository
+      - name: 🔥 Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -85,7 +85,7 @@ jobs:
           echo "Testing Tor connection..."
           curl --socks5 127.0.0.1:9050 --max-time 10 https://httpbin.org/ip || echo "Tor setup may have issues"
 
-      - name: 🔍 Optimized Stream Check with Smart Proxy Management
+      - name: 🚀 Enhanced Stream Check with Ultra-Fast Proxy Management
         env:
           CHECK_VODS: ${{ github.event.inputs.check_vods || 'false' }}
           CHECK_PPV: ${{ github.event.inputs.check_ppv || 'false' }}
@@ -111,7 +111,7 @@ jobs:
           from datetime import datetime, timezone
           from concurrent.futures import ThreadPoolExecutor, as_completed
 
-          # Optimized Configuration
+          # Enhanced Configuration
           CHECK_VODS = os.getenv('CHECK_VODS', 'false').lower() == 'true'
           CHECK_PPV = os.getenv('CHECK_PPV', 'false').lower() == 'true' 
           CHECK_FAST = os.getenv('CHECK_FAST', 'false').lower() == 'true'
@@ -122,11 +122,11 @@ jobs:
           TARGET_WORKING_PROXIES = int(os.getenv('TARGET_WORKING_PROXIES', '10'))
           QUICK_MODE = os.getenv('QUICK_MODE', 'true').lower() == 'true'
 
-          print(f"⚡ Optimized Configuration: VODs={CHECK_VODS}, PPV={CHECK_PPV}, FAST={CHECK_FAST}")
+          print(f"🚀 Enhanced Configuration: VODs={CHECK_VODS}, PPV={CHECK_PPV}, FAST={CHECK_FAST}")
           print(f"🌐 Proxy settings: USE_PROXIES={USE_PROXIES}, QUICK_MODE={QUICK_MODE}")
           print(f"🎯 Targets: {TARGET_WORKING_PROXIES} proxies, {TIMEOUT_SECONDS}s timeout")
 
-          class OptimizedStreamChecker:
+          class EnhancedStreamChecker:
               def __init__(self):
                   self.working_proxies = []
                   self.regular_working = []
@@ -136,7 +136,7 @@ jobs:
                   self.skipped_streams = []
                   self.start_time = time.time()
                   
-                  # Optimized failure tracking
+                  # Enhanced failure tracking
                   self.failure_summary = {
                       'geo_blocked': 0,
                       'timeouts': 0,
@@ -151,187 +151,257 @@ jobs:
                   self.total_by_type = {'Channel': 0, 'VOD': 0, 'PPV': 0, 'FAST': 0}
 
               def get_fast_proxy_sources(self):
-                  """Country-specific proxy sources with backup options"""
-                  # Country-specific sources for better geo-targeting
-                  primary_sources = [
-                      # Country-specific sources (higher quality)
-                      "https://proxylist.geonode.com/api/proxy-list?limit=50&country=US&protocols=http&sort_by=lastChecked&sort_type=desc",
-                      "https://proxylist.geonode.com/api/proxy-list?limit=50&country=GB&protocols=http&sort_by=lastChecked&sort_type=desc", 
-                      "https://proxylist.geonode.com/api/proxy-list?limit=50&country=DE&protocols=http&sort_by=lastChecked&sort_type=desc",
-                      "https://proxylist.geonode.com/api/proxy-list?limit=50&country=CA&protocols=http&sort_by=lastChecked&sort_type=desc",
-                      # High-volume general sources
-                      "https://api.proxyscrape.com/v2/?request=get&protocol=http&timeout=8000&country=all&format=textplain&limit=200",
-                      "https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list-raw.txt",
-                      "https://www.proxy-list.download/api/v1/get?type=http"
+                  """Enhanced proxy sources with new high-quality additions"""
+                  # New high-quality source you found
+                  priority_sources = [
+                      # New high-quality source you found
+                      "https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/all/data.txt",
+                      "https://raw.githubusercontent.com/proxifly/free-proxy-list/main/proxies/http/data.txt",
+                      # Proven working sources from your logs
+                      "https://proxylist.geonode.com/api/proxy-list?limit=100&country=US&protocols=http&sort_by=lastChecked&sort_type=desc",
+                      "https://api.proxyscrape.com/v2/?request=get&protocol=http&timeout=10000&country=all&format=textplain&limit=500",
                   ]
                   
-                  backup_sources = [
+                  # Country-specific sources (your logs showed good geographic diversity)
+                  geo_sources = [
+                      "https://proxylist.geonode.com/api/proxy-list?limit=75&country=GB&protocols=http&sort_by=lastChecked&sort_type=desc",
+                      "https://proxylist.geonode.com/api/proxy-list?limit=75&country=DE&protocols=http&sort_by=lastChecked&sort_type=desc",
+                      "https://proxylist.geonode.com/api/proxy-list?limit=75&country=CA&protocols=http&sort_by=lastChecked&sort_type=desc",
+                      "https://proxylist.geonode.com/api/proxy-list?limit=75&country=NL&protocols=http&sort_by=lastChecked&sort_type=desc",
+                  ]
+                  
+                  # Additional high-volume sources
+                  volume_sources = [
+                      "https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list-raw.txt",
+                      "https://www.proxy-list.download/api/v1/get?type=http",
                       "https://raw.githubusercontent.com/sunny9577/proxy-scraper/master/proxies.txt",
                       "https://raw.githubusercontent.com/ShiftyTR/Proxy-List/master/http.txt",
                       "https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/http.txt"
                   ]
                   
                   if QUICK_MODE:
-                      return primary_sources[:5] + backup_sources[:2]
+                      return priority_sources[:4] + geo_sources[:2] + volume_sources[:2]
                   else:
-                      return primary_sources + backup_sources
+                      return priority_sources + geo_sources + volume_sources
 
               def setup_optimized_proxies(self):
-                  """Enhanced proxy setup with comprehensive diagnostics"""
+                  """Ultra-fast proxy setup with parallel source fetching"""
                   if not USE_PROXIES:
                       return []
                   
                   print("=" * 60)
-                  print("PROXY SETUP DIAGNOSTICS")
+                  print("ENHANCED PROXY SETUP") 
                   print("=" * 60)
                   
-                  # Test basic connectivity first
-                  print("Step 1: Testing basic internet connectivity...")
+                  # Test connectivity
+                  print("Step 1: Connectivity test...")
                   try:
-                      test_response = requests.get("https://httpbin.org/ip", timeout=10)
-                      if test_response.status_code == 200:
-                          our_ip = test_response.json().get('origin', 'unknown')
-                          print(f"✅ Direct connection working - Our IP: {our_ip}")
+                      response = requests.get("https://httpbin.org/ip", timeout=8)
+                      if response.status_code == 200:
+                          our_ip = response.json().get('origin', 'unknown')
+                          print(f"✅ Connection OK - IP: {our_ip}")
                       else:
-                          print(f"⚠️ Direct connection issue - Status: {test_response.status_code}")
+                          print(f"⚠️ Connection issue - Status: {response.status_code}")
                   except Exception as e:
-                      print(f"❌ Direct connection failed: {e}")
-                      print("This suggests network connectivity issues in the GitHub Actions environment")
+                      print(f"❌ Connection failed: {e}")
                   
-                  print("\nStep 2: Fetching proxy sources...")
-                  all_proxies = []
+                  print(f"\nStep 2: Parallel source fetching...")
                   sources = self.get_fast_proxy_sources()
-                  successful_sources = 0
                   
-                  for i, source in enumerate(sources):
-                      print(f"\nSource {i+1}/{len(sources)}: {source}")
-                      try:
-                          start_time = time.time()
-                          response = requests.get(source, timeout=25, headers={
-                              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                              'Accept': 'text/plain, application/json, */*',
-                              'Accept-Language': 'en-US,en;q=0.9'
-                          })
-                          fetch_time = time.time() - start_time
-                          
-                          print(f"  Response: {response.status_code} in {fetch_time:.1f}s")
-                          print(f"  Content-Type: {response.headers.get('content-type', 'unknown')}")
-                          print(f"  Content-Length: {len(response.text)} bytes")
-                          
-                          if response.status_code == 200 and response.text.strip():
-                              # Show first few lines for debugging
-                              preview_lines = response.text.strip().split('\n')[:3]
-                              print(f"  Preview: {preview_lines}")
-                              
-                              proxies = self.parse_proxy_response(response.text)
+                  # Parallel source fetching for speed
+                  all_proxies = []
+                  with ThreadPoolExecutor(max_workers=10) as executor:
+                      future_to_source = {
+                          executor.submit(self.fetch_proxy_source_fast, source): source 
+                          for source in sources
+                      }
+                      
+                      successful_sources = 0
+                      for future in as_completed(future_to_source, timeout=120):
+                          try:
+                              source = future_to_source[future]
+                              proxies = future.result(timeout=30)
                               if proxies:
-                                  all_proxies.extend(proxies[:150])
+                                  all_proxies.extend(proxies[:200])  # Limit per source
                                   successful_sources += 1
-                                  print(f"  ✅ Parsed {len(proxies)} proxies (using first 150)")
+                                  source_name = source.split('/')[-2] if 'github.com' in source else source.split('//')[1].split('/')[0]
+                                  print(f"  ✅ {source_name}: {len(proxies)} proxies")
                               else:
-                                  print(f"  ❌ No valid proxies found in response")
-                                  # Show raw content sample for debugging
-                                  sample = response.text[:200]
-                                  print(f"  Raw sample: {repr(sample)}")
-                          else:
-                              print(f"  ❌ Failed - Status: {response.status_code}")
-                              if response.status_code != 200:
-                                  print(f"  Error content: {response.text[:200]}")
-                      except requests.exceptions.Timeout:
-                          print(f"  ❌ Timeout after 25 seconds")
-                      except requests.exceptions.ConnectionError as e:
-                          print(f"  ❌ Connection error: {e}")
-                      except Exception as e:
-                          print(f"  ❌ Unexpected error: {e}")
+                                  source_name = source.split('/')[-2] if 'github.com' in source else source.split('//')[1].split('/')[0]
+                                  print(f"  ❌ {source_name}: No proxies")
+                          except Exception as e:
+                              source_name = future_to_source[future].split('//')[1].split('/')[0]
+                              print(f"  ❌ {source_name}: {str(e)[:30]}")
                   
-                  print(f"\nStep 3: Proxy collection summary")
-                  print(f"  Total collected: {len(all_proxies)} proxies")
-                  print(f"  Successful sources: {successful_sources}/{len(sources)}")
+                  print(f"\nStep 3: Processing {len(all_proxies)} proxies from {successful_sources} sources")
                   
                   if not all_proxies:
-                      print("\n❌ CRITICAL: No proxies collected from any source")
-                      print("Possible causes:")
-                      print("  - All proxy sources are down/blocked")
-                      print("  - GitHub Actions environment blocks proxy sites")
-                      print("  - Network connectivity issues")
-                      print("  - Proxy format parsing issues")
+                      print("❌ No proxies collected!")
                       return []
                   
-                  # Show some examples
-                  print(f"  Example proxies: {all_proxies[:5]}")
-                  
-                  print("\nStep 4: Deduplication and filtering...")
+                  # Fast deduplication and filtering
                   unique_proxies = list(dict.fromkeys(all_proxies))
-                  print(f"  Unique proxies: {len(unique_proxies)}")
+                  print(f"  Unique: {len(unique_proxies)}")
                   
-                  filtered_proxies = self.enhanced_filter(unique_proxies)
-                  print(f"  After filtering: {len(filtered_proxies)}")
+                  filtered = self.enhanced_filter(unique_proxies)
+                  print(f"  Filtered: {len(filtered)}")
                   
-                  if not filtered_proxies:
-                      print("❌ CRITICAL: No proxies passed filtering")
-                      print("All proxies were rejected due to:")
-                      print("  - Invalid IP format")
-                      print("  - Private/reserved IP ranges")
-                      print("  - Invalid port numbers")
+                  if not filtered:
+                      print("❌ No proxies passed filtering")
                       return []
                   
-                  # Show filtering results by port
-                  port_stats = {}
-                  for proxy in filtered_proxies[:20]:  # Sample first 20
-                      port = proxy.split(':')[1]
-                      port_stats[port] = port_stats.get(port, 0) + 1
-                  print(f"  Port distribution (sample): {dict(list(port_stats.items())[:10])}")
+                  print(f"\nStep 4: Testing phase...")
+                  test_count = min(MAX_PROXIES, len(filtered))
+                  print(f"  Testing up to {test_count} proxies for {TARGET_WORKING_PROXIES} working")
                   
-                  print("\nStep 5: Proxy testing phase...")
-                  test_count = min(MAX_PROXIES * 2, len(filtered_proxies))
-                  print(f"  Testing {test_count} proxies (target: {TARGET_WORKING_PROXIES})")
+                  working = self.diagnostic_test_proxies(filtered[:test_count])
                   
-                  working = self.diagnostic_test_proxies(filtered_proxies[:test_count])
-                  
-                  # Try Tor if enabled
+                  # Add Tor if enabled
                   if SETUP_TOR and self.setup_tor_fast():
                       working.append("tor://127.0.0.1:9050")
                       print("  ✅ Added Tor proxy")
                   
-                  print(f"\nStep 6: Final results")
-                  print(f"  Working proxies found: {len(working)}")
-                  if len(working) > 0:
-                      print(f"  Working proxies: {working}")
-                  else:
-                      print("\n❌ CRITICAL: NO WORKING PROXIES FOUND")
-                      print("\nDiagnostic suggestions:")
-                      print("  1. Try running with setup_tor: true")
-                      print("  2. Increase timeout_seconds to 10+") 
-                      print("  3. Try disabling quick_mode")
-                      print("  4. Check if GitHub Actions blocks proxy connections")
-                      print("  5. Consider using different proxy sources")
+                  print(f"\nStep 5: Results")
+                  print(f"  Working proxies: {len(working)}")
+                  if working:
+                      print(f"  Sample: {working[:3]}...")
                   
                   print("=" * 60)
                   
                   self.working_proxies = working
                   return working
 
+              def fetch_proxy_source_fast(self, source):
+                  """Fast proxy source fetching with optimized parsing"""
+                  try:
+                      response = requests.get(source, timeout=20, headers={
+                          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                          'Accept': 'text/plain, application/json, */*',
+                          'Accept-Language': 'en-US,en;q=0.9'
+                      })
+                      
+                      if response.status_code == 200 and response.text.strip():
+                          return self.parse_proxy_response(response.text)
+                  except Exception as e:
+                      pass
+                  return []
+
+              def enhanced_filter(self, proxies):
+                  """Smart filtering based on successful patterns from your logs"""
+                  filtered = []
+                  
+                  # Your logs showed these ports had highest success rates
+                  super_priority_ports = [3128, 80, 8080]  # 3128 had 7/10 successful proxies
+                  high_success_ports = [8000, 8888, 1080, 8081]
+                  acceptable_ports = [9090, 8118, 3129, 8123, 8090, 58080, 2024]
+                  
+                  print(f"  Smart filtering based on successful proxy patterns...")
+                  
+                  # Separate by success probability
+                  super_priority = []
+                  high_priority = []
+                  standard = []
+                  
+                  for proxy in proxies:
+                      try:
+                          if ':' not in proxy:
+                              continue
+                              
+                          ip, port = proxy.split(':', 1)
+                          port_num = int(port)
+                          
+                          # Enhanced IP validation
+                          ip_parts = ip.split('.')
+                          if len(ip_parts) != 4:
+                              continue
+                              
+                          ip_nums = [int(x) for x in ip_parts]
+                          
+                          # Strict IP validation
+                          if not all(0 <= x <= 255 for x in ip_nums):
+                              continue
+                              
+                          # Your logs showed some cloud providers work well - be more selective on private ranges
+                          if (ip_nums[0] == 10 or 
+                              (ip_nums[0] == 172 and 16 <= ip_nums[1] <= 31) or
+                              (ip_nums[0] == 192 and ip_nums[1] == 168) or
+                              ip_nums[0] == 127 or ip_nums[0] == 0 or
+                              ip_nums[0] >= 224 or
+                              (ip_nums[0] == 169 and ip_nums[1] == 254)):  # Link-local
+                              continue
+                          
+                          # Port validation
+                          if not (1 <= port_num <= 65535):
+                              continue
+                          
+                          # Smart categorization based on your success data
+                          if port_num in super_priority_ports:
+                              super_priority.append(proxy)
+                          elif port_num in high_success_ports:
+                              high_priority.append(proxy)
+                          elif port_num in acceptable_ports:
+                              standard.append(proxy)
+                          elif 1024 <= port_num <= 65535:  # Other high ports
+                              standard.append(proxy)
+                              
+                      except (ValueError, IndexError, AttributeError):
+                          continue
+                  
+                  # Combine with smart ordering - put most successful types first
+                  filtered = super_priority + high_priority + standard
+                  
+                  port_stats = {}
+                  for proxy in filtered[:50]:  # Sample for stats
+                      port = proxy.split(':')[1]
+                      port_stats[port] = port_stats.get(port, 0) + 1
+                  
+                  print(f"    Super priority (ports {super_priority_ports}): {len(super_priority)}")
+                  print(f"    High priority: {len(high_priority)}")
+                  print(f"    Standard: {len(standard)}")
+                  print(f"    Total filtered: {len(filtered)}")
+                  print(f"    Port distribution: {dict(list(port_stats.items())[:8])}")
+                  
+                  return filtered
+
               def pre_validate_proxy_connection(self, ip, port):
-                  """Quick connection validation before full proxy testing"""
+                  """Enhanced pre-validation with faster detection"""
                   import socket
                   
                   try:
+                      # Quick socket test with optimized timeout
                       sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                      sock.settimeout(3)  # Quick 3-second timeout
+                      sock.settimeout(2)  # Reduced from 3s - your logs show quick responses
                       result = sock.connect_ex((ip, int(port)))
                       sock.close()
-                      return result == 0  # 0 means connection successful
+                      
+                      if result == 0:
+                          # Additional quick HTTP test for proven good ports
+                          if int(port) in [3128, 80, 8080]:
+                              try:
+                                  import requests
+                                  test_response = requests.get(
+                                      "http://httpbin.org/ip", 
+                                      proxies={'http': f'http://{ip}:{port}'},
+                                      timeout=3,
+                                      headers={'User-Agent': 'Mozilla/5.0'}
+                                  )
+                                  return test_response.status_code == 200
+                              except:
+                                  return True  # Still pass socket test
+                          return True
+                      
+                      return False
                   except:
                       return False
 
               def diagnostic_test_proxies(self, proxy_list):
-                  """Enhanced proxy testing with connection pre-validation and detailed diagnostics"""
+                  """Ultra-fast proxy testing with intelligent batching"""
                   working = []
                   tested = 0
                   pre_filtered = 0
                   detailed_failures = {
-                      'connection_refused': 0,  # Failed pre-validation
-                      'timeout': 0,
+                      'connection_refused': 0,
+                      'timeout': 0, 
                       'connection_error': 0,
                       'proxy_error': 0,
                       'invalid_response': 0,
@@ -339,43 +409,67 @@ jobs:
                       'other': 0
                   }
                   
-                  print(f"  Starting enhanced testing with pre-validation...")
+                  print(f"  Ultra-fast testing with intelligent pre-validation...")
                   
-                  # Pre-filter proxies with quick connection tests
-                  print(f"  Pre-validating {len(proxy_list)} proxies for basic connectivity...")
+                  # Smart pre-validation with parallel processing
+                  print(f"  Parallel pre-validation of {len(proxy_list)} proxies...")
                   pre_validated = []
                   
-                  for proxy in proxy_list:
-                      try:
-                          ip, port = proxy.split(':')
-                          if self.pre_validate_proxy_connection(ip, port):
-                              pre_validated.append(proxy)
-                          else:
-                              pre_filtered += 1
-                      except:
-                          pre_filtered += 1
-                  
-                  print(f"    Pre-validation results: {len(pre_validated)} passed, {pre_filtered} filtered out")
-                  
-                  if not pre_validated:
-                      print("    ❌ No proxies passed pre-validation!")
-                      return []
-                  
-                  # Now do full testing on pre-validated proxies
-                  print(f"  Full testing {len(pre_validated)} pre-validated proxies...")
-                  
-                  with ThreadPoolExecutor(max_workers=15) as executor:  # Reduced workers since pre-validated
-                      future_to_proxy = {
-                          executor.submit(self.diagnostic_test_single_proxy, proxy): proxy 
-                          for proxy in pre_validated
+                  # Parallel pre-validation
+                  with ThreadPoolExecutor(max_workers=50) as pre_executor:
+                      pre_futures = {
+                          pre_executor.submit(self.pre_validate_proxy_connection, *proxy.split(':')): proxy 
+                          for proxy in proxy_list if ':' in proxy
                       }
                       
-                      for future in as_completed(future_to_proxy, timeout=120):
+                      for future in as_completed(pre_futures, timeout=60):
+                          try:
+                              proxy = pre_futures[future]
+                              if future.result(timeout=4):
+                                  pre_validated.append(proxy)
+                              else:
+                                  pre_filtered += 1
+                          except:
+                              pre_filtered += 1
+                  
+                  print(f"    Pre-validation: {len(pre_validated)} passed, {pre_filtered} filtered")
+                  
+                  if not pre_validated:
+                      print("    No proxies passed pre-validation!")
+                      return []
+                  
+                  # Intelligent batching - test high-priority ports first
+                  priority_proxies = []
+                  standard_proxies = []
+                  
+                  for proxy in pre_validated:
+                      try:
+                          port = int(proxy.split(':')[1])
+                          if port in [3128, 80, 8080]:  # Your most successful ports
+                              priority_proxies.append(proxy)
+                          else:
+                              standard_proxies.append(proxy)
+                      except:
+                          standard_proxies.append(proxy)
+                  
+                  print(f"  Smart batching: {len(priority_proxies)} priority, {len(standard_proxies)} standard")
+                  
+                  # Test priority proxies first with higher concurrency
+                  test_order = priority_proxies + standard_proxies
+                  max_test = min(TARGET_WORKING_PROXIES * 4, len(test_order))  # Test 4x target
+                  
+                  with ThreadPoolExecutor(max_workers=20) as executor:  # Optimized worker count
+                      future_to_proxy = {
+                          executor.submit(self.diagnostic_test_single_proxy, proxy): proxy 
+                          for proxy in test_order[:max_test]
+                      }
+                      
+                      for future in as_completed(future_to_proxy, timeout=90):
                           tested += 1
                           
                           try:
                               proxy = future_to_proxy[future]
-                              result = future.result(timeout=12)
+                              result = future.result(timeout=8)  # Slightly longer per-proxy timeout
                               
                               if result['success']:
                                   working.append(f"http://{proxy}")
@@ -384,19 +478,18 @@ jobs:
                                   failure_type = result['error_type']
                                   detailed_failures[failure_type] += 1
                                   
-                                  # Show first few failures for debugging
-                                  if sum(detailed_failures.values()) <= 8:
+                                  # Show failures from priority proxies
+                                  if proxy in priority_proxies[:10]:
                                       print(f"    ❌ {proxy} - {result['error']}")
                               
-                              # Progress updates with enhanced stats
-                              if tested % 20 == 0:
+                              # More frequent progress for faster feedback
+                              if tested % 10 == 0:
                                   success_rate = len(working)/tested*100 if tested > 0 else 0
-                                  print(f"    Progress: {tested}/{len(pre_validated)} tested, {len(working)} working ({success_rate:.1f}%)")
-                                  print(f"    Top failures: {dict(list(sorted(detailed_failures.items(), key=lambda x: x[1], reverse=True))[:3])}")
+                                  print(f"    Progress: {tested}/{max_test} tested, {len(working)} working ({success_rate:.1f}%)")
                               
-                              # Early termination
+                              # Early termination - faster exit
                               if len(working) >= TARGET_WORKING_PROXIES:
-                                  print(f"    Target reached! Cancelling remaining tests.")
+                                  print(f"    Target reached early! Cancelling remaining.")
                                   for remaining_future in future_to_proxy:
                                       if not remaining_future.done():
                                           remaining_future.cancel()
@@ -406,41 +499,17 @@ jobs:
                               detailed_failures['other'] += 1
                               continue
                   
-                  # Enhanced reporting
+                  # Performance analysis
                   total_processed = pre_filtered + tested
-                  overall_success_rate = len(working)/total_processed*100 if total_processed > 0 else 0
-                  
-                  print(f"\n  Enhanced testing completed:")
-                  print(f"    Total processed: {total_processed}")
-                  print(f"    Pre-filtered (no connection): {pre_filtered} ({pre_filtered/total_processed*100:.1f}%)")
+                  print(f"\n  Enhanced testing results:")
+                  print(f"    Total proxies processed: {total_processed}")
+                  print(f"    Pre-filtered: {pre_filtered} ({pre_filtered/total_processed*100:.1f}%)")
                   print(f"    Full tested: {tested}")
                   print(f"    Working found: {len(working)}")
-                  print(f"    Overall success rate: {overall_success_rate:.1f}%")
-                  print(f"    Post-validation success rate: {len(working)/tested*100 if tested > 0 else 0:.1f}%")
-                  print(f"    Detailed failure breakdown:")
-                  for error_type, count in detailed_failures.items():
-                      if count > 0:
-                          percentage = count/tested*100 if tested > 0 else 0
-                          print(f"      {error_type}: {count} ({percentage:.1f}%)")
+                  print(f"    Success rate: {len(working)/tested*100 if tested > 0 else 0:.1f}%")
                   
-                  # Enhanced analysis and recommendations
-                  if len(working) == 0:
-                      print(f"\n  🔍 ENHANCED ANALYSIS:")
-                      if pre_filtered > total_processed * 0.8:
-                          print(f"    - Very high pre-filter rate suggests most proxies are dead/unreachable")
-                          print(f"    - Recommendation: Try different proxy sources or increase connection timeout")
-                      if detailed_failures['proxy_error'] > tested * 0.5:
-                          print(f"    - High proxy errors suggest GitHub Actions environment restrictions")
-                          print(f"    - Recommendation: Enable Tor or try different proxy types")
-                      if detailed_failures['timeout'] > tested * 0.3:
-                          print(f"    - High timeout rate suggests slow proxy sources")
-                          print(f"    - Recommendation: Increase timeout_seconds or use faster sources")
-                  else:
-                      print(f"\n  📈 Success factors identified:")
-                      print(f"    - Pre-validation eliminated {pre_filtered} dead connections")
-                      print(f"    - {len(working)} working proxies found efficiently")
-                      if len(working) >= TARGET_WORKING_PROXIES:
-                          print(f"    - Target reached early - could reduce max_proxies for speed")
+                  if len(working) >= TARGET_WORKING_PROXIES:
+                      print(f"    🎯 Target achieved efficiently!")
                   
                   return working
 
@@ -522,125 +591,24 @@ jobs:
                   
                   return result
 
-              def enhanced_filter(self, proxies):
-                  """Data-driven filtering based on success patterns from diagnostic logs"""
-                  filtered = []
+              def setup_tor_fast(self):
+                  """Fast Tor setup"""
+                  if not SETUP_TOR:
+                      return False
                   
-                  # Reordered based on your diagnostic data showing 3128 had highest success
-                  priority_ports = [3128, 8080, 80]  # 3128 showed 8/10 working proxies
-                  high_success_ports = [8000, 8888, 1080]
-                  acceptable_ports = [8081, 9090, 8118, 3129, 8123, 8090]
-                  
-                  print(f"  Enhanced filtering based on diagnostic data...")
-                  port_priority_stats = {p: 0 for p in priority_ports}
-                  
-                  for proxy in proxies:
-                      try:
-                          if ':' not in proxy:
-                              continue
-                              
-                          ip, port = proxy.split(':', 1)
-                          port_num = int(port)
-                          
-                          # Validate IP format
-                          ip_parts = ip.split('.')
-                          if len(ip_parts) != 4:
-                              continue
-                              
-                          ip_nums = [int(x) for x in ip_parts]
-                          
-                          # Skip invalid IP ranges
-                          if not all(0 <= x <= 255 for x in ip_nums):
-                              continue
-                              
-                          # Skip private/reserved IPs with enhanced checking
-                          if (ip_nums[0] == 10 or 
-                              (ip_nums[0] == 172 and 16 <= ip_nums[1] <= 31) or
-                              (ip_nums[0] == 192 and ip_nums[1] == 168) or
-                              ip_nums[0] == 127 or ip_nums[0] >= 224 or ip_nums[0] == 0 or
-                              (ip_nums[0] == 169 and ip_nums[1] == 254)):  # Link-local
-                              continue
-                          
-                          # Port validation
-                          if not (1 <= port_num <= 65535):
-                              continue
-                          
-                          # Smart prioritization based on diagnostic data
-                          if port_num in priority_ports:
-                              filtered.insert(0, proxy)  # Highest priority - put at front
-                              port_priority_stats[port_num] += 1
-                          elif port_num in high_success_ports:
-                              # Insert after priority ports but before others
-                              priority_count = len([p for p in filtered if int(p.split(':')[1]) in priority_ports])
-                              filtered.insert(priority_count, proxy)
-                          elif port_num in acceptable_ports:
-                              filtered.append(proxy)
-                          elif 1024 <= port_num <= 65535:
-                              filtered.append(proxy)  # Lowest priority
-                              
-                      except (ValueError, IndexError, AttributeError):
-                          continue
-                  
-                  print(f"    Priority port distribution: {port_priority_stats}")
-                  print(f"    Total after enhanced filtering: {len(filtered)}")
-                  
-                  return filtered
-
-              def enhanced_test_proxies(self, proxy_list):
-                  """Enhanced proxy testing with better success detection"""
-                  working = []
-                  tested = 0
-                  
-                  # Use more workers but with timeout control
-                  with ThreadPoolExecutor(max_workers=25) as executor:
-                      # Submit all tasks
-                      future_to_proxy = {
-                          executor.submit(self.test_proxy_fast, proxy): proxy 
-                          for proxy in proxy_list
-                      }
-                      
-                      # Process results as they complete
-                      for future in as_completed(future_to_proxy, timeout=90):  # 90 second total timeout
-                          tested += 1
-                          
-                          try:
-                              proxy = future_to_proxy[future]
-                              if future.result(timeout=10):  # 10 second per-proxy timeout
-                                  working.append(f"http://{proxy}")
-                                  
-                              # Show progress
-                              if tested % 10 == 0:
-                                  print(f"    📊 Progress: {tested} tested, {len(working)} working")
-                              
-                              # Early termination when target reached
-                              if len(working) >= TARGET_WORKING_PROXIES:
-                                  print(f"    🎯 Target reached! Stopping tests.")
-                                  # Cancel remaining futures
-                                  for remaining_future in future_to_proxy:
-                                      if not remaining_future.done():
-                                          remaining_future.cancel()
-                                  break
-                                  
-                          except Exception as e:
-                              # Don't let individual proxy test failures stop the process
-                              continue
-                  
-                  print(f"📈 Testing complete: {len(working)} working from {tested} tested")
-                  return working
-
-              def fetch_proxy_source(self, source):
-                  """Quick proxy source fetch"""
                   try:
-                      response = requests.get(source, timeout=15, headers={
-                          'User-Agent': 'Mozilla/5.0 (compatible; ProxyChecker/1.0)',
-                          'Accept': 'text/plain, application/json, */*'
-                      })
+                      result = subprocess.run([
+                          'curl', '--socks5', '127.0.0.1:9050', 
+                          '--max-time', '10', '--silent',
+                          'https://httpbin.org/ip'
+                      ], capture_output=True, text=True, timeout=15)
                       
-                      if response.status_code == 200:
-                          return self.parse_proxy_response(response.text)
+                      if result.returncode == 0:
+                          print("🔒 Tor proxy ready")
+                          return True
                   except:
                       pass
-                  return []
+                  return False
 
               def parse_proxy_response(self, text):
                   """Fast proxy parsing"""
@@ -667,126 +635,6 @@ jobs:
                                   proxies.append(f"{ip}:{port}")
                   
                   return proxies
-
-              def aggressive_filter(self, proxies):
-                  """Aggressive filtering for speed"""
-                  filtered = []
-                  priority_ports = [80, 8080, 3128, 8000]
-                  
-                  for proxy in proxies:
-                      try:
-                          ip, port = proxy.split(':')
-                          port_num = int(port)
-                          ip_parts = [int(x) for x in ip.split('.')]
-                          
-                          # Skip private IPs
-                          if (ip_parts[0] == 10 or 
-                              (ip_parts[0] == 172 and 16 <= ip_parts[1] <= 31) or
-                              (ip_parts[0] == 192 and ip_parts[1] == 168) or
-                              ip_parts[0] == 127):
-                              continue
-                          
-                          # Prioritize good ports
-                          if port_num in priority_ports:
-                              filtered.insert(0, proxy)
-                          elif 1024 <= port_num <= 65535:
-                              filtered.append(proxy)
-                              
-                      except:
-                          continue
-                  
-                  return filtered
-
-              def fast_test_proxies(self, proxy_list):
-                  """Fast parallel proxy testing"""
-                  working = []
-                  
-                  with ThreadPoolExecutor(max_workers=30) as executor:
-                      future_to_proxy = {
-                          executor.submit(self.test_proxy_fast, proxy): proxy 
-                          for proxy in proxy_list
-                      }
-                      
-                      for future in as_completed(future_to_proxy, timeout=60):
-                          try:
-                              proxy = future_to_proxy[future]
-                              if future.result(timeout=8):
-                                  working.append(f"http://{proxy}")
-                                  print(f"  ✅ [{len(working)}]: {proxy}")
-                              
-                              if len(working) >= TARGET_WORKING_PROXIES:
-                                  # Cancel remaining
-                                  for remaining in future_to_proxy:
-                                      if not remaining.done():
-                                          remaining.cancel()
-                                  break
-                                  
-                          except:
-                              pass
-                  
-                  return working
-
-              def test_proxy_fast(self, proxy_address):
-                  """Enhanced fast proxy test with multiple validation methods"""
-                  try:
-                      proxy_url = f"http://{proxy_address}"
-                      proxies = {'http': proxy_url, 'https': proxy_url}
-                      
-                      # Try multiple test endpoints
-                      test_urls = [
-                          "http://httpbin.org/ip",
-                          "https://api.ipify.org?format=json",
-                          "http://ip-api.com/json/?fields=query"
-                      ]
-                      
-                      for test_url in test_urls:
-                          try:
-                              response = requests.get(
-                                  test_url,
-                                  proxies=proxies,
-                                  timeout=7,  # Slightly longer timeout
-                                  headers={
-                                      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                                      'Accept': 'application/json, text/plain, */*'
-                                  }
-                              )
-                              
-                              if response.status_code == 200:
-                                  content = response.text.lower()
-                                  # Validate it's actually returning IP information
-                                  if any(indicator in content for indicator in ['origin', 'ip', 'query', 'address']) and len(content) < 1000:
-                                      print(f"    ✓ {proxy_address} - {test_url.split('//')[-1].split('/')[0]}")
-                                      return True
-                          except requests.exceptions.ConnectTimeout:
-                              continue  # Try next endpoint
-                          except requests.exceptions.ProxyError:
-                              break  # This proxy is definitely bad
-                          except Exception:
-                              continue  # Try next endpoint
-                              
-                  except Exception:
-                      pass
-                  
-                  return False
-
-              def setup_tor_fast(self):
-                  """Fast Tor setup"""
-                  if not SETUP_TOR:
-                      return False
-                  
-                  try:
-                      result = subprocess.run([
-                          'curl', '--socks5', '127.0.0.1:9050', 
-                          '--max-time', '10', '--silent',
-                          'https://httpbin.org/ip'
-                      ], capture_output=True, text=True, timeout=15)
-                      
-                      if result.returncode == 0:
-                          print("🔒 Tor proxy ready")
-                          return True
-                  except:
-                      pass
-                  return False
 
               def parse_m3u_fast(self, file_path):
                   """Fast M3U parsing"""
@@ -955,7 +803,7 @@ jobs:
                       else:
                           regular_streams.append(stream)
                   
-                  print(f"🔄 Processing: {len(regular_streams)} regular, {len(geo_streams)} geo-blocked, {len(self.skipped_streams)} skipped")
+                  print(f"📄 Processing: {len(regular_streams)} regular, {len(geo_streams)} geo-blocked, {len(self.skipped_streams)} skipped")
                   
                   # Process regular streams
                   if regular_streams:
@@ -966,139 +814,256 @@ jobs:
                       await self.check_geo_streams_fast(geo_streams)
 
               async def check_regular_streams_fast(self, streams):
-                  """Fast regular stream checking"""
-                  connector = aiohttp.TCPConnector(limit=100, limit_per_host=20)
+                  """Ultra-fast regular stream checking with optimized batching"""
+                  connector = aiohttp.TCPConnector(
+                      limit=150,  # Increased connection pool
+                      limit_per_host=30,
+                      ttl_dns_cache=300,
+                      use_dns_cache=True
+                  )
                   
-                  async with aiohttp.ClientSession(connector=connector) as session:
-                      # Process in larger batches for speed
-                      batch_size = 50
-                      for i in range(0, len(streams), batch_size):
-                          batch = streams[i:i + batch_size]
+                  timeout = aiohttp.ClientTimeout(
+                      total=TIMEOUT_SECONDS + 2,
+                      connect=TIMEOUT_SECONDS // 2
+                  )
+                  
+                  async with aiohttp.ClientSession(
+                      connector=connector, 
+                      timeout=timeout,
+                      headers={'User-Agent': 'Mozilla/5.0 (compatible; StreamChecker/2.0)'}
+                  ) as session:
+                      
+                      # Process in optimized batches
+                      batch_size = 75  # Larger batches for speed
+                      total_batches = (len(streams) + batch_size - 1) // batch_size
+                      
+                      for batch_num in range(total_batches):
+                          start_idx = batch_num * batch_size
+                          end_idx = min(start_idx + batch_size, len(streams))
+                          batch = streams[start_idx:end_idx]
                           
+                          print(f"  Batch {batch_num + 1}/{total_batches}: Testing {len(batch)} streams...")
+                          
+                          # Process batch concurrently
                           tasks = [self.check_stream_optimized(session, stream) for stream in batch]
-                          results = await asyncio.gather(*tasks, return_exceptions=True)
                           
-                          for result in results:
-                              if isinstance(result, dict):
-                                  if result['status'] == 'working':
-                                      self.regular_working.append(result)
-                                  else:
-                                      self.regular_failed.append(result)
-                          
-                          if i + batch_size < len(streams):
-                              await asyncio.sleep(0.5)
+                          try:
+                              results = await asyncio.wait_for(
+                                  asyncio.gather(*tasks, return_exceptions=True),
+                                  timeout=TIMEOUT_SECONDS * 2
+                              )
+                              
+                              # Process results
+                              batch_working = 0
+                              for result in results:
+                                  if isinstance(result, dict):
+                                      if result['status'] == 'working':
+                                          self.regular_working.append(result)
+                                          batch_working += 1
+                                      else:
+                                          self.regular_failed.append(result)
+                              
+                              # Progress feedback
+                              total_processed = (batch_num + 1) * batch_size
+                              working_count = len(self.regular_working)
+                              print(f"    Batch results: +{batch_working} working, {working_count} total working")
+                              
+                              # Brief pause between batches to avoid overwhelming
+                              if batch_num < total_batches - 1:
+                                  await asyncio.sleep(0.3)
+                                  
+                          except asyncio.TimeoutError:
+                              print(f"    Batch {batch_num + 1} timeout - moving to next")
+                              continue
 
               async def check_geo_streams_fast(self, streams):
-                  """Fast geo-blocked stream checking"""
-                  # Limit geo checks for speed
-                  max_geo = min(80 if QUICK_MODE else 150, len(streams))
+                  """Optimized geo-blocked stream checking with smart proxy rotation"""
+                  if not self.working_proxies:
+                      print("  No proxies available for geo-blocked streams")
+                      return
+                  
+                  # Limit geo checks based on mode and available time
+                  max_geo = min(60 if QUICK_MODE else 100, len(streams))
                   streams_to_check = streams[:max_geo]
                   
-                  for i, stream in enumerate(streams_to_check):
-                      if i % 20 == 0:
-                          print(f"  🌐 Geo-check progress: {i}/{len(streams_to_check)}")
+                  print(f"  Checking {len(streams_to_check)} geo-blocked streams with {len(self.working_proxies)} proxies")
+                  
+                  # Smart proxy rotation - use best proxies first
+                  proxy_cycle = self.working_proxies * 3  # Repeat good proxies
+                  
+                  # Process in parallel batches for speed
+                  batch_size = 15
+                  total_batches = (len(streams_to_check) + batch_size - 1) // batch_size
+                  
+                  for batch_num in range(total_batches):
+                      start_idx = batch_num * batch_size
+                      end_idx = min(start_idx + batch_size, len(streams_to_check))
+                      batch = streams_to_check[start_idx:end_idx]
                       
-                      # Try 2-3 proxies max
-                      proxies_to_try = random.sample(self.working_proxies, min(2, len(self.working_proxies)))
+                      if batch_num % 3 == 0:  # Progress every 3 batches
+                          print(f"    Geo-batch {batch_num + 1}/{total_batches}: {start_idx}-{end_idx}")
                       
-                      success = False
-                      for proxy in proxies_to_try:
-                          result = await self.check_via_proxy_fast(stream, proxy)
-                          if result['status'] == 'working':
-                              stream_type = self.classify_stream_type(stream)
-                              self.working_by_type[stream_type] += 1
-                              self.geo_working.append(result)
-                              success = True
-                              break
-                          await asyncio.sleep(0.1)
+                      # Process batch with different proxies
+                      tasks = []
+                      for i, stream in enumerate(batch):
+                          proxy_idx = (start_idx + i) % len(self.working_proxies)
+                          proxy = self.working_proxies[proxy_idx]
+                          tasks.append(self.check_via_proxy_fast(stream, proxy))
                       
-                      if not success:
-                          stream_type = self.classify_stream_type(stream)
-                          self.failed_by_type[stream_type] += 1
-                          self.geo_failed.append({'stream': stream, 'status': 'failed', 'error': 'All proxies failed'})
-                      
-                      await asyncio.sleep(0.3)
+                      try:
+                          results = await asyncio.wait_for(
+                              asyncio.gather(*tasks, return_exceptions=True),
+                              timeout=TIMEOUT_SECONDS * 3
+                          )
+                          
+                          # Process results
+                          batch_working = 0
+                          for result in results:
+                              if isinstance(result, dict):
+                                  if result.get('status') == 'working':
+                                      stream_type = self.classify_stream_type(result['stream'])
+                                      self.working_by_type[stream_type] += 1
+                                      self.geo_working.append(result)
+                                      batch_working += 1
+                                  else:
+                                      stream_type = self.classify_stream_type(result['stream'])
+                                      self.failed_by_type[stream_type] += 1
+                                      self.geo_failed.append(result)
+                          
+                          if batch_working > 0 and batch_num % 3 == 0:
+                              print(f"      Geo-recovery: +{batch_working} streams")
+                          
+                          # Shorter pause between geo batches
+                          await asyncio.sleep(0.2)
+                          
+                      except asyncio.TimeoutError:
+                          print(f"    Geo-batch {batch_num + 1} timeout")
+                          continue
+                  
+                  geo_total = len(self.geo_working)
+                  if geo_total > 0:
+                      print(f"  Geo-blocked recovery: {geo_total} streams unblocked")
 
               def generate_optimized_report(self):
-                  """Generate optimized report"""
+                  """Generate enhanced report with performance metrics"""
                   total_checked = len(self.regular_working) + len(self.regular_failed) + len(self.geo_working) + len(self.geo_failed)
                   total_working = len(self.regular_working) + len(self.geo_working)
                   total_streams = sum(self.total_by_type.values())
                   duration = time.time() - self.start_time
+                  streams_per_second = total_checked / duration if duration > 0 else 0
                   
-                  report = f"# 📺 M3U Stream Status Report (Optimized)\n\n"
+                  report = f"# 📺 M3U Stream Status Report (Enhanced)\n\n"
                   report += f"**📅 Generated:** {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')} UTC  \n"
-                  report += f"**⚡ Mode:** {'Quick' if QUICK_MODE else 'Standard'} | **⏱️ Duration:** {duration:.1f}s  \n"
+                  report += f"**⚡ Performance:** {duration:.1f}s runtime, {streams_per_second:.1f} streams/sec  \n"
+                  report += f"**🚀 Mode:** {'Quick' if QUICK_MODE else 'Standard'} | **🌐 Proxies:** {len(self.working_proxies)} active  \n"
                   report += f"**⚙️ Config:** 🎬 VODs: {'✅' if CHECK_VODS else '❌'}, "
                   report += f"🥊 PPV: {'✅' if CHECK_PPV else '❌'}, "
                   report += f"📺 FAST: {'✅' if CHECK_FAST else '❌'}  \n"
-                  report += f"**🌐 Proxies:** {len(self.working_proxies)} working | **⏱️ Timeout:** {TIMEOUT_SECONDS}s\n\n"
+                  report += f"**⏱️ Settings:** {TIMEOUT_SECONDS}s timeout, {TARGET_WORKING_PROXIES} proxy target\n\n"
                   
-                  # Summary
-                  report += "## 📊 Summary\n\n"
-                  report += "| Metric | Count | Percentage |\n|--------|-------|------------|\n"
-                  report += f"| **📺 Total Streams** | {total_streams} | 100.0% |\n"
-                  report += f"| **🔍 Checked** | {total_checked} | {(total_checked/total_streams*100):.1f}% |\n"
-                  report += f"| **✅ Working** | {total_working} | {(total_working/total_checked*100) if total_checked > 0 else 0:.1f}% |\n"
-                  report += f"| **❌ Failed** | {total_checked - total_working} | {((total_checked - total_working)/total_checked*100) if total_checked > 0 else 0:.1f}% |\n"
-                  report += f"| **⏭️ Skipped** | {len(self.skipped_streams)} | {(len(self.skipped_streams)/total_streams*100):.1f}% |\n\n"
+                  # Enhanced summary with performance metrics
+                  report += "## 📊 Performance Summary\n\n"
+                  report += "| Metric | Count | Rate | Status |\n|--------|-------|------|--------|\n"
+                  report += f"| **📺 Total Streams** | {total_streams} | 100.0% | 📋 |\n"
+                  report += f"| **🔍 Checked** | {total_checked} | {(total_checked/total_streams*100):.1f}% | {'🟢' if total_checked > 0 else '🔴'} |\n"
+                  report += f"| **✅ Working** | {total_working} | {(total_working/total_checked*100) if total_checked > 0 else 0:.1f}% | {'🟢' if total_working > 100 else '🟡' if total_working > 50 else '🔴'} |\n"
+                  report += f"| **❌ Failed** | {total_checked - total_working} | {((total_checked - total_working)/total_checked*100) if total_checked > 0 else 0:.1f}% | ⚪ |\n"
+                  report += f"| **⏭️ Skipped** | {len(self.skipped_streams)} | {(len(self.skipped_streams)/total_streams*100):.1f}% | ⚪ |\n\n"
                   
-                  # Performance breakdown
+                  # Stream processing breakdown
                   if len(self.regular_working) + len(self.regular_failed) > 0:
                       regular_total = len(self.regular_working) + len(self.regular_failed)
-                      report += f"- **📡 Regular Streams:** {len(self.regular_working)}/{regular_total} working ({(len(self.regular_working)/regular_total*100):.1f}%)\n"
+                      regular_rate = (len(self.regular_working)/regular_total*100)
+                      report += f"- **🔗 Regular Streams:** {len(self.regular_working)}/{regular_total} working ({regular_rate:.1f}%)\n"
                   
                   if len(self.geo_working) + len(self.geo_failed) > 0:
                       geo_total = len(self.geo_working) + len(self.geo_failed)
-                      report += f"- **🌐 Geo-blocked:** {len(self.geo_working)}/{geo_total} recovered ({(len(self.geo_working)/geo_total*100):.1f}%)\n"
+                      geo_recovery_rate = (len(self.geo_working)/geo_total*100)
+                      report += f"- **🌍 Geo-blocked Recovery:** {len(self.geo_working)}/{geo_total} unblocked ({geo_recovery_rate:.1f}%)\n"
                   
-                  # Stream types
-                  report += "\n## 🎯 Stream Types\n\n"
+                  # Enhanced stream type breakdown
+                  report += "\n## 🎯 Stream Categories\n\n"
                   for stream_type in ['Channel', 'VOD', 'PPV', 'FAST']:
                       working = self.working_by_type[stream_type]
                       failed = self.failed_by_type[stream_type]
-                      if working > 0 or failed > 0:
-                          total_type = working + failed
+                      total_type_all = self.total_by_type[stream_type]
+                      
+                      if total_type_all > 0:
                           emoji = {'Channel': '📡', 'VOD': '🎬', 'PPV': '🥊', 'FAST': '📺'}[stream_type]
-                          report += f"- **{emoji} {stream_type}:** {working}/{total_type} working ({(working/total_type*100):.1f}%)\n"
+                          checked = working + failed
+                          
+                          if checked > 0:
+                              success_rate = (working/checked*100)
+                              status_emoji = '🟢' if success_rate >= 70 else '🟡' if success_rate >= 50 else '🔴'
+                              report += f"- **{emoji} {stream_type}:** {working}/{checked} working ({success_rate:.1f}%) {status_emoji}\n"
+                          else:
+                              report += f"- **{emoji} {stream_type}:** {total_type_all} total (skipped)\n"
                   
-                  # Quick failure summary
+                  # Performance analysis
+                  if duration > 0:
+                      report += f"\n## ⚡ Performance Analysis\n\n"
+                      report += f"- **🏃 Processing Speed:** {streams_per_second:.1f} streams/second\n"
+                      report += f"- **🎯 Efficiency:** {(total_working/duration):.1f} working streams found/second\n"
+                      if self.working_proxies:
+                          report += f"- **🌐 Proxy Utilization:** {len(self.working_proxies)} active proxies\n"
+                          proxy_efficiency = len(self.geo_working) / len(self.working_proxies) if len(self.working_proxies) > 0 else 0
+                          report += f"- **🔄 Proxy Efficiency:** {proxy_efficiency:.1f} recoveries per proxy\n"
+                      
+                      time_rating = "🚀 Excellent" if duration < 300 else "⚡ Good" if duration < 600 else "🐌 Slow"
+                      report += f"- **⏱️ Runtime Rating:** {time_rating} ({duration:.0f}s)\n"
+                  
+                  # Quick failure analysis
                   if sum(self.failure_summary.values()) > 0:
-                      report += "\n## 🚨 Failure Summary\n\n"
-                      for category, count in self.failure_summary.items():
+                      report += f"\n## 🚨 Issue Analysis\n\n"
+                      total_failures = sum(self.failure_summary.values())
+                      for category, count in sorted(self.failure_summary.items(), key=lambda x: x[1], reverse=True):
                           if count > 0:
-                              emoji = {'geo_blocked': '🔒', 'timeouts': '⏰', 'not_found': '🔍', 'server_errors': '🖥️', 'other': '❓'}[category]
-                              report += f"- **{emoji} {category.replace('_', ' ').title()}:** {count} streams\n"
+                              percentage = (count/total_failures*100)
+                              emoji = {'geo_blocked': '🔒', 'timeouts': '⏰', 'not_found': '📍', 'server_errors': '🖥️', 'other': '❓'}[category]
+                              report += f"- **{emoji} {category.replace('_', ' ').title()}:** {count} ({percentage:.1f}%)\n"
                   
-                  # Configuration notes
-                  report += f"\n## ⚙️ Configuration\n\n"
-                  report += f"- **Mode:** {'⚡ Quick Mode' if QUICK_MODE else '🔧 Standard Mode'}\n"
-                  report += f"- **Proxy Testing:** Up to {MAX_PROXIES} tested for {TARGET_WORKING_PROXIES} working\n"
-                  report += f"- **Timeouts:** {TIMEOUT_SECONDS}s per stream\n"
-                  report += f"- **Content Types:** "
-                  types = []
-                  if CHECK_VODS: types.append("VODs")
-                  if CHECK_PPV: types.append("PPV") 
-                  if CHECK_FAST: types.append("FAST")
-                  if not types: types.append("Channels only")
-                  report += ", ".join(types) + "\n"
+                  # Configuration and recommendations
+                  report += f"\n## 🛠️ Configuration & Recommendations\n\n"
                   
-                  report += f"\n## 🎮 Manual Testing\n\n"
-                  report += f"Run workflow with different settings:\n"
-                  report += f"- Toggle **⚡ Quick Mode** for speed vs thoroughness\n"
-                  report += f"- Enable content types: **🎬 VODs**, **🥊 PPV**, **📺 FAST**\n"
-                  report += f"- Adjust **🎯 Target Proxies** (5-20 recommended)\n"
-                  report += f"- Try **🔒 Tor** for additional anonymity\n\n"
+                  # Performance recommendations
+                  if duration > 600:  # Over 10 minutes
+                      report += f"⚠️ **Performance:** Runtime was {duration:.0f}s. Consider:\n"
+                      report += f"   - Enable Quick Mode for faster execution\n"
+                      report += f"   - Reduce timeout_seconds to 4-5s\n"
+                      report += f"   - Lower target_working_proxies to 5-8\n\n"
+                  elif duration < 300:  # Under 5 minutes
+                      report += f"🚀 **Performance:** Excellent runtime ({duration:.0f}s)!\n\n"
+                  
+                  # Success rate recommendations
+                  overall_success_rate = (total_working/total_checked*100) if total_checked > 0 else 0
+                  if overall_success_rate < 15:
+                      report += f"📈 **Success Rate:** Low success rate ({overall_success_rate:.1f}%). Try:\n"
+                      report += f"   - Enable Tor proxy for additional routes\n"
+                      report += f"   - Increase proxy target to 15-20\n"
+                      report += f"   - Check different content types (VODs, PPV, FAST)\n\n"
+                  elif overall_success_rate > 25:
+                      report += f"🎉 **Success Rate:** Great results ({overall_success_rate:.1f}%)!\n\n"
+                  
+                  # Current settings summary
+                  report += f"**Current Settings:**\n"
+                  report += f"- Mode: {'⚡ Quick' if QUICK_MODE else '🔧 Thorough'}\n"
+                  report += f"- Proxy Testing: {MAX_PROXIES} max, {TARGET_WORKING_PROXIES} target\n"
+                  report += f"- Timeouts: {TIMEOUT_SECONDS}s per stream\n"
+                  content_types = []
+                  if CHECK_VODS: content_types.append("VODs")
+                  if CHECK_PPV: content_types.append("PPV")
+                  if CHECK_FAST: content_types.append("FAST")
+                  if not content_types: content_types.append("Channels only")
+                  report += f"- Content: {', '.join(content_types)}\n\n"
                   
                   report += f"---\n"
-                  report += f"*Last updated: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')} UTC*\n"
-                  report += f"*Optimized for speed with {len(self.working_proxies)} proxies*\n"
+                  report += f"*Generated in {duration:.1f}s | Enhanced M3U Stream Checker v2.0*\n"
                   
                   return report
 
               async def run(self):
-                  """Main optimized execution"""
-                  print("⚡ Starting Optimized Stream Checker...")
+                  """Main enhanced execution"""
+                  print("🚀 Starting Enhanced Stream Checker...")
                   
                   # Parse M3U
                   streams = self.parse_m3u_fast('channel playlist.m3u')
@@ -1115,17 +1080,37 @@ jobs:
                   # Process streams (optimized)
                   await self.process_streams_optimized(streams)
                   
-                  # Generate report
-                  print("📝 Generating optimized report...")
-                  report = self.generate_optimized_report()
-                  
+                  # Generate report with error handling
+                  print("📝 Generating enhanced report...")
                   try:
-                      with open('report.md', 'w', encoding='utf-8') as f:
+                      report = self.generate_optimized_report()
+                      
+                      # Ensure report directory exists and write with proper encoding
+                      os.makedirs(os.path.dirname('report.md') if os.path.dirname('report.md') else '.', exist_ok=True)
+                      with open('report.md', 'w', encoding='utf-8', errors='ignore') as f:
                           f.write(report)
-                      print("✅ Report saved successfully")
+                          f.flush()
+                          os.fsync(f.fileno())  # Force write to disk
+                      
+                      # Verify file was written
+                      if os.path.exists('report.md') and os.path.getsize('report.md') > 100:
+                          print("✅ Enhanced report saved successfully")
+                          print(f"📄 Report size: {os.path.getsize('report.md')} bytes")
+                      else:
+                          print("❌ Report file verification failed")
+                          return
+                          
                   except Exception as e:
-                      print(f"❌ Error saving report: {e}")
-                      return
+                      print(f"❌ Error generating report: {e}")
+                      # Create minimal fallback report
+                      fallback_report = f"# Stream Check Report\n\nGenerated: {datetime.now(timezone.utc)}\nError occurred during report generation: {e}\n"
+                      try:
+                          with open('report.md', 'w', encoding='utf-8') as f:
+                              f.write(fallback_report)
+                          print("📝 Fallback report created")
+                      except:
+                          print("❌ Could not create fallback report")
+                          return
                   
                   # Final summary
                   duration = time.time() - self.start_time
@@ -1133,28 +1118,29 @@ jobs:
                   total_checked = len(self.regular_working) + len(self.regular_failed) + len(self.geo_working) + len(self.geo_failed)
                   
                   print(f"\n" + "="*60)
-                  print(f"⚡ OPTIMIZED CHECK COMPLETE")
+                  print(f"🚀 ENHANCED CHECK COMPLETE")
                   print(f"="*60)
-                  print(f"⏱️ Duration: {duration:.1f}s (vs {duration/60:.1f}m)")
+                  print(f"⏱️ Duration: {duration:.1f}s ({duration/60:.1f}m)")
                   print(f"📊 Results: {total_working}/{total_checked} working ({(total_working/total_checked*100) if total_checked > 0 else 0:.1f}%)")
+                  print(f"⚡ Speed: {total_checked/duration:.1f} streams/sec")
                   if self.working_proxies:
                       print(f"🌐 Proxies: {len(self.working_proxies)} working")
                       print(f"🎯 Geo-recovery: {len(self.geo_working)} streams")
-                  print(f"📄 Report: {os.path.getsize('report.md')} bytes")
+                  print(f"📄 Report: {os.path.getsize('report.md') if os.path.exists('report.md') else 0} bytes")
                   print(f"="*60)
 
-          # Execute optimized checker
-          checker = OptimizedStreamChecker()
+          # Execute enhanced checker
+          checker = EnhancedStreamChecker()
           asyncio.run(checker.run())
           EOF
           
           # Verify success
           if [ $? -eq 0 ]; then
-            echo "✅ Optimized script completed"
+            echo "✅ Enhanced script completed"
             if [ -f "report.md" ]; then
               echo "📊 Report size: $(wc -c < report.md) bytes"
               echo "📋 Report preview:"
-              head -8 report.md
+              head -10 report.md
             else
               echo "❌ Report missing!"
               exit 1
@@ -1164,53 +1150,73 @@ jobs:
             exit 1
           fi
 
-      - name: 📤 Commit optimized report
+      - name: 📤 Commit enhanced report
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "github-actions[bot]"
           
           if [[ -f "report.md" ]]; then
-            echo "✅ Optimized report ready"
+            echo "✅ Enhanced report ready for commit"
             
+            # Ensure we're up to date
             git pull origin main --rebase || {
+              echo "Rebase failed, trying merge..."
               git reset --hard HEAD
               git pull origin main
             }
             
             git add report.md
             if ! git diff --staged --quiet; then
-              # Build commit message
-              COMMIT_MSG="⚡ Optimized stream check"
+              # Build enhanced commit message
+              COMMIT_MSG="🚀 Enhanced stream check"
               
               if [[ "${QUICK_MODE:-true}" == "true" ]]; then
                 COMMIT_MSG="$COMMIT_MSG (quick)"
               fi
               
+              # Add content flags
+              CONTENT_FLAGS=""
               if [[ "${CHECK_VODS:-false}" == "true" ]]; then
-                COMMIT_MSG="$COMMIT_MSG +VODs"
+                CONTENT_FLAGS="$CONTENT_FLAGS +VODs"
               fi
               if [[ "${CHECK_PPV:-false}" == "true" ]]; then
-                COMMIT_MSG="$COMMIT_MSG +PPV" 
+                CONTENT_FLAGS="$CONTENT_FLAGS +PPV" 
               fi
               if [[ "${CHECK_FAST:-false}" == "true" ]]; then
-                COMMIT_MSG="$COMMIT_MSG +FAST" 
+                CONTENT_FLAGS="$CONTENT_FLAGS +FAST" 
+              fi
+              
+              if [[ -n "$CONTENT_FLAGS" ]]; then
+                COMMIT_MSG="$COMMIT_MSG$CONTENT_FLAGS"
+              fi
+              
+              # Add performance info if available
+              if [[ -f "report.md" ]]; then
+                REPORT_SIZE=$(wc -c < report.md)
+                COMMIT_MSG="$COMMIT_MSG - ${REPORT_SIZE}B"
               fi
               
               COMMIT_MSG="$COMMIT_MSG - $(date -u '+%m/%d %H:%M')"
               
               git commit -m "$COMMIT_MSG"
               
-              # Push with retry
-              for i in {1..3}; do
+              # Enhanced push with retry logic
+              for i in {1..5}; do
                 if git push origin main; then
-                  echo "✅ Optimized report pushed (attempt $i)"
+                  echo "✅ Enhanced report pushed successfully (attempt $i)"
                   break
                 else
-                  if [ $i -lt 3 ]; then
-                    sleep 2
-                    git pull origin main --rebase || git reset --hard HEAD~1 && git pull origin main && git add report.md && git commit -m "$COMMIT_MSG"
+                  if [ $i -lt 5 ]; then
+                    echo "Push failed, retrying in 3s... (attempt $i/5)"
+                    sleep 3
+                    git pull origin main --rebase || {
+                      git reset --hard HEAD~1 
+                      git pull origin main 
+                      git add report.md 
+                      git commit -m "$COMMIT_MSG"
+                    }
                   else
-                    echo "❌ Push failed after 3 attempts"
+                    echo "❌ Push failed after 5 attempts"
                     exit 1
                   fi
                 fi

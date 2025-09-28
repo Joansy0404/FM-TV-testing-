@@ -1,15 +1,15 @@
 # IPTV Stream Validation Report
 
-**Generated:** 2025-09-28 18:15 UTC  
-**Duration:** 537.1s (9.0m)  
+**Generated:** 2025-09-28 18:33 UTC  
+**Duration:** 409.8s (6.8m)  
 **Method:** Robust content validation (IPTV Checker methodology)  
 **Sample:** 100 streams tested  
 
 ## Summary
 
-- **✅ Working:** 13 streams (13.0%)
+- **✅ Working:** 19 streams (19.0%)
 - **🔒 Geo-blocked:** 4 streams (4.0%)
-- **❌ Failed:** 83 streams (83.0%)
+- **❌ Failed:** 77 streams (77.0%)
 - **📊 Total tested:** 100 streams
 
 **Performance:** 0.2 streams/second with content validation
@@ -18,49 +18,51 @@
 
 | Type | Working | Geo-blocked | Failed | Total | Success Rate |
 |------|---------|-------------|--------|-------|-------------|
-| Channel | 13 | 4 | 83 | 100 | 13.0% |
+| Channel | 19 | 4 | 77 | 100 | 19.0% |
 
 ## Sample Working Streams
 
 | Channel | Type | Group |
 |---------|------|---------|
-| HUB PREMIER 2 | Channel | INT |
-| BBC ALBA | Channel | UK |
-| SKY SCI-FI | Channel | UK |
-| U&ALIBI | Channel | UK |
-| NATIONAL GEOGRAPHIC | Channel | UK |
 | SUPERSPORT FOOTBALL | Channel | ZA |
+| VIRGIN MEDIA TWO | Channel | IE |
+| LALIGA TV | Channel | UK |
+| SKY SCI-FI | Channel | UK |
+| QUEST+1 | Channel | UK |
+| SPECTRUM SPORTSNET | Channel | USA |
+| DISCOVERY | Channel | UK |
+| SKY SPORT 6 | Channel | NZ |
 | SKY SPORTS MAIN EVENT UHD | Channel | UK |
-| U&GOLD | Channel | UK |
-| TSN 4 | Channel | CA |
-| ITV QUIZ | Channel | UK |
-| VIRGIN MEDIA FOUR | Channel | IE |
-| Global TV | Channel | CA |
-| ALTITUDE SPORTS | Channel | USA |
+| NOW SPORTS 1 | Channel | HK |
+| HUB PREMIER 2 | Channel | INT |
+| SKY SPORT 5 | Channel | NZ |
+| SKY SPORTS MAIN EVENT | Channel | UK |
+| SKY WITNESS | Channel | UK |
+| MSNBC | Channel | USA |
 
 ## Geo-blocked Streams
 
 | Channel | Type | Group |
 |---------|------|---------|
 | BLAZE | Channel | UK |
-| TG 4 | Channel | IE |
-| TV WAREHOUSE | Channel | UK |
+| FOX SPORTS 506 | Channel | AUS |
 | ORA NEWS | Channel | AL |
+| RTÈ 2 | Channel | IE |
 
 ## Sample Failed Streams
 
 | Channel | Type | Group |
 |---------|------|---------|
-| SKY CINEMA ACTION | Channel | UK |
-| GAME SHOW NETWORK (EAST) | Channel | USA |
-| RTÈ NEWS | Channel | IE |
-| DISCOVERY KIDS | Channel | IN |
-| AL ARABIYA | Channel | AE |
-| CHARGE! | Channel | USA |
-| HORSE & COUNTRY | Channel | UK |
-| NOUR TV | Channel | AE |
-| NICK JR. | Channel | USA |
-| ITV 4 | Channel | UK |
+| MTV 2 | Channel | USA |
+| 5 USA | Channel | UK |
+| U&DAVE | Channel | UK |
+| PEACE TV ENGLISH | Channel | AE |
+| SKY SPORTS CRICKET | Channel | UK |
+| LOVE NATURE | Channel | USA |
+| AL SHARQIYA MIN KABLA | Channel | AE |
+| METV | Channel | USA |
+| MAGNOLIA NETWORK | Channel | USA |
+| NATIONAL GEOGRAPHIC (EAST) | Channel | USA |
 
 ## Validation Methodology
 
@@ -81,5 +83,5 @@ This checker uses robust IPTV validation techniques:
 - **Validation Threshold:** 500KB minimum data
 
 ---
-*IPTV validation completed in 537.1 seconds*  
+*IPTV validation completed in 409.8 seconds*  
 *Uses proven IPTV Checker methodology for accurate results*

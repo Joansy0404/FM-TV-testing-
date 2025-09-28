@@ -1,537 +1,184 @@
-name: Fast IPTV Stream Checker
+# This is a basic workflow to help you get started with Actions
+name: Fetch TV-FM Files
 
 on:
-  workflow_dispatch:
-    inputs:
-      check_vods:
-        description: 'Check VOD files'
-        required: false
-        default: false
-        type: boolean
-      check_ppv:
-        description: 'Check PPV channels'
-        required: false
-        default: false
-        type: boolean
-      check_fast:
-        description: 'Check FAST channels'
-        required: false
-        default: false
-        type: boolean
-      sample_size:
-        description: 'Sample size (0=all, 300=recommended)'
-        required: false
-        default: '300'
-        type: string
-      quick_mode:
-        description: 'Quick validation (faster but less thorough)'
-        required: false
-        default: true
-        type: boolean
   schedule:
-    - cron: '0 */12 * * *'
+    - cron: '30 * * * *'
+  workflow_dispatch: {} # Enables manual triggering
 
 permissions:
   contents: write
 
 jobs:
-  fast-stream-check:
+  download_and_commit:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.x'
+      - name: Download unwrapped M3U Plus file
+        run: wget "${{ secrets.IPTV_M3U_URL }}" -O "unwrapped.m3u"
 
-      - name: Install dependencies
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y curl
-          python -m pip install --upgrade pip
-          pip install requests
+      - name: Download EPG XML file
+        run: wget "${{ secrets.IPTV_EPG_URL }}" -O "channel playlist.xml"
 
-      - name: Fast IPTV Stream Validation
+      - name: Transform URLs to wrapped format
         env:
-          CHECK_VODS: ${{ github.event.inputs.check_vods || 'false' }}
-          CHECK_PPV: ${{ github.event.inputs.check_ppv || 'false' }}
-          CHECK_FAST: ${{ github.event.inputs.check_fast || 'false' }}
-          SAMPLE_SIZE: ${{ github.event.inputs.sample_size || '300' }}
-          QUICK_MODE: ${{ github.event.inputs.quick_mode || 'true' }}
+          # Pass the full M3U URL into the script's environment
+          IPTV_M3U_URL: ${{ secrets.IPTV_M3U_URL }}
         run: |
-          python - << 'EOF'
-          import requests
-          import subprocess
-          import os
+          python3 << 'EOF'
+          import base64
           import re
-          import time
-          import random
           import json
-          from datetime import datetime, timezone
-          from concurrent.futures import ThreadPoolExecutor, as_completed
-          import threading
+          import urllib.parse
+          import os
 
-          # Configuration
-          CHECK_VODS = os.getenv('CHECK_VODS', 'false').lower() == 'true'
-          CHECK_PPV = os.getenv('CHECK_PPV', 'false').lower() == 'true'
-          CHECK_FAST = os.getenv('CHECK_FAST', 'false').lower() == 'true'
-          SAMPLE_SIZE = int(os.getenv('SAMPLE_SIZE', '300'))
-          QUICK_MODE = os.getenv('QUICK_MODE', 'true').lower() == 'true'
+          def wrap_m3u_urls(input_file, output_file):
+              """
+              Reads an unwrapped M3U file and transforms stream URLs into the proxy-wrapped format.
+              """
+              # Get the full M3U URL from environment variables
+              m3u_url = os.environ.get('IPTV_M3U_URL')
+              if not m3u_url:
+                  print("Error: IPTV_M3U_URL not found in environment variables.")
+                  return
 
-          print(f"Fast IPTV Stream Validation Starting...")
-          print(f"Quick mode: {QUICK_MODE}, Sample: {SAMPLE_SIZE}")
+              # Parse the URL to extract username and password
+              try:
+                  parsed_url = urllib.parse.urlparse(m3u_url)
+                  query_params = urllib.parse.parse_qs(parsed_url.query)
+                  username = query_params['username'][0]
+                  password = query_params['password'][0]
+              except (KeyError, IndexError):
+                  print("Error: Could not parse 'username' and 'password' from the IPTV_M3U_URL secret.")
+                  return
+              
+              # Construct the prefix dynamically using extracted credentials
+              PREFIX = f"http://alt.xtream-ie.org/{username}/{password}/1"
+              SUFFIX = "/fast"
 
-          class FastStreamChecker:
-              def __init__(self):
-                  self.start_time = time.time()
-                  self.results = {
-                      'working': [],
-                      'geoblocked': [],
-                      'failed': [],
-                      'skipped': []
-                  }
-                  self.session = requests.Session()
-                  self.session.headers.update({
-                      'User-Agent': 'VLC/3.0.12 LibVLC/3.0.12'
-                  })
-                  self.lock = threading.Lock()
+              # Groups that need /#.mkv added to URLs
+              MKV_GROUPS = {
+                  "NETFLIX", "Disney+", "PRIME VIDEO", "HBO MAX", "Peacock TV", 
+                  "Paramount+", "SONY Pictures Core", "STARZ", "AMC+", "BritBox", 
+                  "Apple TV+", "Others", "Hallmark+", "stan.", "FMTV+", "RTÈ PLAYER", 
+                  "Angel Studios", "PBS", "DOCPLAY", "CBC Gem", "Peacock TV (Shows)", 
+                  "SONY Pictures Core (Shows)", "Stan.", "Studiocanal Presents"
+              }
 
-              def classify_stream_type(self, stream):
-                  """Classify stream type"""
-                  url = stream['url']
-                  name = stream['name'].lower()
-                  group = stream['group'].lower()
-                  
-                  if url.endswith('#.mkv'):
-                      return 'VOD'
-                  elif any(x in group for x in ['uk events', 'usa events', 'events', 'ppv']):
-                      return 'PPV'
-                  elif 'fast' in group:
-                      return 'FAST'
-                  else:
-                      return 'Channel'
+              # Regex to find values from the #EXTINF line
+              CUID_PATTERN = re.compile(r'CUID=\"(\d+)\"')
+              GROUP_PATTERN = re.compile(r'group-title=\"([^\"]+)\"')
+              
+              print(f"Starting M3U transformation: {input_file} -> {output_file}")
 
-              def should_test_stream(self, stream):
-                  """Check if stream should be tested"""
-                  stream_type = self.classify_stream_type(stream)
-                  
-                  if stream_type == 'VOD' and not CHECK_VODS:
-                      return False
-                  elif stream_type == 'PPV' and not CHECK_PPV:
-                      return False
-                  elif stream_type == 'FAST' and not CHECK_FAST:
-                      return False
-                  
-                  return True
+              try:
+                  with open(input_file, 'r', encoding='utf-8') as infile, \
+                       open(output_file, 'w', encoding='utf-8') as outfile:
+                      
+                      lines = infile.readlines()
+                      
+                      # Check for M3U header and write it with the EPG URL
+                      if not lines or lines[0].strip() != "#EXTM3U":
+                          print("Error: Input file is missing the '#EXTM3U' header.")
+                          return
 
-              def is_xtream_url(self, url):
-                  """Check if URL is Xtream Codes format"""
-                  return 'xtream' in url.lower() or '/live/' in url or re.search(r'/\w+/\w+/\d+', url)
-
-              def fast_validate_stream(self, stream):
-                  """Fast stream validation - optimized for speed and accuracy"""
-                  url = stream['url']
-                  name = stream['name']
-                  
-                  # Quick validation based on URL patterns and HTTP response
-                  try:
-                      # For Xtream URLs, use HEAD request with short timeout
-                      if self.is_xtream_url(url):
-                          response = self.session.head(url, timeout=3, allow_redirects=True)
+                      outfile.write('#EXTM3U url-tvg="https://tinyurl.com/FMTV-L1VE-EPG-XML"\n')
+                      
+                      i = 1 # Start processing from the second line
+                      while i < len(lines):
+                          extinf_line = lines[i].strip()
                           
-                          if response.status_code == 403:
-                              return 'Geoblocked', f'HTTP 403'
-                          elif response.status_code == 404:
-                              return 'Failed', f'Stream not found (404)'
-                          elif response.status_code == 200:
-                              # For Xtream, 200 on HEAD usually means working
-                              return 'Working', f'Xtream API responsive'
-                          elif 300 <= response.status_code < 400:
-                              # Redirects are usually good for streams
-                              return 'Working', f'Redirect to stream'
-                      
-                      # For direct URLs, try to get first few KB
-                      response = self.session.get(url, stream=True, timeout=4)
-                      
-                      if response.status_code == 403:
-                          return 'Geoblocked', f'HTTP 403'
-                      elif response.status_code != 200:
-                          return 'Failed', f'HTTP {response.status_code}'
-                      
-                      # Read first chunk to verify it's media content
-                      chunk_size = 0
-                      content_sample = b''
-                      
-                      for chunk in response.iter_content(chunk_size=2048):
-                          if chunk:
-                              content_sample += chunk
-                              chunk_size += len(chunk)
-                              if chunk_size > 4096:  # 4KB sample
-                                  break
-                      
-                      if chunk_size < 100:
-                          return 'Failed', 'No content received'
-                      
-                      # Quick content analysis
-                      sample_lower = content_sample.lower()
-                      
-                      # Definitely not a stream
-                      if (b'<html' in sample_lower or 
-                          b'<!doctype' in sample_lower or
-                          b'404 not found' in sample_lower or
-                          b'access denied' in sample_lower):
-                          return 'Failed', 'HTML/Error page'
-                      
-                      # Likely stream content
-                      if (b'#extm3u' in sample_lower or
-                          b'#extinf' in sample_lower or
-                          len([b for b in content_sample if b > 127]) > len(content_sample) * 0.3):
-                          return 'Working', f'Stream content detected ({chunk_size}B)'
-                      
-                      # Fallback - if we got data and it's not HTML, probably working
-                      return 'Working', f'Binary content ({chunk_size}B)'
-                      
-                  except requests.exceptions.Timeout:
-                      return 'Failed', 'Connection timeout'
-                  except requests.exceptions.ConnectionError:
-                      return 'Failed', 'Connection failed'
-                  except Exception as e:
-                      return 'Failed', f'Error: {str(e)[:30]}'
-
-              def validate_stream_batch(self, streams):
-                  """Validate a batch of streams"""
-                  results = []
-                  
-                  if QUICK_MODE:
-                      # Sequential processing for quick mode
-                      for i, stream in enumerate(streams):
-                          print(f"  [{i+1}/{len(streams)}] {stream['name'][:40]}...")
-                          
-                          status, reason = self.fast_validate_stream(stream)
-                          results.append((stream, status, reason))
-                          
-                          # Brief pause to avoid overwhelming servers
-                          time.sleep(0.02)
-                  else:
-                      # Parallel processing for thorough mode
-                      with ThreadPoolExecutor(max_workers=5) as executor:
-                          future_to_stream = {
-                              executor.submit(self.fast_validate_stream, stream): stream 
-                              for stream in streams
-                          }
-                          
-                          for i, future in enumerate(as_completed(future_to_stream)):
-                              stream = future_to_stream[future]
-                              try:
-                                  status, reason = future.result()
-                                  results.append((stream, status, reason))
-                                  print(f"  [{i+1}/{len(streams)}] {stream['name'][:40]}... {status}")
-                              except Exception as e:
-                                  results.append((stream, 'Failed', f'Exception: {e}'))
-                  
-                  return results
-
-              def parse_m3u(self, file_path):
-                  """Parse M3U file efficiently"""
-                  if not os.path.exists(file_path):
-                      print(f"M3U file not found: {file_path}")
-                      return []
-                      
-                  streams = []
-                  try:
-                      with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                          lines = f.readlines()
-                  except Exception as e:
-                      print(f"Error reading M3U file: {e}")
-                      return []
-                      
-                  for i in range(len(lines)):
-                      line = lines[i].strip()
-                      if line.startswith('#EXTINF'):
-                          try:
-                              group_match = re.search(r'group-title="([^"]*)"', line)
-                              group = group_match.group(1) if group_match else "No Group"
-                              name = line.split(',')[-1].strip() if ',' in line else "Unknown"
+                          if extinf_line.startswith("#EXTINF"):
+                              outfile.write(extinf_line + '\n')
                               
-                              if i + 1 < len(lines):
-                                  url = lines[i + 1].strip()
-                                  if url and not url.startswith('#') and ('http' in url):
-                                      streams.append({
-                                          'name': name,
-                                          'url': url,
-                                          'group': group
-                                      })
-                          except Exception:
-                              continue
-                  
-                  print(f"Parsed {len(streams)} streams from M3U file")
-                  return streams
+                              if i + 1 >= len(lines):
+                                  i += 1
+                                  continue
 
-              def run_validation(self):
-                  """Run fast validation"""
-                  # Parse M3U
-                  all_streams = self.parse_m3u('channel playlist.m3u')
-                  if not all_streams:
-                      print("No streams found!")
-                      return
+                              url_line = lines[i+1].strip()
+                              
+                              if not url_line:
+                                  outfile.write(url_line + '\n')
+                                  i += 2
+                                  continue
+                              
+                              # Extract CUID and group-title
+                              cuid_match = CUID_PATTERN.search(extinf_line)
+                              group_match = GROUP_PATTERN.search(extinf_line)
+                              
+                              if not cuid_match:
+                                  outfile.write(url_line + '\n')
+                                  i += 2
+                                  continue
 
-                  # Filter streams
-                  test_streams = [s for s in all_streams if self.should_test_stream(s)]
-                  
-                  # Apply sample size
-                  if SAMPLE_SIZE > 0 and len(test_streams) > SAMPLE_SIZE:
-                      test_streams = random.sample(test_streams, SAMPLE_SIZE)
-                  
-                  print(f"Testing {len(test_streams)} streams (from {len(all_streams)} total)")
-                  
-                  # Process in batches for better performance
-                  batch_size = 50 if QUICK_MODE else 20
-                  
-                  for i in range(0, len(test_streams), batch_size):
-                      batch = test_streams[i:i + batch_size]
-                      print(f"\nBatch {i//batch_size + 1}: Testing streams {i+1}-{min(i+batch_size, len(test_streams))}")
-                      
-                      batch_results = self.validate_stream_batch(batch)
-                      
-                      # Process results
-                      for stream, status, reason in batch_results:
-                          stream_type = self.classify_stream_type(stream)
-                          
-                          result_data = {
-                              'name': stream['name'],
-                              'type': stream_type,
-                              'group': stream['group'],
-                              'url': stream['url'],
-                              'reason': reason
-                          }
-                          
-                          if status == 'Working':
-                              self.results['working'].append(result_data)
-                          elif status == 'Geoblocked':
-                              self.results['geoblocked'].append(result_data)
+                              cuid = int(cuid_match.group(1))
+                              
+                              # Check if this channel belongs to a group that needs /#.mkv
+                              needs_mkv = False
+                              if group_match:
+                                  group_title = group_match.group(1)
+                                  needs_mkv = group_title in MKV_GROUPS
+                              
+                              # Build the JSON payload
+                              payload_data = {"url": url_line, "id": cuid}
+                              payload_str = json.dumps(payload_data)
+                              
+                              # Base64 Encode the payload
+                              encoded_payload = base64.b64encode(payload_str.encode('utf-8')).decode('utf-8')
+                              
+                              # URL-safe encode the result
+                              url_safe_payload = encoded_payload.replace('=', '%3D')
+                              
+                              # Construct the final wrapped URL
+                              if needs_mkv:
+                                  wrapped_url = f'{PREFIX}{url_safe_payload}{SUFFIX}/#.mkv'
+                              else:
+                                  wrapped_url = f'{PREFIX}{url_safe_payload}{SUFFIX}'
+                              
+                              outfile.write(wrapped_url + '\n')
+                              
+                              i += 2
                           else:
-                              self.results['failed'].append(result_data)
-                  
-                  print(f"\nValidation completed!")
-
-              def generate_report(self):
-                  """Generate concise validation report"""
-                  duration = time.time() - self.start_time
-                  
-                  total_tested = (len(self.results['working']) + 
-                                len(self.results['geoblocked']) + 
-                                len(self.results['failed']))
-                  
-                  working_count = len(self.results['working'])
-                  geo_count = len(self.results['geoblocked'])
-                  failed_count = len(self.results['failed'])
-                  
-                  success_rate = (working_count / total_tested * 100) if total_tested > 0 else 0
-                  
-                  report = f"# Fast IPTV Stream Validation Report\n\n"
-                  report += f"**Generated:** {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}  \n"
-                  report += f"**Duration:** {duration:.1f}s ({duration/60:.1f}m)  \n"
-                  report += f"**Mode:** {'Quick' if QUICK_MODE else 'Thorough'} validation  \n"
-                  report += f"**Sample:** {total_tested} streams tested  \n\n"
-                  
-                  # Executive Summary
-                  report += "## Executive Summary\n\n"
-                  report += f"- **✅ Working Streams:** {working_count} ({success_rate:.1f}%)\n"
-                  report += f"- **🔒 Geo-blocked:** {geo_count} ({(geo_count/total_tested*100) if total_tested > 0 else 0:.1f}%)\n"
-                  report += f"- **❌ Failed Streams:** {failed_count} ({(failed_count/total_tested*100) if total_tested > 0 else 0:.1f}%)\n"
-                  report += f"- **📊 Total Tested:** {total_tested} streams\n\n"
-                  
-                  # Performance metrics
-                  if duration > 0:
-                      rate = total_tested / duration
-                      report += f"**Performance:** {rate:.2f} streams/second, {duration/total_tested:.2f}s per stream\n\n"
-                  
-                  # Stream type breakdown
-                  type_stats = {}
-                  for category in ['working', 'geoblocked', 'failed']:
-                      for stream in self.results[category]:
-                          stream_type = stream['type']
-                          if stream_type not in type_stats:
-                              type_stats[stream_type] = {'working': 0, 'geoblocked': 0, 'failed': 0}
-                          type_stats[stream_type][category] += 1
-                  
-                  if type_stats:
-                      report += "## Stream Type Breakdown\n\n"
-                      for stream_type, stats in type_stats.items():
-                          total_type = sum(stats.values())
-                          working_pct = (stats['working'] / total_type * 100) if total_type > 0 else 0
-                          report += f"- **{stream_type}:** {stats['working']}/{total_type} working ({working_pct:.1f}%)\n"
-                      report += "\n"
-                  
-                  # Working streams sample
-                  if self.results['working']:
-                      report += "## Working Streams (Top 20)\n\n"
-                      report += "| Channel | Type | Status | Group |\n"
-                      report += "|---------|------|--------|---------|\n"
-                      
-                      for stream in self.results['working'][:20]:
-                          name = stream['name'][:30].replace('|', '\\|')
-                          stream_type = stream['type']
-                          reason = stream.get('reason', 'OK')[:25].replace('|', '\\|')
-                          group = stream['group'][:15].replace('|', '\\|')
+                              outfile.write(lines[i]) 
+                              i += 1
                           
-                          report += f"| {name} | {stream_type} | {reason} | {group} |\n"
-                      
-                      report += "\n"
-                  
-                  # Failed streams analysis
-                  if self.results['failed']:
-                      failure_reasons = {}
-                      for stream in self.results['failed']:
-                          reason = stream.get('reason', 'Unknown')
-                          # Simplify reason for grouping
-                          if 'timeout' in reason.lower():
-                              key = 'Connection timeout'
-                          elif 'connection failed' in reason.lower():
-                              key = 'Connection failed'
-                          elif 'html' in reason.lower() or 'error page' in reason.lower():
-                              key = 'HTML/Error page'
-                          elif '404' in reason:
-                              key = 'Stream not found (404)'
-                          elif 'http' in reason.lower():
-                              key = 'HTTP error'
-                          else:
-                              key = 'Other'
-                          
-                          failure_reasons[key] = failure_reasons.get(key, 0) + 1
-                      
-                      report += "## Failure Analysis\n\n"
-                      for reason, count in sorted(failure_reasons.items(), key=lambda x: x[1], reverse=True):
-                          pct = (count / failed_count * 100) if failed_count > 0 else 0
-                          report += f"- **{reason}:** {count} streams ({pct:.1f}%)\n"
-                      report += "\n"
-                  
-                  # Geo-blocked streams
-                  if self.results['geoblocked']:
-                      report += "## Geo-blocked Streams\n\n"
-                      for stream in self.results['geoblocked'][:10]:
-                          report += f"- {stream['name']} ({stream['group']})\n"
-                      report += "\n"
-                  
-                  # Recommendations
-                  report += "## Recommendations\n\n"
-                  
-                  if success_rate > 60:
-                      report += f"**Good Success Rate ({success_rate:.1f}%)**\n"
-                      report += f"- Most streams are working well\n"
-                      report += f"- Current validation approach is effective\n\n"
-                  elif success_rate > 30:
-                      report += f"**Moderate Success Rate ({success_rate:.1f}%)**\n"
-                      report += f"- Decent stream availability\n"
-                      report += f"- Some issues may be temporary\n\n"
-                  else:
-                      report += f"**Low Success Rate ({success_rate:.1f}%)**\n"
-                      report += f"- Many streams appear to be offline\n"
-                      report += f"- Consider checking stream source validity\n\n"
-                  
-                  if geo_count > 0:
-                      report += f"**Geo-blocking:** {geo_count} streams blocked\n"
-                      report += f"- Consider VPN/proxy for blocked content\n\n"
-                  
-                  # Methodology
-                  report += "## Fast Validation Method\n\n"
-                  report += f"This validation uses an optimized approach:\n"
-                  report += f"- Quick HTTP HEAD/GET requests with short timeouts\n"
-                  report += f"- Smart content analysis for Xtream Codes URLs\n"
-                  report += f"- Binary content detection for stream verification\n"
-                  report += f"- {'Sequential' if QUICK_MODE else 'Parallel'} processing for speed\n"
-                  report += f"- Reduced false negatives while maintaining accuracy\n\n"
-                  
-                  report += f"---\n"
-                  report += f"*Fast validation completed in {duration:.1f} seconds*\n"
-                  
-                  return report
+                  print("Transformation complete.")
 
-              def run(self):
-                  """Main execution function"""
-                  print("Starting Fast IPTV Stream Validation...")
-                  
-                  # Run validation
-                  self.run_validation()
-                  
-                  # Generate report
-                  print("\nGenerating validation report...")
-                  report = self.generate_report()
-                  
-                  # Save report
-                  try:
-                      with open('report.md', 'w', encoding='utf-8') as f:
-                          f.write(report)
-                      print("Report saved successfully!")
-                  except Exception as e:
-                      print(f"Error saving report: {e}")
-                      with open('report.md', 'w', encoding='utf-8') as f:
-                          f.write(f"# Fast IPTV Validation Report\nError: {e}\n")
-                  
-                  # Final summary
-                  duration = time.time() - self.start_time
-                  working = len(self.results['working'])
-                  total = working + len(self.results['geoblocked']) + len(self.results['failed'])
-                  
-                  print(f"\n{'='*50}")
-                  print(f"FAST VALIDATION COMPLETE")
-                  print(f"{'='*50}")
-                  print(f"Duration: {duration:.1f}s ({duration/60:.1f}m)")
-                  print(f"Rate: {(total/duration):.2f} streams/second")
-                  print(f"Working: {working}/{total} ({(working/total*100) if total > 0 else 0:.1f}%)")
-                  print(f"Geo-blocked: {len(self.results['geoblocked'])}")
-                  print(f"Failed: {len(self.results['failed'])}")
+              except FileNotFoundError:
+                  print(f"Error: File {input_file} was not found.")
+              except Exception as e:
+                  print(f"An unexpected error occurred: {e}")
 
-          # Run the fast checker
-          checker = FastStreamChecker()
-          checker.run()
+          # Execute the transformation
+          wrap_m3u_urls('unwrapped.m3u', 'channel playlist.m3u')
           EOF
 
-      - name: Commit validation report
+      - name: Add files to Git
+        run: |
+          git add "channel playlist.m3u"
+          git add "channel playlist.xml"
+
+      - name: Check for changes before commit
+        id: changes
+        run: |
+          if git diff --cached --quiet; then
+            echo "no changes"
+            echo "changes_detected=false" >> $GITHUB_ENV
+          else
+            echo "changes_detected=true" >> $GITHUB_ENV
+          fi
+
+      - name: Commit changes if any
+        if: env.changes_detected == 'true'
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "github-actions[bot]"
-          
-          if [[ -f "report.md" ]]; then
-            # Handle unstaged changes
-            if ! git diff --quiet; then
-              git add .
-            fi
-            
-            # Pull latest changes
-            git pull origin main --no-rebase || echo "Pull failed, continuing..."
-            
-            # Add report and commit if changes exist
-            git add report.md
-            
-            if ! git diff --staged --quiet; then
-              # Extract metrics safely
-              WORKING=$(grep -o "Working Streams.*(" report.md 2>/dev/null | head -1 | grep -oE '[0-9]+' | head -1 || echo "0")
-              TOTAL=$(grep -o "Total Tested.*(" report.md 2>/dev/null | head -1 | grep -oE '[0-9]+' | head -1 || echo "1")
-              
-              # Validate numbers
-              if ! [[ "$WORKING" =~ ^[0-9]+$ ]]; then WORKING="0"; fi
-              if ! [[ "$TOTAL" =~ ^[0-9]+$ ]] || [[ "$TOTAL" == "0" ]]; then TOTAL="1"; fi
-              
-              SUCCESS_RATE=$(( WORKING * 100 / TOTAL ))
-              DURATION=$(grep -o "Duration.*(" report.md 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+' | head -1 || echo "0")
-              
-              COMMIT_MSG="Fast IPTV check: ${WORKING}/${TOTAL} working (${SUCCESS_RATE}%)"
-              if [[ "$DURATION" != "0" ]]; then
-                COMMIT_MSG="$COMMIT_MSG in ${DURATION}min"
-              fi
-              COMMIT_MSG="$COMMIT_MSG - $(date -u '+%m/%d %H:%M UTC')"
-              
-              git commit -m "$COMMIT_MSG"
-              git push origin main
-              echo "Report committed: $COMMIT_MSG"
-            else
-              echo "No changes to commit"
-            fi
-          else
-            echo "No report found"
-          fi
+          git commit -m "Updated channel playlist files (M3U with wrapped URLs and EPG XML)"
+
+      - name: Force push changes if commit happened
+        if: env.changes_detected == 'true'
+        run: |
+          git push origin main --force

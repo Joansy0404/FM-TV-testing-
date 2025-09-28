@@ -1,4 +1,4 @@
-name: Stream Checker with Detailed Diagnostics
+name: Fast Accurate Stream Checker with JSDelivr Proxies
 
 on:
   workflow_dispatch:
@@ -26,12 +26,17 @@ on:
       timeout_seconds:
         description: 'Timeout per stream (seconds)'
         required: false
-        default: '8'
+        default: '5'
         type: string
-      sample_size:
-        description: 'Test sample size (0=all, 100=random 100)'
+      test_channels_only:
+        description: 'Test only Channel streams (ignore sample_size)'
         required: false
-        default: '50'
+        default: true
+        type: boolean
+      sample_size:
+        description: 'Random sample size for testing (if not channels-only)'
+        required: false
+        default: '100'
         type: string
   schedule:
     - cron: '0 */6 * * *'
@@ -40,9 +45,9 @@ permissions:
   contents: write
 
 jobs:
-  diagnostic-check:
+  fast-check:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
 
     steps:
       - name: Checkout
@@ -57,14 +62,15 @@ jobs:
         run: |
           pip install requests aiohttp asyncio
 
-      - name: Stream Checker with Detailed Diagnostics
+      - name: Fast Stream Check with JSDelivr Proxies
         env:
           CHECK_VODS: ${{ github.event.inputs.check_vods || 'false' }}
           CHECK_PPV: ${{ github.event.inputs.check_ppv || 'false' }}
           CHECK_FAST: ${{ github.event.inputs.check_fast || 'false' }}
           USE_PROXIES: ${{ github.event.inputs.use_proxies || 'true' }}
-          TIMEOUT_SECONDS: ${{ github.event.inputs.timeout_seconds || '8' }}
-          SAMPLE_SIZE: ${{ github.event.inputs.sample_size || '50' }}
+          TIMEOUT_SECONDS: ${{ github.event.inputs.timeout_seconds || '5' }}
+          TEST_CHANNELS_ONLY: ${{ github.event.inputs.test_channels_only || 'true' }}
+          SAMPLE_SIZE: ${{ github.event.inputs.sample_size || '100' }}
         run: |
           python - << 'EOF'
           import requests
@@ -78,45 +84,151 @@ jobs:
           import json
           from datetime import datetime, timezone
           from urllib.parse import urlparse
+          from concurrent.futures import ThreadPoolExecutor, as_completed
 
           # Config
           CHECK_VODS = os.getenv('CHECK_VODS', 'false').lower() == 'true'
           CHECK_PPV = os.getenv('CHECK_PPV', 'false').lower() == 'true'
           CHECK_FAST = os.getenv('CHECK_FAST', 'false').lower() == 'true'
           USE_PROXIES = os.getenv('USE_PROXIES', 'true').lower() == 'true'
-          TIMEOUT_SECONDS = int(os.getenv('TIMEOUT_SECONDS', '8'))
-          SAMPLE_SIZE = int(os.getenv('SAMPLE_SIZE', '50'))
+          TIMEOUT_SECONDS = int(os.getenv('TIMEOUT_SECONDS', '5'))
+          TEST_CHANNELS_ONLY = os.getenv('TEST_CHANNELS_ONLY', 'true').lower() == 'true'
+          SAMPLE_SIZE = int(os.getenv('SAMPLE_SIZE', '100'))
 
-          class DiagnosticStreamChecker:
+          class OptimizedStreamChecker:
               def __init__(self):
                   self.start_time = time.time()
-                  self.diagnostic_results = []
-                  self.url_analysis = {}
-                  self.test_methods = {
-                      'head_request': [],
-                      'get_request': [],
-                      'range_request': [],
-                      'with_different_headers': []
+                  self.working_proxies = []
+                  self.provider_proxy_map = {}  # Cache proxy assignments per provider
+                  self.results = {
+                      'working': 0,
+                      'geo_recovered': 0,
+                      'failed': 0,
+                      'total_tested': 0,
+                      'details': [],
+                      'provider_stats': {}
                   }
 
-              def extract_real_provider_info(self, stream_url):
-                  """Extract provider info and analyze URL structure"""
-                  analysis = {
-                      'original_url': stream_url,
-                      'is_wrapped': False,
-                      'wrapping_service': None,
-                      'real_provider': None,
-                      'url_structure': {},
-                      'decoding_success': False
-                  }
+              def get_updated_proxies(self):
+                  """Get proxies from JSDelivr and other reliable sources"""
+                  if not USE_PROXIES:
+                      return []
                   
-                  try:
-                      # Check for wrapped URL
-                      if 'alt.xtream-ie.org' in stream_url and '/fast' in stream_url:
-                          analysis['is_wrapped'] = True
-                          analysis['wrapping_service'] = 'alt.xtream-ie.org'
+                  print("Fetching proxies from updated sources...")
+                  
+                  proxy_sources = [
+                      "https://cdn.jsdelivr.net/gh/proxifly/free-proxy-list@main/proxies/all/data.txt",
+                      "https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list-raw.txt",
+                      "https://raw.githubusercontent.com/sunny9577/proxy-scraper/master/proxies.txt"
+                  ]
+                  
+                  all_proxies = []
+                  successful_sources = 0
+                  
+                  for i, source in enumerate(proxy_sources):
+                      try:
+                          print(f"  Source {i+1}: {source.split('/')[-1]}...")
+                          response = requests.get(source, timeout=15)
                           
-                          # Try to decode
+                          if response.status_code == 200:
+                              proxies = self.parse_proxies(response.text)
+                              if proxies:
+                                  all_proxies.extend(proxies)
+                                  successful_sources += 1
+                                  print(f"    Got {len(proxies)} proxies")
+                      except Exception as e:
+                          print(f"    Failed: {str(e)[:40]}")
+                  
+                  if not all_proxies:
+                      return []
+                  
+                  # Filter and test proxies quickly
+                  unique_proxies = list(dict.fromkeys(all_proxies))  # Remove duplicates
+                  filtered_proxies = self.filter_proxies_fast(unique_proxies)
+                  
+                  print(f"Testing {len(filtered_proxies[:30])} filtered proxies...")
+                  return self.test_proxies_parallel(filtered_proxies[:30])
+
+              def parse_proxies(self, text):
+                  """Parse proxy text from various formats"""
+                  proxies = []
+                  for line in text.split('\n'):
+                      line = line.strip()
+                      if ':' in line and len(line) > 7:
+                          match = re.search(r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):(\d+)', line)
+                          if match:
+                              ip, port = match.groups()
+                              if all(0 <= int(part) <= 255 for part in ip.split('.')) and 1 <= int(port) <= 65535:
+                                  proxies.append(f"http://{ip}:{port}")
+                  return proxies
+
+              def filter_proxies_fast(self, proxies):
+                  """Quick proxy filtering"""
+                  filtered = []
+                  priority_ports = [80, 8080, 3128, 9090]
+                  
+                  for proxy in proxies:
+                      try:
+                          ip, port = proxy.replace('http://', '').split(':')
+                          port_num = int(port)
+                          
+                          # Skip private IPs
+                          if ip.startswith(('10.', '192.168.', '127.', '172.')):
+                              continue
+                          
+                          # Prioritize good ports
+                          if port_num in priority_ports:
+                              filtered.insert(0, proxy)
+                          elif 1024 <= port_num <= 65535:
+                              filtered.append(proxy)
+                      except:
+                          continue
+                  
+                  return filtered
+
+              def test_proxies_parallel(self, proxy_list):
+                  """Fast parallel proxy testing"""
+                  working = []
+                  
+                  with ThreadPoolExecutor(max_workers=20) as executor:
+                      future_to_proxy = {
+                          executor.submit(self.test_single_proxy, proxy): proxy 
+                          for proxy in proxy_list
+                      }
+                      
+                      for future in as_completed(future_to_proxy, timeout=60):
+                          try:
+                              proxy = future_to_proxy[future]
+                              if future.result():
+                                  working.append(proxy)
+                                  print(f"    Working: {proxy.split('/')[-1]} [{len(working)}]")
+                                  if len(working) >= 8:  # We only need a few good ones
+                                      break
+                          except:
+                              continue
+                  
+                  print(f"Proxy setup complete: {len(working)} working proxies")
+                  return working
+
+              def test_single_proxy(self, proxy_url):
+                  """Test single proxy quickly"""
+                  try:
+                      proxies = {'http': proxy_url, 'https': proxy_url}
+                      response = requests.get(
+                          "http://httpbin.org/ip",
+                          proxies=proxies,
+                          timeout=6,
+                          headers={'User-Agent': 'Mozilla/5.0'}
+                      )
+                      return response.status_code == 200 and 'origin' in response.text
+                  except:
+                      return False
+
+              def extract_provider_info(self, stream_url):
+                  """Extract provider information including unwrapping base64 URLs"""
+                  try:
+                      # Handle wrapped URLs
+                      if 'alt.xtream-ie.org' in stream_url and '/fast' in stream_url:
                           pattern = r'/1([^/]+)/fast'
                           match = re.search(pattern, stream_url)
                           
@@ -129,51 +241,49 @@ jobs:
                                   original_url = payload_data.get('url', '')
                                   
                                   if original_url:
-                                      analysis['decoding_success'] = True
-                                      analysis['decoded_url'] = original_url
-                                      analysis['stream_id'] = payload_data.get('id')
-                                      
                                       parsed = urlparse(original_url)
-                                      analysis['real_provider'] = parsed.netloc.lower()
-                                      analysis['url_structure'] = {
-                                          'scheme': parsed.scheme,
-                                          'domain': parsed.netloc,
-                                          'path': parsed.path,
-                                          'query': parsed.query,
-                                          'fragment': parsed.fragment
+                                      return {
+                                          'domain': parsed.netloc.lower(),
+                                          'provider_key': f"{parsed.netloc.lower()}/{parsed.path.strip('/').split('/')[0] if parsed.path.strip('/') else ''}",
+                                          'original_url': original_url,
+                                          'is_wrapped': True,
+                                          'stream_id': payload_data.get('id', 'unknown')
                                       }
-                              except Exception as e:
-                                  analysis['decoding_error'] = str(e)
-                      else:
-                          # Direct URL
-                          parsed = urlparse(stream_url)
-                          analysis['real_provider'] = parsed.netloc.lower()
-                          analysis['url_structure'] = {
-                              'scheme': parsed.scheme,
-                              'domain': parsed.netloc,
-                              'path': parsed.path,
-                              'query': parsed.query,
-                              'fragment': parsed.fragment
-                          }
-                  
-                  except Exception as e:
-                      analysis['analysis_error'] = str(e)
-                  
-                  return analysis
+                              except:
+                                  pass
+                      
+                      # Direct URLs
+                      parsed = urlparse(stream_url)
+                      domain = parsed.netloc.lower()
+                      path_parts = [p for p in parsed.path.strip('/').split('/') if p]
+                      provider_key = f"{domain}/{path_parts[0]}" if path_parts else domain
+                      
+                      return {
+                          'domain': domain,
+                          'provider_key': provider_key,
+                          'original_url': stream_url,
+                          'is_wrapped': False
+                      }
+                      
+                  except:
+                      return {
+                          'domain': 'unknown',
+                          'provider_key': 'unknown',
+                          'original_url': stream_url,
+                          'is_wrapped': False
+                      }
 
-              def parse_m3u_with_analysis(self, file_path):
-                  """Parse M3U and analyze URL patterns"""
+              def parse_m3u(self, file_path):
+                  """Parse M3U with provider analysis"""
                   if not os.path.exists(file_path):
-                      return [], {}
+                      return []
                       
                   streams = []
-                  url_patterns = {}
-                  
                   try:
                       with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
                           lines = f.readlines()
                   except:
-                      return [], {}
+                      return []
                       
                   for i in range(len(lines)):
                       line = lines[i].strip()
@@ -186,25 +296,18 @@ jobs:
                               if i + 1 < len(lines):
                                   url = lines[i + 1].strip()
                                   if url and not url.startswith('#') and 'http' in url:
-                                      # Analyze URL
-                                      url_analysis = self.extract_real_provider_info(url)
-                                      
-                                      # Track URL patterns
-                                      domain = url_analysis.get('real_provider', 'unknown')
-                                      if domain not in url_patterns:
-                                          url_patterns[domain] = 0
-                                      url_patterns[domain] += 1
+                                      provider_info = self.extract_provider_info(url)
                                       
                                       streams.append({
                                           'name': name,
                                           'url': url,
                                           'group': group,
-                                          'url_analysis': url_analysis
+                                          'provider_info': provider_info
                                       })
                           except:
                               continue
                   
-                  return streams, url_patterns
+                  return streams
 
               def classify_stream_type(self, stream):
                   """Classify stream type"""
@@ -214,7 +317,7 @@ jobs:
                   
                   if url.endswith('#.mkv'):
                       return 'VOD'
-                  elif any(x in group for x in ['uk events', 'usa events', 'events']):
+                  elif any(x in group for x in ['uk events', 'usa events', 'events']) or any(x in name for x in ['ppv', 'boxing', 'ufc']):
                       return 'PPV'
                   elif 'fast' in group:
                       return 'FAST'
@@ -222,9 +325,13 @@ jobs:
                       return 'Channel'
 
               def should_test_stream(self, stream):
-                  """Check if stream should be tested"""
+                  """Determine if stream should be tested"""
                   stream_type = self.classify_stream_type(stream)
                   
+                  if TEST_CHANNELS_ONLY:
+                      return stream_type == 'Channel'
+                  
+                  # If not channels-only, check individual flags
                   if stream_type == 'Channel':
                       return True
                   elif stream_type == 'VOD' and CHECK_VODS:
@@ -236,416 +343,421 @@ jobs:
                   
                   return False
 
-              async def test_stream_multiple_methods(self, stream):
-                  """Test stream with multiple HTTP methods to diagnose issues"""
-                  url = stream['url']
-                  url_analysis = stream['url_analysis']
+              def group_streams_by_provider(self, streams):
+                  """Group streams by provider for optimized testing"""
+                  provider_groups = {}
                   
-                  results = {
-                      'stream_name': stream['name'][:50],
-                      'stream_type': self.classify_stream_type(stream),
-                      'url_analysis': url_analysis,
-                      'test_results': {}
-                  }
+                  for stream in streams:
+                      provider_info = stream.get('provider_info', {})
+                      provider_key = provider_info.get('provider_key', 'unknown')
+                      
+                      if provider_key not in provider_groups:
+                          provider_groups[provider_key] = {
+                              'streams': [],
+                              'provider_info': provider_info,
+                              'assigned_proxy': None
+                          }
+                      
+                      provider_groups[provider_key]['streams'].append(stream)
                   
-                  # Test 1: Simple HEAD request
-                  results['test_results']['head_request'] = await self.test_head_request(url)
+                  # Sort by stream count
+                  sorted_providers = sorted(provider_groups.items(), 
+                                          key=lambda x: len(x[1]['streams']), 
+                                          reverse=True)
                   
-                  # Test 2: Simple GET request
-                  results['test_results']['get_request'] = await self.test_get_request(url)
+                  print(f"Grouped into {len(sorted_providers)} providers:")
+                  for provider_key, info in sorted_providers[:10]:
+                      is_wrapped = info['provider_info'].get('is_wrapped', False)
+                      status = " (wrapped)" if is_wrapped else ""
+                      print(f"  {provider_key}: {len(info['streams'])} streams{status}")
                   
-                  # Test 3: GET with Range header
-                  results['test_results']['range_request'] = await self.test_range_request(url)
-                  
-                  # Test 4: Different User-Agent headers
-                  results['test_results']['browser_headers'] = await self.test_browser_headers(url)
-                  results['test_results']['vlc_headers'] = await self.test_vlc_headers(url)
-                  
-                  # Test 5: If wrapped URL, test original URL directly
-                  if url_analysis.get('decoding_success') and url_analysis.get('decoded_url'):
-                      original_url = url_analysis['decoded_url']
-                      results['test_results']['original_url_test'] = await self.test_head_request(original_url)
-                  
-                  return results
+                  return dict(sorted_providers)
 
-              async def test_head_request(self, url):
-                  """Test with HEAD request"""
+              async def assign_proxies_to_providers(self, provider_groups):
+                  """Smart proxy assignment per provider"""
+                  if not self.working_proxies:
+                      return
+                  
+                  print("Assigning proxies to providers...")
+                  
+                  for provider_key, provider_data in provider_groups.items():
+                      if not provider_data['streams']:
+                          continue
+                      
+                      sample_stream = provider_data['streams'][0]
+                      provider_info = provider_data['provider_info']
+                      test_url = provider_info.get('original_url', sample_stream['url'])
+                      
+                      # Test each proxy with this provider
+                      for proxy in self.working_proxies:
+                          if await self.test_proxy_with_provider(test_url, proxy):
+                              provider_data['assigned_proxy'] = proxy
+                              self.provider_proxy_map[provider_key] = proxy
+                              print(f"  {provider_key}: assigned proxy")
+                              break
+                      
+                      if not provider_data['assigned_proxy']:
+                          print(f"  {provider_key}: no compatible proxy")
+
+              async def test_proxy_with_provider(self, test_url, proxy_url):
+                  """Quick test if proxy works with provider"""
                   try:
-                      timeout = aiohttp.ClientTimeout(total=TIMEOUT_SECONDS)
-                      async with aiohttp.ClientSession(timeout=timeout) as session:
-                          start_time = time.time()
-                          async with session.head(url) as response:
-                              response_time = time.time() - start_time
-                              return {
-                                  'method': 'HEAD',
-                                  'status_code': response.status,
-                                  'response_time': response_time,
-                                  'headers': dict(response.headers),
-                                  'success': response.status < 400
-                              }
-                  except Exception as e:
-                      return {
-                          'method': 'HEAD',
-                          'error': str(e),
-                          'success': False
-                      }
+                      proxies = {'http': proxy_url, 'https': proxy_url}
+                      response = requests.head(
+                          test_url,
+                          proxies=proxies,
+                          timeout=4,
+                          headers={'User-Agent': 'VLC/3.0.16'}
+                      )
+                      return response.status_code < 500
+                  except:
+                      return False
 
-              async def test_get_request(self, url):
-                  """Test with simple GET request"""
-                  try:
-                      timeout = aiohttp.ClientTimeout(total=TIMEOUT_SECONDS)
-                      async with aiohttp.ClientSession(timeout=timeout) as session:
-                          start_time = time.time()
-                          async with session.get(url) as response:
-                              response_time = time.time() - start_time
-                              try:
-                                  # Try to read some content
-                                  content = await asyncio.wait_for(response.read(2048), timeout=3)
-                                  content_length = len(content)
-                                  has_content = content_length > 100
-                              except:
-                                  content_length = 0
-                                  has_content = False
-                              
-                              return {
-                                  'method': 'GET',
-                                  'status_code': response.status,
-                                  'response_time': response_time,
-                                  'content_length': content_length,
-                                  'has_content': has_content,
-                                  'headers': dict(response.headers),
-                                  'success': response.status < 400 and has_content
-                              }
-                  except Exception as e:
-                      return {
-                          'method': 'GET',
-                          'error': str(e),
-                          'success': False
-                      }
-
-              async def test_range_request(self, url):
-                  """Test with Range header"""
-                  try:
-                      headers = {'Range': 'bytes=0-1023'}
-                      timeout = aiohttp.ClientTimeout(total=TIMEOUT_SECONDS)
-                      async with aiohttp.ClientSession(timeout=timeout) as session:
-                          start_time = time.time()
-                          async with session.get(url, headers=headers) as response:
-                              response_time = time.time() - start_time
-                              try:
-                                  content = await asyncio.wait_for(response.read(1024), timeout=3)
-                                  content_length = len(content)
-                              except:
-                                  content_length = 0
-                              
-                              return {
-                                  'method': 'GET_RANGE',
-                                  'status_code': response.status,
-                                  'response_time': response_time,
-                                  'content_length': content_length,
-                                  'supports_range': response.status == 206,
-                                  'success': response.status in [200, 206] and content_length > 0
-                              }
-                  except Exception as e:
-                      return {
-                          'method': 'GET_RANGE',
-                          'error': str(e),
-                          'success': False
-                      }
-
-              async def test_browser_headers(self, url):
-                  """Test with browser-like headers"""
-                  try:
-                      headers = {
-                          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                          'Accept-Language': 'en-US,en;q=0.5',
-                          'Accept-Encoding': 'gzip, deflate',
-                          'Connection': 'keep-alive'
-                      }
-                      timeout = aiohttp.ClientTimeout(total=TIMEOUT_SECONDS)
-                      async with aiohttp.ClientSession(timeout=timeout) as session:
-                          async with session.head(url, headers=headers) as response:
-                              return {
-                                  'method': 'HEAD_BROWSER',
-                                  'status_code': response.status,
-                                  'success': response.status < 400
-                              }
-                  except Exception as e:
-                      return {
-                          'method': 'HEAD_BROWSER',
-                          'error': str(e),
-                          'success': False
-                      }
-
-              async def test_vlc_headers(self, url):
-                  """Test with VLC-like headers"""
+              async def test_stream_content(self, session, stream):
+                  """Test stream with actual content validation"""
                   try:
                       headers = {
                           'User-Agent': 'VLC/3.0.16',
+                          'Range': 'bytes=0-2047',  # Get first 2KB
                           'Accept': '*/*'
                       }
+                      
                       timeout = aiohttp.ClientTimeout(total=TIMEOUT_SECONDS)
-                      async with aiohttp.ClientSession(timeout=timeout) as session:
-                          async with session.head(url, headers=headers) as response:
-                              return {
-                                  'method': 'HEAD_VLC',
-                                  'status_code': response.status,
-                                  'success': response.status < 400
-                              }
+                      
+                      async with session.get(stream['url'], headers=headers, timeout=timeout) as response:
+                          if response.status in [200, 206]:
+                              try:
+                                  content = await asyncio.wait_for(response.read(2048), timeout=3)
+                                  if len(content) > 200:  # Got substantial content
+                                      return {'status': 'working', 'code': response.status, 'content_size': len(content)}
+                                  else:
+                                      return {'status': 'failed', 'code': response.status, 'error': 'Insufficient content'}
+                              except asyncio.TimeoutError:
+                                  return {'status': 'failed', 'code': response.status, 'error': 'Content read timeout'}
+                          elif response.status == 403:
+                              return {'status': 'geo_blocked', 'code': 403}
+                          else:
+                              return {'status': 'failed', 'code': response.status}
+                              
+                  except asyncio.TimeoutError:
+                      return {'status': 'failed', 'error': 'Connection timeout'}
                   except Exception as e:
-                      return {
-                          'method': 'HEAD_VLC',
-                          'error': str(e),
-                          'success': False
-                      }
+                      if '403' in str(e):
+                          return {'status': 'geo_blocked', 'error': 'Geo-blocked'}
+                      return {'status': 'failed', 'error': 'Network error'}
 
-              def generate_diagnostic_report(self, all_streams, url_patterns, test_results):
-                  """Generate comprehensive diagnostic report"""
-                  duration = time.time() - self.start_time
+              async def test_via_assigned_proxy(self, stream, proxy_url):
+                  """Test stream via its provider's assigned proxy"""
+                  try:
+                      provider_info = stream.get('provider_info', {})
+                      test_url = provider_info.get('original_url', stream['url'])
+                      
+                      proxies = {'http': proxy_url, 'https': proxy_url}
+                      headers = {
+                          'User-Agent': 'VLC/3.0.16',
+                          'Range': 'bytes=0-1024'
+                      }
+                      
+                      response = requests.get(
+                          test_url,
+                          proxies=proxies,
+                          headers=headers,
+                          timeout=TIMEOUT_SECONDS + 1,
+                          stream=True
+                      )
+                      
+                      if response.status_code in [200, 206]:
+                          try:
+                              content = next(response.iter_content(1024), b'')
+                              if len(content) > 100:
+                                  return {'status': 'working', 'method': 'proxy'}
+                          except:
+                              pass
+                      
+                      return {'status': 'failed'}
+                      
+                  except:
+                      return {'status': 'failed'}
+
+              async def process_provider_groups(self, provider_groups):
+                  """Process streams by provider groups"""
+                  print("Testing streams with provider optimization...")
                   
-                  report = f"# Stream Testing Diagnostic Report\n\n"
+                  connector = aiohttp.TCPConnector(limit=80, limit_per_host=20)
+                  timeout = aiohttp.ClientTimeout(total=TIMEOUT_SECONDS + 2)
+                  
+                  async with aiohttp.ClientSession(connector=connector, timeout=timeout) as session:
+                      
+                      for provider_key, provider_data in provider_groups.items():
+                          streams = provider_data['streams']
+                          assigned_proxy = provider_data.get('assigned_proxy')
+                          
+                          provider_working = 0
+                          provider_geo_recovered = 0
+                          
+                          print(f"Testing {provider_key}: {len(streams)} streams" + 
+                                (" (with proxy)" if assigned_proxy else " (direct)"))
+                          
+                          # Process in batches
+                          batch_size = 30
+                          for i in range(0, len(streams), batch_size):
+                              batch = streams[i:i + batch_size]
+                              
+                              tasks = []
+                              for stream in batch:
+                                  tasks.append(self.test_stream_with_fallback(session, stream, assigned_proxy))
+                              
+                              results = await asyncio.gather(*tasks, return_exceptions=True)
+                              
+                              batch_working = 0
+                              batch_geo = 0
+                              
+                              for stream, result in zip(batch, results):
+                                  if isinstance(result, dict):
+                                      self.results['total_tested'] += 1
+                                      stream_type = self.classify_stream_type(stream)
+                                      
+                                      if result['status'] == 'working':
+                                          self.results['working'] += 1
+                                          provider_working += 1
+                                          batch_working += 1
+                                      elif result['status'] == 'geo_recovered':
+                                          self.results['working'] += 1
+                                          self.results['geo_recovered'] += 1
+                                          provider_working += 1
+                                          provider_geo_recovered += 1
+                                          batch_working += 1
+                                          batch_geo += 1
+                                      else:
+                                          self.results['failed'] += 1
+                                      
+                                      # Store sample results
+                                      if len(self.results['details']) < 200:
+                                          self.results['details'].append({
+                                              'name': stream['name'][:45],
+                                              'status': result['status'],
+                                              'code': result.get('code'),
+                                              'type': stream_type,
+                                              'provider': provider_key,
+                                              'method': result.get('method', 'direct')
+                                          })
+                              
+                              if batch_working > 0:
+                                  geo_info = f" ({batch_geo} via proxy)" if batch_geo > 0 else ""
+                                  print(f"    Batch: {batch_working}/{len(batch)} working{geo_info}")
+                              
+                              await asyncio.sleep(0.4)
+                          
+                          # Update provider stats
+                          success_rate = (provider_working / len(streams) * 100) if streams else 0
+                          self.results['provider_stats'][provider_key] = {
+                              'total': len(streams),
+                              'working': provider_working,
+                              'geo_recovered': provider_geo_recovered,
+                              'success_rate': success_rate
+                          }
+                          
+                          geo_info = f", {provider_geo_recovered} via proxy" if provider_geo_recovered > 0 else ""
+                          print(f"  {provider_key}: {provider_working}/{len(streams)} working ({success_rate:.1f}%){geo_info}")
+
+              async def test_stream_with_fallback(self, session, stream, assigned_proxy):
+                  """Test stream with smart proxy fallback"""
+                  # Test direct first
+                  direct_result = await self.test_stream_content(session, stream)
+                  
+                  if direct_result['status'] == 'working':
+                      return direct_result
+                  
+                  # If geo-blocked and we have assigned proxy, try it
+                  if direct_result['status'] == 'geo_blocked' and assigned_proxy:
+                      proxy_result = await self.test_via_assigned_proxy(stream, assigned_proxy)
+                      if proxy_result['status'] == 'working':
+                          return {'status': 'geo_recovered', 'method': 'assigned_proxy'}
+                  
+                  return direct_result
+
+              def generate_optimized_report(self):
+                  """Generate comprehensive report"""
+                  duration = time.time() - self.start_time
+                  total = self.results['total_tested']
+                  working = self.results['working']
+                  geo_recovered = self.results['geo_recovered']
+                  failed = self.results['failed']
+                  
+                  success_rate = (working / total * 100) if total > 0 else 0
+                  
+                  report = f"# Optimized Stream Check Report\n\n"
                   report += f"**Generated:** {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}  \n"
                   report += f"**Duration:** {duration:.1f}s ({duration/60:.1f}m)  \n"
-                  report += f"**Purpose:** Comprehensive diagnostic analysis for troubleshooting  \n"
-                  report += f"**Sample Size:** {len(test_results)} streams tested  \n\n"
+                  report += f"**Method:** Provider-optimized with JSDelivr proxy sources  \n"
+                  report += f"**Scope:** {'All channel streams' if TEST_CHANNELS_ONLY else f'{total} streams'}  \n\n"
                   
-                  # M3U Analysis
-                  report += "## M3U File Analysis\n\n"
-                  report += f"- **Total streams in M3U:** {len(all_streams)}\n"
-                  report += f"- **Tested sample:** {len(test_results)} streams\n\n"
-                  
-                  # URL Pattern Analysis
-                  report += "### URL Pattern Distribution\n\n"
-                  report += "| Provider/Domain | Stream Count | Percentage |\n"
-                  report += "|-----------------|--------------|------------|\n"
-                  
-                  total_patterns = sum(url_patterns.values())
-                  sorted_patterns = sorted(url_patterns.items(), key=lambda x: x[1], reverse=True)
-                  
-                  for domain, count in sorted_patterns[:15]:
-                      percentage = (count / total_patterns * 100) if total_patterns > 0 else 0
-                      report += f"| {domain[:35]} | {count} | {percentage:.1f}% |\n"
-                  
+                  # Summary
+                  report += "## Summary\n\n"
+                  report += f"- **Working:** {working} streams ({success_rate:.1f}%)\n"
+                  if geo_recovered > 0:
+                      report += f"- **Geo-blocked (recovered):** {geo_recovered} streams\n"
+                  report += f"- **Failed:** {failed} streams ({(failed/total*100) if total > 0 else 0:.1f}%)\n"
+                  report += f"- **Total tested:** {total} streams\n"
+                  if USE_PROXIES:
+                      report += f"- **Active proxies:** {len(self.working_proxies)}\n"
                   report += "\n"
                   
-                  # URL Structure Analysis
-                  wrapped_count = sum(1 for s in all_streams if s['url_analysis'].get('is_wrapped'))
-                  direct_count = len(all_streams) - wrapped_count
+                  # Performance
+                  if duration > 0:
+                      rate = total / duration
+                      report += f"**Performance:** {rate:.1f} streams/second with content validation\n\n"
                   
-                  report += "### URL Structure Analysis\n\n"
-                  report += f"- **Wrapped URLs (via alt.xtream-ie.org):** {wrapped_count} ({(wrapped_count/len(all_streams)*100):.1f}%)\n"
-                  report += f"- **Direct URLs:** {direct_count} ({(direct_count/len(all_streams)*100):.1f}%)\n"
-                  
-                  # Decoding success rate for wrapped URLs
-                  if wrapped_count > 0:
-                      successful_decoding = sum(1 for s in all_streams 
-                                              if s['url_analysis'].get('is_wrapped') and s['url_analysis'].get('decoding_success'))
-                      report += f"- **Successful base64 decoding:** {successful_decoding}/{wrapped_count} ({(successful_decoding/wrapped_count*100):.1f}%)\n"
-                  
-                  report += "\n"
-                  
-                  # Testing Method Analysis
-                  report += "## HTTP Testing Method Analysis\n\n"
-                  
-                  method_success = {}
-                  method_counts = {}
-                  
-                  for result in test_results:
-                      for method_name, method_result in result['test_results'].items():
-                          if method_name not in method_success:
-                              method_success[method_name] = 0
-                              method_counts[method_name] = 0
-                          
-                          method_counts[method_name] += 1
-                          if method_result.get('success', False):
-                              method_success[method_name] += 1
-                  
-                  report += "| Testing Method | Success Count | Total Tested | Success Rate |\n"
-                  report += "|----------------|---------------|--------------|-------------|\n"
-                  
-                  for method in ['head_request', 'get_request', 'range_request', 'browser_headers', 'vlc_headers', 'original_url_test']:
-                      if method in method_counts:
-                          success_count = method_success[method]
-                          total_count = method_counts[method]
-                          success_rate = (success_count / total_count * 100) if total_count > 0 else 0
-                          method_display = method.replace('_', ' ').title()
-                          report += f"| {method_display} | {success_count} | {total_count} | {success_rate:.1f}% |\n"
-                  
-                  report += "\n"
-                  
-                  # Detailed Sample Results
-                  report += "## Sample Stream Test Results\n\n"
-                  
-                  # Show first 10 results in detail
-                  for i, result in enumerate(test_results[:10]):
-                      report += f"### Stream {i+1}: {result['stream_name']}\n"
-                      report += f"**Type:** {result['stream_type']}  \n"
-                      report += f"**URL Analysis:**\n"
+                  # Top providers
+                  if self.results['provider_stats']:
+                      sorted_providers = sorted(
+                          self.results['provider_stats'].items(),
+                          key=lambda x: x[1]['total'],
+                          reverse=True
+                      )[:15]
                       
-                      url_analysis = result['url_analysis']
-                      report += f"- Wrapped: {url_analysis.get('is_wrapped', False)}\n"
-                      if url_analysis.get('is_wrapped'):
-                          report += f"- Decoding Success: {url_analysis.get('decoding_success', False)}\n"
-                          if url_analysis.get('real_provider'):
-                              report += f"- Real Provider: {url_analysis['real_provider']}\n"
+                      report += "## Top Providers\n\n"
+                      report += "| Provider | Working | Total | Success Rate | Geo-Recovered |\n"
+                      report += "|----------|---------|--------|--------------|---------------|\n"
                       
-                      report += f"\n**Test Results:**\n"
-                      test_results_data = result['test_results']
-                      
-                      for method, method_result in test_results_data.items():
-                          success_icon = "✅" if method_result.get('success') else "❌"
-                          report += f"- {method.replace('_', ' ').title()}: {success_icon}"
-                          
-                          if 'status_code' in method_result:
-                              report += f" (HTTP {method_result['status_code']})"
-                          if 'error' in method_result:
-                              report += f" - Error: {method_result['error'][:50]}"
-                          if 'content_length' in method_result:
-                              report += f" - Content: {method_result['content_length']} bytes"
-                          
-                          report += "\n"
+                      for provider, stats in sorted_providers:
+                          report += f"| {provider[:30]} | {stats['working']} | {stats['total']} | {stats['success_rate']:.1f}% | {stats['geo_recovered']} |\n"
                       
                       report += "\n"
                   
-                  # Error Pattern Analysis
-                  error_patterns = {}
-                  status_codes = {}
-                  
-                  for result in test_results:
-                      for method_result in result['test_results'].values():
-                          if 'error' in method_result:
-                              error_type = type(method_result['error']).__name__
-                              error_patterns[error_type] = error_patterns.get(error_type, 0) + 1
-                          
-                          if 'status_code' in method_result:
-                              code = method_result['status_code']
-                              status_codes[code] = status_codes.get(code, 0) + 1
-                  
-                  if error_patterns:
-                      report += "## Error Pattern Analysis\n\n"
-                      report += "| Error Type | Count |\n"
-                      report += "|------------|-------|\n"
+                  # Sample working streams
+                  working_samples = [d for d in self.results['details'] if d['status'] in ['working', 'geo_recovered']][:20]
+                  if working_samples:
+                      report += "## Sample Working Streams\n\n"
+                      report += "| Stream | Status | Provider | Method |\n"
+                      report += "|--------|--------|----------|--------|\n"
                       
-                      for error_type, count in sorted(error_patterns.items(), key=lambda x: x[1], reverse=True):
-                          report += f"| {error_type} | {count} |\n"
+                      for detail in working_samples:
+                          status_icon = '✅' if detail['status'] == 'working' else '🔓'
+                          method = detail.get('method', 'direct')
+                          report += f"| {detail['name']} | {status_icon} | {detail['provider'][:25]} | {method} |\n"
                       
                       report += "\n"
                   
-                  if status_codes:
-                      report += "## HTTP Status Code Distribution\n\n"
-                      report += "| Status Code | Count | Meaning |\n"
-                      report += "|-------------|-------|----------|\n"
-                      
-                      status_meanings = {
-                          200: "OK - Success",
-                          206: "Partial Content - Range request success", 
-                          403: "Forbidden - Likely geo-blocked",
-                          404: "Not Found - Stream doesn't exist",
-                          500: "Internal Server Error",
-                          502: "Bad Gateway",
-                          503: "Service Unavailable",
-                          504: "Gateway Timeout"
-                      }
-                      
-                      for code, count in sorted(status_codes.items()):
-                          meaning = status_meanings.get(code, "Unknown")
-                          report += f"| {code} | {count} | {meaning} |\n"
-                      
-                      report += "\n"
+                  # Configuration
+                  report += "## Configuration\n\n"
+                  report += f"- **Test Mode:** {'Channels only' if TEST_CHANNELS_ONLY else 'Mixed content'}\n"
+                  report += f"- **Content Validation:** Downloads first 2KB to verify streaming\n"
+                  report += f"- **Proxy Sources:** JSDelivr (proxifly) + GitHub sources\n"
+                  report += f"- **Provider Optimization:** Smart proxy assignment per domain\n"
+                  report += f"- **Timeout:** {TIMEOUT_SECONDS}s per stream\n"
+                  if USE_PROXIES and self.working_proxies:
+                      report += f"- **Geo-unblocking:** {len(self.working_proxies)} working proxies\n"
                   
-                  # Recommendations
-                  report += "## Diagnostic Recommendations\n\n"
-                  
-                  # Calculate success rates
-                  head_success = method_success.get('head_request', 0) / max(method_counts.get('head_request', 1), 1) * 100
-                  get_success = method_success.get('get_request', 0) / max(method_counts.get('get_request', 1), 1) * 100
-                  
-                  if head_success > get_success:
-                      report += "- **HEAD requests perform better than GET** - Consider using HEAD requests for faster checking\n"
-                  elif get_success > head_success:
-                      report += "- **GET requests perform better than HEAD** - Streams may require content download for validation\n"
-                  
-                  if method_success.get('browser_headers', 0) > method_success.get('vlc_headers', 0):
-                      report += "- **Browser headers perform better** - Consider using browser-like User-Agent strings\n"
-                  elif method_success.get('vlc_headers', 0) > method_success.get('browser_headers', 0):
-                      report += "- **VLC headers perform better** - Media player headers are preferred by servers\n"
-                  
-                  # Check if original URL testing helps
-                  if 'original_url_test' in method_success and method_success['original_url_test'] > 0:
-                      original_success = method_success['original_url_test'] / max(method_counts.get('original_url_test', 1), 1) * 100
-                      wrapped_success = method_success.get('head_request', 0) / max(method_counts.get('head_request', 1), 1) * 100
-                      
-                      if original_success > wrapped_success:
-                          report += "- **Original URLs perform better than wrapped URLs** - Consider testing unwrapped URLs directly\n"
-                  
-                  if sum(method_success.values()) == 0:
-                      report += "- **No streams successful with any method** - Check if streams are actually functional\n"
-                      report += "- **Manual verification needed** - Test a few URLs manually in VLC or browser\n"
-                      report += "- **Consider network/firewall issues** - GitHub Actions may have network restrictions\n"
-                  
-                  report += f"\n---\n"
-                  report += f"*Diagnostic analysis completed - Use this data to optimize stream testing methodology*\n"
+                  report += f"\n*Fast and accurate stream testing with real content validation*\n"
                   
                   return report
 
               async def run(self):
-                  """Run comprehensive diagnostic analysis"""
-                  print("Starting comprehensive diagnostic analysis...")
+                  """Main execution"""
+                  print("Optimized Stream Checker with JSDelivr Proxies starting...")
                   
-                  # Parse M3U with analysis
-                  all_streams, url_patterns = self.parse_m3u_with_analysis('channel playlist.m3u')
+                  # Get updated proxies
+                  if USE_PROXIES:
+                      self.working_proxies = self.get_updated_proxies()
+                  
+                  # Parse streams
+                  all_streams = self.parse_m3u('channel playlist.m3u')
                   if not all_streams:
                       print("No streams found")
                       return
                   
-                  print(f"Found {len(all_streams)} total streams")
-                  print(f"URL patterns: {len(url_patterns)} unique providers")
-                  
-                  # Select test sample
+                  # Filter streams
                   test_streams = [s for s in all_streams if self.should_test_stream(s)]
                   
-                  if SAMPLE_SIZE > 0 and len(test_streams) > SAMPLE_SIZE:
-                      test_streams = random.sample(test_streams, SAMPLE_SIZE)
+                  channels = [s for s in test_streams if self.classify_stream_type(s) == 'Channel']
                   
-                  print(f"Testing {len(test_streams)} streams with comprehensive diagnostics...")
+                  if TEST_CHANNELS_ONLY:
+                      final_streams = channels
+                      print(f"Testing ALL {len(final_streams)} channel streams")
+                  else:
+                      if SAMPLE_SIZE > 0 and len(test_streams) > SAMPLE_SIZE:
+                          final_streams = random.sample(test_streams, SAMPLE_SIZE)
+                          print(f"Random sample: {len(final_streams)} of {len(test_streams)} streams")
+                      else:
+                          final_streams = test_streams
+                          print(f"Testing: {len(final_streams)} streams")
                   
-                  # Run diagnostic tests
-                  test_results = []
-                  for i, stream in enumerate(test_streams):
-                      print(f"Testing {i+1}/{len(test_streams)}: {stream['name'][:40]}...")
-                      result = await self.test_stream_multiple_methods(stream)
-                      test_results.append(result)
+                  # Group by provider
+                  provider_groups = self.group_streams_by_provider(final_streams)
                   
-                  # Generate diagnostic report
-                  print("Generating comprehensive diagnostic report...")
-                  report = self.generate_diagnostic_report(all_streams, url_patterns, test_results)
+                  # Assign proxies to providers
+                  if USE_PROXIES and self.working_proxies:
+                      await self.assign_proxies_to_providers(provider_groups)
+                  
+                  # Process streams
+                  await self.process_provider_groups(provider_groups)
+                  
+                  # Generate report
+                  print("Generating report...")
+                  report = self.generate_optimized_report()
                   
                   with open('report.md', 'w', encoding='utf-8') as f:
                       f.write(report)
                   
-                  # Summary
+                  # Final summary
                   duration = time.time() - self.start_time
-                  print(f"\nDiagnostic analysis complete:")
-                  print(f"Duration: {duration:.1f}s")
-                  print(f"Streams analyzed: {len(test_streams)}")
-                  print(f"Report generated with detailed diagnostics")
+                  print(f"\nOptimized check complete:")
+                  print(f"Duration: {duration:.1f}s ({duration/60:.1f}m)")
+                  print(f"Results: {self.results['working']}/{self.results['total_tested']} working ({(self.results['working']/self.results['total_tested']*100) if self.results['total_tested'] > 0 else 0:.1f}%)")
+                  if self.results['geo_recovered'] > 0:
+                      print(f"Geo-recovery: {self.results['geo_recovered']} streams via optimized proxy assignment")
 
-          # Run diagnostic checker
-          checker = DiagnosticStreamChecker()
+          # Run the optimized checker
+          checker = OptimizedStreamChecker()
           asyncio.run(checker.run())
           EOF
 
-      - name: Commit diagnostic report
+      - name: Commit report
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "github-actions[bot]"
           
           if [[ -f "report.md" ]]; then
-            git pull origin main --rebase || true
+            # Handle any unstaged changes
+            git stash push -m "temp-changes-$(date +%s)" || echo "Nothing to stash"
+            
+            # Sync with remote
+            git fetch origin main
+            git reset --hard origin/main
+            
+            # Restore stashed changes if needed
+            git stash list | grep "temp-changes" && git stash pop || echo "No temp changes"
+            
             git add report.md
             if ! git diff --staged --quiet; then
-              git commit -m "Stream diagnostic analysis - $(date -u '+%m/%d %H:%M UTC')"
+              # Create commit message with key metrics
+              COMMIT_MSG="Fast stream check"
+              
+              if [[ -f "report.md" ]]; then
+                WORKING=$(grep -o "Working.*streams" report.md | head -1 | grep -o "[0-9]*" | head -1 || echo "?")
+                TOTAL=$(grep -o "Total tested.*streams" report.md | head -1 | grep -o "[0-9]*" | head -1 || echo "?")
+                DURATION=$(grep -o "[0-9.]*s (" report.md | head -1 | sed 's/s (//g' || echo "?")
+                
+                if [[ "$WORKING" != "?" && "$TOTAL" != "?" ]]; then
+                  SUCCESS_RATE=$(( WORKING * 100 / TOTAL )) 2>/dev/null || SUCCESS_RATE="?"
+                  COMMIT_MSG="$COMMIT_MSG - ${WORKING}/${TOTAL} (${SUCCESS_RATE}%)"
+                fi
+                
+                if [[ "$DURATION" != "?" ]]; then
+                  COMMIT_MSG="$COMMIT_MSG in ${DURATION}s"
+                fi
+              fi
+              
+              COMMIT_MSG="$COMMIT_MSG - $(date -u '+%m/%d %H:%M')"
+              
+              git commit -m "$COMMIT_MSG"
               git push origin main
+              echo "Report committed successfully"
+            else
+              echo "No changes to commit"
             fi
+          else
+            echo "Report file not found"
+            exit 1
           fi

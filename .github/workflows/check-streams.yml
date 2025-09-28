@@ -1,97 +1,71 @@
-name: Check M3U Streams - Comprehensive Analysis Version
+name: Fast Accurate Stream Checker with Smart Provider Grouping
 
 on:
   workflow_dispatch:
     inputs:
       check_vods:
-        description: '🎬 Check VOD files (URLs ending with #.mkv)'
+        description: 'Check VOD files'
         required: false
         default: false
         type: boolean
       check_ppv:
-        description: '🥊 Check PPV channels (may be offline)'
+        description: 'Check PPV channels'
         required: false
         default: false
         type: boolean
       check_fast:
-        description: '📺 Check FAST channels (Free Ad-Supported TV)'
+        description: 'Check FAST channels'
         required: false
         default: false
         type: boolean
       use_proxies:
-        description: '🌐 Use proxies for geo-restriction analysis'
+        description: 'Use proxies for geo-blocked content'
         required: false
         default: true
-        type: boolean
-      setup_tor:
-        description: '🔒 Setup Tor proxy for additional testing'
-        required: false
-        default: false
         type: boolean
       timeout_seconds:
-        description: '⏱️ Timeout per stream (seconds)'
+        description: 'Timeout per stream (seconds)'
         required: false
-        default: '8'
+        default: '4'
         type: string
-      target_working_proxies:
-        description: '🎯 Target number of working proxies'
+      sample_size:
+        description: 'Test sample size (0=all, 100=random 100)'
         required: false
-        default: '15'
+        default: '300'
         type: string
-      comprehensive_mode:
-        description: '🔍 Test every stream with multiple methods'
-        required: false
-        default: true
-        type: boolean
   schedule:
-    - cron: '0 */12 * * *'  # Runs every 12 hours
+    - cron: '0 */6 * * *'
 
 permissions:
   contents: write
 
 jobs:
-  comprehensive-check:
+  fast-check:
     runs-on: ubuntu-latest
-    timeout-minutes: 240  # 4 hours for comprehensive testing
+    timeout-minutes: 60
 
     steps:
-      - name: 📥 Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: 🐍 Set up Python
+      - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.x'
 
-      - name: 📦 Install dependencies
+      - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install requests aiohttp beautifulsoup4 lxml asyncio pysocks m3u8
+          pip install requests aiohttp asyncio
 
-      - name: 🔒 Setup Tor (optional)
-        if: ${{ github.event.inputs.setup_tor == 'true' }}
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y tor
-          sudo service tor start
-          sleep 20
-          echo "Testing Tor connection..."
-          curl --socks5 127.0.0.1:9050 --max-time 15 https://httpbin.org/ip || echo "Tor setup may have issues"
-
-      - name: 🔍 Comprehensive Stream Analysis
+      - name: Fast Accurate Stream Check with Smart Provider Grouping
         env:
           CHECK_VODS: ${{ github.event.inputs.check_vods || 'false' }}
           CHECK_PPV: ${{ github.event.inputs.check_ppv || 'false' }}
           CHECK_FAST: ${{ github.event.inputs.check_fast || 'false' }}
           USE_PROXIES: ${{ github.event.inputs.use_proxies || 'true' }}
-          SETUP_TOR: ${{ github.event.inputs.setup_tor || 'false' }}
-          TIMEOUT_SECONDS: ${{ github.event.inputs.timeout_seconds || '8' }}
-          TARGET_WORKING_PROXIES: ${{ github.event.inputs.target_working_proxies || '15' }}
-          COMPREHENSIVE_MODE: ${{ github.event.inputs.comprehensive_mode || 'true' }}
+          TIMEOUT_SECONDS: ${{ github.event.inputs.timeout_seconds || '4' }}
+          SAMPLE_SIZE: ${{ github.event.inputs.sample_size || '300' }}
         run: |
-          set -e
           python - << 'EOF'
           import requests
           import asyncio
@@ -99,302 +73,194 @@ jobs:
           import random
           import time
           import os
-          import subprocess
-          import json
           import re
+          import base64
+          import json
           from datetime import datetime, timezone
+          from urllib.parse import urlparse
           from concurrent.futures import ThreadPoolExecutor, as_completed
-          import socket
 
-          # Comprehensive Configuration
+          # Config
           CHECK_VODS = os.getenv('CHECK_VODS', 'false').lower() == 'true'
-          CHECK_PPV = os.getenv('CHECK_PPV', 'false').lower() == 'true' 
+          CHECK_PPV = os.getenv('CHECK_PPV', 'false').lower() == 'true'
           CHECK_FAST = os.getenv('CHECK_FAST', 'false').lower() == 'true'
           USE_PROXIES = os.getenv('USE_PROXIES', 'true').lower() == 'true'
-          SETUP_TOR = os.getenv('SETUP_TOR', 'false').lower() == 'true'
-          TIMEOUT_SECONDS = int(os.getenv('TIMEOUT_SECONDS', '8'))
-          TARGET_WORKING_PROXIES = int(os.getenv('TARGET_WORKING_PROXIES', '15'))
-          COMPREHENSIVE_MODE = os.getenv('COMPREHENSIVE_MODE', 'true').lower() == 'true'
+          TIMEOUT_SECONDS = int(os.getenv('TIMEOUT_SECONDS', '4'))
+          SAMPLE_SIZE = int(os.getenv('SAMPLE_SIZE', '300'))
 
-          print(f"🔍 COMPREHENSIVE STREAM ANALYSIS MODE")
-          print(f"Configuration: VODs={CHECK_VODS}, PPV={CHECK_PPV}, FAST={CHECK_FAST}")
-          print(f"Proxy analysis: USE_PROXIES={USE_PROXIES}, Target={TARGET_WORKING_PROXIES}")
-          print(f"Comprehensive testing: {COMPREHENSIVE_MODE}")
-
-          class ComprehensiveStreamAnalyzer:
+          class SmartStreamChecker:
               def __init__(self):
-                  self.working_proxies = []
-                  self.stream_results = []  # Detailed results for every stream
                   self.start_time = time.time()
-                  
-                  # Comprehensive categorization
-                  self.results_by_category = {
-                      'working_direct': [],
-                      'working_via_proxy': [],
-                      'geo_blocked': [],
-                      'server_error': [],
-                      'not_found': [],
-                      'timeout': [],
-                      'connection_refused': [],
-                      'dns_error': [],
-                      'auth_required': [],
-                      'rate_limited': [],
-                      'unknown_error': [],
-                      'skipped': []
-                  }
-                  
-                  # Stream type tracking
-                  self.by_type = {
-                      'Channel': {'total': 0, 'checked': 0, 'working': 0},
-                      'VOD': {'total': 0, 'checked': 0, 'working': 0},
-                      'PPV': {'total': 0, 'checked': 0, 'working': 0},
-                      'FAST': {'total': 0, 'checked': 0, 'working': 0}
+                  self.working_proxies = []
+                  self.results = {
+                      'working': 0,
+                      'geo_blocked': 0,
+                      'failed': 0,
+                      'total_tested': 0,
+                      'details': []
                   }
 
-              def setup_comprehensive_proxies(self):
-                  """Setup proxies for comprehensive geo-restriction analysis"""
+              def extract_real_provider_info(self, stream_url):
+                  """Extract actual provider info from wrapped URLs by decoding base64 payload"""
+                  try:
+                      # Check if this is a wrapped URL format
+                      if 'alt.xtream-ie.org' in stream_url and '/fast' in stream_url:
+                          # Extract the base64 payload between credentials and '/fast'
+                          pattern = r'/1([^/]+)/fast'
+                          match = re.search(pattern, stream_url)
+                          
+                          if match:
+                              encoded_payload = match.group(1)
+                              
+                              # URL decode %3D back to =
+                              decoded_payload = encoded_payload.replace('%3D', '=')
+                              
+                              # Base64 decode
+                              json_str = base64.b64decode(decoded_payload).decode('utf-8')
+                              
+                              # Parse JSON to get original URL
+                              payload_data = json.loads(json_str)
+                              original_url = payload_data.get('url', '')
+                              
+                              if original_url:
+                                  # Extract provider info from original URL
+                                  parsed = urlparse(original_url)
+                                  domain = parsed.netloc.lower()
+                                  
+                                  # Extract meaningful path segments
+                                  path_parts = [p for p in parsed.path.strip('/').split('/') if p]
+                                  
+                                  # Create provider key
+                                  if path_parts:
+                                      provider_key = f"{domain}/{path_parts[0]}"
+                                  else:
+                                      provider_key = domain
+                                  
+                                  return {
+                                      'domain': domain,
+                                      'provider_key': provider_key,
+                                      'original_url': original_url,
+                                      'wrapped_url': stream_url,
+                                      'is_wrapped': True,
+                                      'stream_id': payload_data.get('id', 'unknown')
+                                  }
+                      
+                      # Fallback for non-wrapped URLs
+                      parsed = urlparse(stream_url)
+                      domain = parsed.netloc.lower()
+                      path_parts = [p for p in parsed.path.strip('/').split('/') if p]
+                      
+                      provider_key = f"{domain}/{path_parts[0]}" if path_parts else domain
+                      
+                      return {
+                          'domain': domain,
+                          'provider_key': provider_key,
+                          'original_url': stream_url,
+                          'wrapped_url': stream_url,
+                          'is_wrapped': False,
+                          'stream_id': None
+                      }
+                      
+                  except Exception as e:
+                      # Fallback to basic parsing
+                      try:
+                          parsed = urlparse(stream_url)
+                          domain = parsed.netloc.lower() if parsed.netloc else 'unknown'
+                          return {
+                              'domain': domain,
+                              'provider_key': domain,
+                              'original_url': stream_url,
+                              'wrapped_url': stream_url,
+                              'is_wrapped': False,
+                              'stream_id': None
+                          }
+                      except:
+                          return {
+                              'domain': 'unknown',
+                              'provider_key': 'unknown',
+                              'original_url': stream_url,
+                              'wrapped_url': stream_url,
+                              'is_wrapped': False,
+                              'stream_id': None
+                          }
+
+              def get_fast_proxies(self):
+                  """Get working proxies quickly"""
                   if not USE_PROXIES:
                       return []
                   
-                  print("\n" + "="*60)
-                  print("COMPREHENSIVE PROXY SETUP FOR GEO-ANALYSIS")
-                  print("="*60)
+                  print("Getting proxies for smart provider testing...")
                   
-                  # Enhanced proxy sources for better geographic coverage
-                  proxy_sources = [
-                      "https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list-raw.txt",
-                      "https://raw.githubusercontent.com/sunny9577/proxy-scraper/master/proxies.txt",
-                      "https://raw.githubusercontent.com/ShiftyTR/Proxy-List/master/http.txt",
-                      "https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/http.txt",
-                      "https://www.proxy-list.download/api/v1/get?type=http",
-                      "https://api.proxyscrape.com/v2/?request=get&protocol=http&timeout=10000&country=all&format=textplain&limit=500"
-                  ]
-                  
-                  print("Fetching proxies from multiple sources...")
-                  all_proxies = []
-                  successful_sources = 0
-                  
-                  for i, source in enumerate(proxy_sources):
-                      try:
-                          print(f"  Source {i+1}: {source.split('/')[-1][:40]}...")
-                          response = requests.get(source, timeout=25, headers={
-                              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-                          })
+                  try:
+                      response = requests.get(
+                          "https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list-raw.txt",
+                          timeout=15
+                      )
+                      
+                      if response.status_code != 200:
+                          return []
+                      
+                      # Parse and filter proxies
+                      proxies = []
+                      for line in response.text.split('\n')[:100]:
+                          if ':' in line and len(line.strip()) > 7:
+                              match = re.search(r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):(\d+)', line)
+                              if match:
+                                  ip, port = match.groups()
+                                  # Quick validation
+                                  if (int(port) in [80, 8080, 3128, 9090] and 
+                                      not ip.startswith(('10.', '192.168.', '127.'))):
+                                      proxies.append(f"http://{ip}:{port}")
+                                      if len(proxies) >= 30:
+                                          break
+                      
+                      # Quick test with threading
+                      working = []
+                      with ThreadPoolExecutor(max_workers=15) as executor:
+                          future_to_proxy = {
+                              executor.submit(self.test_proxy_quick, proxy): proxy 
+                              for proxy in proxies[:20]
+                          }
                           
-                          if response.status_code == 200:
-                              proxies = self.parse_proxy_response(response.text)
-                              if proxies:
-                                  all_proxies.extend(proxies[:300])  # More proxies for comprehensive testing
-                                  successful_sources += 1
-                                  print(f"    ✅ {len(proxies)} proxies collected")
-                              else:
-                                  print(f"    ❌ No valid proxies found")
-                          else:
-                              print(f"    ❌ HTTP {response.status_code}")
-                      except Exception as e:
-                          print(f"    ❌ Error: {str(e)[:50]}")
-                  
-                  print(f"\nCollected {len(all_proxies)} proxies from {successful_sources} sources")
-                  
-                  if not all_proxies:
-                      print("WARNING: No proxies available - geo-restriction analysis will be limited")
+                          for future in as_completed(future_to_proxy, timeout=30):
+                              try:
+                                  proxy = future_to_proxy[future]
+                                  if future.result():
+                                      working.append(proxy)
+                                      if len(working) >= 5:  # We only need a few good ones
+                                          break
+                              except:
+                                  continue
+                      
+                      print(f"Smart proxy setup: {len(working)} working proxies")
+                      return working
+                      
+                  except:
                       return []
-                  
-                  # Enhanced filtering for comprehensive testing
-                  unique_proxies = list(dict.fromkeys(all_proxies))
-                  filtered_proxies = self.comprehensive_filter(unique_proxies)
-                  
-                  print(f"Filtered to {len(filtered_proxies)} quality proxies")
-                  
-                  # Test more proxies for comprehensive analysis
-                  test_limit = min(100, len(filtered_proxies))  # Test up to 100 proxies
-                  print(f"Testing up to {test_limit} proxies for {TARGET_WORKING_PROXIES} working...")
-                  
-                  working = self.test_proxies_comprehensive(filtered_proxies[:test_limit])
-                  
-                  if SETUP_TOR and self.setup_tor():
-                      working.append("tor://127.0.0.1:9050")
-                      print("Added Tor proxy for additional analysis")
-                  
-                  self.working_proxies = working
-                  print(f"Comprehensive proxy setup complete: {len(working)} working proxies")
-                  print("="*60)
-                  
-                  return working
 
-              def comprehensive_filter(self, proxies):
-                  """Enhanced filtering for comprehensive testing"""
-                  filtered = []
-                  port_stats = {}
-                  
-                  for proxy in proxies:
-                      try:
-                          if ':' not in proxy:
-                              continue
-                              
-                          ip, port = proxy.split(':', 1)
-                          port_num = int(port)
-                          
-                          # IP validation
-                          ip_parts = [int(x) for x in ip.split('.')]
-                          if len(ip_parts) != 4 or not all(0 <= x <= 255 for x in ip_parts):
-                              continue
-                              
-                          # Skip private ranges
-                          if (ip_parts[0] == 10 or 
-                              (ip_parts[0] == 172 and 16 <= ip_parts[1] <= 31) or
-                              (ip_parts[0] == 192 and ip_parts[1] == 168) or
-                              ip_parts[0] == 127 or ip_parts[0] >= 224):
-                              continue
-                          
-                          # Port validation
-                          if not (80 <= port_num <= 65535):
-                              continue
-                          
-                          filtered.append(proxy)
-                          port_stats[port_num] = port_stats.get(port_num, 0) + 1
-                          
-                      except (ValueError, IndexError):
-                          continue
-                  
-                  # Show port distribution for analysis
-                  top_ports = sorted(port_stats.items(), key=lambda x: x[1], reverse=True)[:10]
-                  print(f"Top ports: {dict(top_ports)}")
-                  
-                  return filtered
-
-              def test_proxies_comprehensive(self, proxy_list):
-                  """Comprehensive proxy testing"""
-                  working = []
-                  
-                  print("Testing proxies with multiple validation methods...")
-                  
-                  with ThreadPoolExecutor(max_workers=25) as executor:
-                      future_to_proxy = {
-                          executor.submit(self.test_single_proxy_comprehensive, proxy): proxy 
-                          for proxy in proxy_list
-                      }
-                      
-                      tested = 0
-                      for future in as_completed(future_to_proxy, timeout=180):
-                          tested += 1
-                          try:
-                              proxy = future_to_proxy[future]
-                              result = future.result(timeout=15)
-                              
-                              if result:
-                                  working.append(f"http://{proxy}")
-                                  print(f"  ✅ [{len(working)}]: {proxy}")
-                              
-                              if len(working) >= TARGET_WORKING_PROXIES:
-                                  print(f"Target {TARGET_WORKING_PROXIES} reached")
-                                  for remaining in future_to_proxy:
-                                      if not remaining.done():
-                                          remaining.cancel()
-                                  break
-                              
-                              if tested % 20 == 0:
-                                  success_rate = len(working)/tested*100 if tested > 0 else 0
-                                  print(f"  Progress: {tested} tested, {len(working)} working ({success_rate:.1f}%)")
-                                  
-                          except Exception:
-                              continue
-                  
-                  print(f"Proxy testing complete: {len(working)} working proxies found")
-                  return working
-
-              def test_single_proxy_comprehensive(self, proxy_address):
-                  """Test single proxy with multiple endpoints"""
+              def test_proxy_quick(self, proxy_url):
+                  """Quick proxy test"""
                   try:
-                      proxy_url = f"http://{proxy_address}"
                       proxies = {'http': proxy_url, 'https': proxy_url}
-                      
-                      # Test with multiple endpoints for reliability
-                      test_endpoints = [
-                          "http://httpbin.org/ip",
-                          "https://api.ipify.org?format=json",
-                          "http://ip-api.com/json/?fields=query,country"
-                      ]
-                      
-                      for endpoint in test_endpoints:
-                          try:
-                              response = requests.get(
-                                  endpoint,
-                                  proxies=proxies,
-                                  timeout=12,
-                                  headers={'User-Agent': 'Mozilla/5.0 (compatible; StreamChecker)'}
-                              )
-                              
-                              if response.status_code == 200:
-                                  content = response.text.strip()
-                                  if len(content) > 10 and any(indicator in content.lower() 
-                                      for indicator in ['ip', 'origin', 'query', 'address']):
-                                      return True
-                          except requests.exceptions.ProxyError:
-                              break  # Proxy is bad
-                          except Exception:
-                              continue  # Try next endpoint
-                              
-                  except Exception:
-                      pass
-                  
-                  return False
-
-              def setup_tor(self):
-                  """Setup Tor proxy"""
-                  if not SETUP_TOR:
-                      return False
-                  
-                  try:
-                      result = subprocess.run([
-                          'curl', '--socks5', '127.0.0.1:9050', 
-                          '--max-time', '15', '--silent',
-                          'https://httpbin.org/ip'
-                      ], capture_output=True, text=True, timeout=20)
-                      
-                      return result.returncode == 0
+                      response = requests.get(
+                          "http://httpbin.org/ip", 
+                          proxies=proxies,
+                          timeout=5
+                      )
+                      return response.status_code == 200
                   except:
                       return False
 
-              def parse_proxy_response(self, text):
-                  """Parse proxy response from various formats"""
-                  proxies = []
-                  
-                  # Handle JSON format
-                  if text.strip().startswith('['):
-                      try:
-                          proxy_list = json.loads(text)
-                          for proxy_obj in proxy_list:
-                              if isinstance(proxy_obj, dict) and 'ip' in proxy_obj and 'port' in proxy_obj:
-                                  proxies.append(f"{proxy_obj['ip']}:{proxy_obj['port']}")
-                      except:
-                          pass
-                  
-                  # Handle text format
-                  for line in text.split('\n'):
-                      line = line.strip()
-                      if ':' in line:
-                          match = re.search(r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}):(\d+)', line)
-                          if match:
-                              ip, port = match.groups()
-                              if all(0 <= int(part) <= 255 for part in ip.split('.')) and 1 <= int(port) <= 65535:
-                                  proxies.append(f"{ip}:{port}")
-                  
-                  return proxies
-
-              def parse_m3u_comprehensive(self, file_path):
-                  """Parse M3U file for comprehensive analysis"""
+              def parse_m3u(self, file_path):
+                  """Fast M3U parsing with provider extraction"""
                   if not os.path.exists(file_path):
-                      print(f"❌ File not found: {file_path}")
                       return []
                       
                   streams = []
-                  
                   try:
                       with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
                           lines = f.readlines()
-                  except Exception as e:
-                      print(f"❌ Error reading {file_path}: {e}")
+                  except:
                       return []
                       
                   for i in range(len(lines)):
@@ -403,21 +269,23 @@ jobs:
                           try:
                               group_match = re.search(r'group-title="([^"]*)"', line)
                               group = group_match.group(1) if group_match else "No Group"
-                              
                               name = line.split(',')[-1].strip() if ',' in line else "Unknown"
                               
                               if i + 1 < len(lines):
                                   url = lines[i + 1].strip()
                                   if url and not url.startswith('#') and 'http' in url:
+                                      # Extract provider info when parsing
+                                      provider_info = self.extract_real_provider_info(url)
+                                      
                                       streams.append({
                                           'name': name,
                                           'url': url,
-                                          'group': group
+                                          'group': group,
+                                          'provider_info': provider_info
                                       })
                           except:
                               continue
                   
-                  print(f"📋 Parsed {len(streams)} streams for comprehensive analysis")
                   return streams
 
               def classify_stream_type(self, stream):
@@ -435,594 +303,422 @@ jobs:
                   else:
                       return 'Channel'
 
-              def should_check_stream(self, stream):
-                  """Determine if stream should be checked based on settings"""
+              def should_test_stream(self, stream):
+                  """Check if stream should be tested"""
                   stream_type = self.classify_stream_type(stream)
                   
-                  if stream_type == 'VOD' and not CHECK_VODS:
-                      return False, "VOD checking disabled"
-                  elif stream_type == 'PPV' and not CHECK_PPV:
-                      return False, "PPV checking disabled"
-                  elif stream_type == 'FAST' and not CHECK_FAST:
-                      return False, "FAST checking disabled"
+                  if stream_type == 'Channel':
+                      return True
                   
-                  return True, None
+                  if stream_type == 'VOD' and CHECK_VODS:
+                      return True
+                  elif stream_type == 'PPV' and CHECK_PPV:
+                      return True
+                  elif stream_type == 'FAST' and CHECK_FAST:
+                      return True
+                  
+                  return False
 
-              def analyze_single_stream(self, stream):
-                  """Comprehensive analysis of a single stream"""
-                  stream_type = self.classify_stream_type(stream)
+              def group_streams_by_real_provider(self, streams):
+                  """Group streams by their actual provider (unwrapped URLs)"""
+                  provider_groups = {}
                   
-                  result = {
-                      'name': stream['name'][:60],
-                      'url': stream['url'],
-                      'group': stream['group'],
-                      'type': stream_type,
-                      'status': 'unknown',
-                      'direct_test': None,
-                      'proxy_tests': [],
-                      'final_classification': 'unknown',
-                      'error_details': '',
-                      'response_time': 0,
-                      'http_code': None
-                  }
-                  
-                  print(f"🔍 Analyzing: {stream['name'][:50]}... ({stream_type})")
-                  
-                  # Test direct connection first
-                  direct_result = self.test_stream_direct(stream)
-                  result['direct_test'] = direct_result
-                  result['response_time'] = direct_result.get('response_time', 0)
-                  result['http_code'] = direct_result.get('code')
-                  
-                  if direct_result['status'] == 'working':
-                      result['status'] = 'working'
-                      result['final_classification'] = 'working_direct'
-                      print(f"  ✅ Working directly")
-                      self.results_by_category['working_direct'].append(result)
-                      return result
-                  
-                  # If direct failed, analyze the failure and test with proxies
-                  failure_reason = self.classify_failure(direct_result)
-                  result['error_details'] = direct_result.get('error', '')
-                  
-                  # Test with proxies if we have them and failure suggests geo-blocking
-                  if self.working_proxies and failure_reason in ['geo_blocked', 'connection_refused', 'timeout']:
-                      print(f"  🌐 Testing via proxies (reason: {failure_reason})...")
+                  for stream in streams:
+                      provider_info = stream.get('provider_info', {})
+                      provider_key = provider_info.get('provider_key', 'unknown')
                       
-                      # Try up to 3 different proxies
-                      proxy_sample = random.sample(self.working_proxies, min(3, len(self.working_proxies)))
-                      
-                      for proxy in proxy_sample:
-                          proxy_result = self.test_stream_via_proxy(stream, proxy)
-                          result['proxy_tests'].append({
-                              'proxy': proxy.split('/')[-1] if '/' in proxy else proxy,
-                              'result': proxy_result
-                          })
-                          
-                          if proxy_result['status'] == 'working':
-                              result['status'] = 'working'
-                              result['final_classification'] = 'working_via_proxy'
-                              print(f"    ✅ Working via proxy")
-                              self.results_by_category['working_via_proxy'].append(result)
-                              return result
-                      
-                      # If failed via all proxies but worked elsewhere, likely geo-blocked
-                      if failure_reason == 'geo_blocked':
-                          result['final_classification'] = 'geo_blocked'
-                          print(f"    🔒 Confirmed geo-blocked")
-                          self.results_by_category['geo_blocked'].append(result)
-                      else:
-                          result['final_classification'] = failure_reason
-                          print(f"    ❌ Failed via proxies: {failure_reason}")
-                          self.results_by_category[failure_reason].append(result)
-                  else:
-                      # Classify based on direct test failure
-                      result['final_classification'] = failure_reason
-                      print(f"    ❌ {failure_reason}")
-                      self.results_by_category[failure_reason].append(result)
-                  
-                  result['status'] = 'failed'
-                  return result
-
-              def test_stream_direct(self, stream):
-                  """Test stream with direct connection"""
-                  try:
-                      start_time = time.time()
-                      
-                      response = requests.head(
-                          stream['url'],
-                          timeout=TIMEOUT_SECONDS,
-                          headers={
-                              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                              'Accept': '*/*',
-                              'Accept-Language': 'en-US,en;q=0.9'
-                          },
-                          allow_redirects=True
-                      )
-                      
-                      response_time = time.time() - start_time
-                      
-                      return {
-                          'status': 'working' if response.status_code < 400 else 'failed',
-                          'code': response.status_code,
-                          'response_time': response_time,
-                          'error': f"HTTP {response.status_code}" if response.status_code >= 400 else None
-                      }
-                      
-                  except requests.exceptions.Timeout:
-                      return {'status': 'failed', 'error': 'Connection timeout', 'code': None, 'response_time': TIMEOUT_SECONDS}
-                  except requests.exceptions.ConnectionError as e:
-                      error_str = str(e).lower()
-                      if 'name or service not known' in error_str:
-                          return {'status': 'failed', 'error': 'DNS resolution failed', 'code': None}
-                      elif 'connection refused' in error_str:
-                          return {'status': 'failed', 'error': 'Connection refused', 'code': None}
-                      else:
-                          return {'status': 'failed', 'error': 'Network error', 'code': None}
-                  except Exception as e:
-                      return {'status': 'failed', 'error': str(e)[:100], 'code': None}
-
-              def test_stream_via_proxy(self, stream, proxy_url):
-                  """Test stream via proxy"""
-                  try:
-                      if proxy_url.startswith('tor://'):
-                          # Test via Tor
-                          result = subprocess.run([
-                              'curl', '--socks5', '127.0.0.1:9050',
-                              '--head', '--max-time', str(TIMEOUT_SECONDS + 2),
-                              '--silent', '--output', '/dev/null',
-                              '--write-out', '%{http_code}',
-                              stream['url']
-                          ], capture_output=True, text=True, timeout=TIMEOUT_SECONDS + 5)
-                          
-                          if result.returncode == 0 and result.stdout.strip().isdigit():
-                              status_code = int(result.stdout.strip())
-                              return {
-                                  'status': 'working' if status_code < 400 else 'failed',
-                                  'code': status_code,
-                                  'method': 'tor'
-                              }
-                      else:
-                          # Test via HTTP proxy
-                          proxies = {'http': proxy_url, 'https': proxy_url}
-                          response = requests.head(
-                              stream['url'],
-                              proxies=proxies,
-                              timeout=TIMEOUT_SECONDS + 2,
-                              headers={
-                                  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                                  'Accept': '*/*'
-                              }
-                          )
-                          
-                          return {
-                              'status': 'working' if response.status_code < 400 else 'failed',
-                              'code': response.status_code,
-                              'method': 'proxy'
+                      if provider_key not in provider_groups:
+                          provider_groups[provider_key] = {
+                              'streams': [],
+                              'domain': provider_info.get('domain', 'unknown'),
+                              'is_wrapped': provider_info.get('is_wrapped', False),
+                              'assigned_proxy': None,
+                              'sample_original_url': provider_info.get('original_url', ''),
+                              'compatibility_tested': False
                           }
-                  except Exception as e:
-                      return {'status': 'failed', 'error': str(e)[:50]}
-
-              def classify_failure(self, test_result):
-                  """Classify the type of failure"""
-                  error = test_result.get('error', '').lower()
-                  code = test_result.get('code')
-                  
-                  if code == 403:
-                      return 'geo_blocked'
-                  elif code == 404:
-                      return 'not_found'
-                  elif code == 401:
-                      return 'auth_required'
-                  elif code == 429:
-                      return 'rate_limited'
-                  elif code and code >= 500:
-                      return 'server_error'
-                  elif 'timeout' in error:
-                      return 'timeout'
-                  elif 'connection refused' in error:
-                      return 'connection_refused'
-                  elif 'dns' in error or 'name or service not known' in error:
-                      return 'dns_error'
-                  else:
-                      return 'unknown_error'
-
-              async def run_comprehensive_analysis(self, streams):
-                  """Run comprehensive analysis on all streams"""
-                  print(f"\n🔍 STARTING COMPREHENSIVE ANALYSIS")
-                  print(f"Total streams to analyze: {len(streams)}")
-                  
-                  # Count streams by type
-                  for stream in streams:
-                      stream_type = self.classify_stream_type(stream)
-                      self.by_type[stream_type]['total'] += 1
-                  
-                  print(f"Stream distribution:")
-                  for stream_type, counts in self.by_type.items():
-                      if counts['total'] > 0:
-                          print(f"  {stream_type}: {counts['total']}")
-                  
-                  # Process all streams
-                  processed = 0
-                  for stream in streams:
-                      stream_type = self.classify_stream_type(stream)
                       
-                      should_check, skip_reason = self.should_check_stream(stream)
-                      if not should_check:
-                          self.results_by_category['skipped'].append({
-                              'name': stream['name'][:60],
-                              'type': stream_type,
-                              'reason': skip_reason
-                          })
+                      provider_groups[provider_key]['streams'].append(stream)
+                  
+                  # Sort by stream count
+                  sorted_providers = sorted(provider_groups.items(), 
+                                          key=lambda x: len(x[1]['streams']), 
+                                          reverse=True)
+                  
+                  print(f"Smart provider grouping found {len(sorted_providers)} real providers:")
+                  for provider_key, info in sorted_providers[:10]:
+                      wrapped_status = "(wrapped)" if info['is_wrapped'] else "(direct)"
+                      print(f"  {provider_key}: {len(info['streams'])} streams {wrapped_status}")
+                  
+                  return dict(sorted_providers)
+
+              async def assign_smart_proxies(self, provider_groups):
+                  """Assign proxies to providers based on original URL compatibility"""
+                  if not self.working_proxies:
+                      return
+                  
+                  print("Testing proxy compatibility with real providers...")
+                  
+                  for provider_key, provider_info in provider_groups.items():
+                      if not provider_info['streams']:
                           continue
                       
-                      self.by_type[stream_type]['checked'] += 1
+                      original_url = provider_info['sample_original_url']
                       
-                      # Analyze this stream comprehensively
-                      result = self.analyze_single_stream(stream)
+                      # Test proxies against the original URL
+                      for proxy in self.working_proxies:
+                          try:
+                              if await self.test_provider_proxy_compatibility(original_url, proxy):
+                                  provider_info['assigned_proxy'] = proxy
+                                  provider_info['compatibility_tested'] = True
+                                  print(f"  {provider_key}: assigned proxy")
+                                  break
+                          except:
+                              continue
                       
-                      if result['status'] == 'working':
-                          self.by_type[stream_type]['working'] += 1
-                      
-                      self.stream_results.append(result)
-                      processed += 1
-                      
-                      # Progress update
-                      if processed % 50 == 0:
-                          elapsed = time.time() - self.start_time
-                          rate = processed / elapsed if elapsed > 0 else 0
-                          print(f"Progress: {processed} analyzed, {rate:.1f}/sec")
-                      
-                      # Brief pause to avoid overwhelming
-                      time.sleep(0.1)
-                  
-                  print(f"Comprehensive analysis complete: {processed} streams analyzed")
+                      if not provider_info['assigned_proxy']:
+                          print(f"  {provider_key}: no compatible proxy")
 
-              def generate_comprehensive_report(self):
-                  """Generate detailed comprehensive report"""
-                  duration = time.time() - self.start_time
-                  total_streams = sum(counts['total'] for counts in self.by_type.values())
-                  total_checked = sum(counts['checked'] for counts in self.by_type.values())
-                  total_working = sum(counts['working'] for counts in self.by_type.values())
-                  total_skipped = len(self.results_by_category['skipped'])
-                  
-                  report = f"# 📺 Comprehensive M3U Stream Analysis Report\n\n"
-                  report += f"**📅 Generated:** {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')} UTC  \n"
-                  report += f"**🔍 Analysis Mode:** Comprehensive - Every stream tested  \n"
-                  report += f"**⏱️ Duration:** {duration:.1f} seconds ({duration/60:.1f} minutes)  \n"
-                  report += f"**🌐 Proxy Analysis:** {'Enabled' if USE_PROXIES else 'Disabled'} ({len(self.working_proxies)} working proxies)  \n"
-                  report += f"**⚙️ Settings:** {TIMEOUT_SECONDS}s timeout, comprehensive failure classification\n\n"
-                  
-                  # Executive Summary
-                  report += "## 📊 Executive Summary\n\n"
-                  report += "| Metric | Count | Percentage |\n"
-                  report += "|--------|-------|------------|\n"
-                  report += f"| **Total Streams** | {total_streams} | 100.0% |\n"
-                  report += f"| **Analyzed** | {total_checked} | {(total_checked/total_streams*100) if total_streams > 0 else 0:.1f}% |\n"
-                  report += f"| **Working** | {total_working} | {(total_working/total_checked*100) if total_checked > 0 else 0:.1f}% |\n"
-                  report += f"| **Failed** | {total_checked - total_working} | {((total_checked - total_working)/total_checked*100) if total_checked > 0 else 0:.1f}% |\n"
-                  report += f"| **Skipped** | {total_skipped} | {(total_skipped/total_streams*100) if total_streams > 0 else 0:.1f}% |\n\n"
-                  
-                  # Stream Type Analysis
-                  report += "## 🎯 Stream Type Analysis\n\n"
-                  for stream_type, counts in self.by_type.items():
-                      if counts['total'] > 0:
-                          success_rate = (counts['working']/counts['checked']*100) if counts['checked'] > 0 else 0
-                          emoji = {'Channel': '📡', 'VOD': '🎬', 'PPV': '🥊', 'FAST': '📺'}[stream_type]
-                          report += f"- **{emoji} {stream_type}:** {counts['working']}/{counts['checked']} working ({success_rate:.1f}%) | {counts['total']} total\n"
-                  report += "\n"
-                  
-                  # Detailed Status Breakdown
-                  report += "## 🔍 Detailed Status Classification\n\n"
-                  
-                  for category, streams in self.results_by_category.items():
-                      if streams:
-                          count = len(streams)
-                          percentage = (count/total_checked*100) if total_checked > 0 else 0
-                          
-                          category_names = {
-                              'working_direct': '✅ Working (Direct Connection)',
-                              'working_via_proxy': '🌐 Working (Via Proxy - Geo-blocked)',
-                              'geo_blocked': '🔒 Geo-blocked (All methods failed)',
-                              'server_error': '🖥️ Server Errors (5xx codes)',
-                              'not_found': '📍 Not Found (404 errors)',
-                              'timeout': '⏰ Connection Timeouts',
-                              'connection_refused': '🚫 Connection Refused',
-                              'dns_error': '🌐 DNS Resolution Failed',
-                              'auth_required': '🔐 Authentication Required (401)',
-                              'rate_limited': '🚦 Rate Limited (429)',
-                              'unknown_error': '❓ Unknown Errors',
-                              'skipped': '⏭️ Skipped (Disabled content types)'
-                          }
-                          
-                          category_title = category_names.get(category, category.title())
-                          report += f"### {category_title} ({count} streams, {percentage:.1f}%)\n"
-                          
-                          if category == 'skipped':
-                              # Group skipped by reason
-                              skip_reasons = {}
-                              for stream in streams:
-                                  reason = stream.get('reason', 'Unknown')
-                                  if reason not in skip_reasons:
-                                      skip_reasons[reason] = []
-                                  skip_reasons[reason].append(stream)
-                              
-                              for reason, reason_streams in skip_reasons.items():
-                                  report += f"- **{reason}:** {len(reason_streams)} streams\n"
-                          
-                          elif count <= 20:  # Show details for smaller groups
-                              report += "| Stream Name | Group | Type | Details |\n"
-                              report += "|-------------|-------|------|----------|\n"
-                              
-                              for stream in streams[:20]:
-                                  name = str(stream.get('name', 'Unknown'))[:40].replace('|', '\\|')
-                                  group = str(stream.get('group', 'Unknown'))[:25].replace('|', '\\|')
-                                  stream_type = stream.get('type', 'Unknown')
-                                  
-                                  if category in ['working_direct', 'working_via_proxy']:
-                                      details = f"HTTP {stream.get('http_code', 'N/A')}"
-                                      if stream.get('response_time'):
-                                          details += f" ({stream['response_time']:.1f}s)"
+              async def test_provider_proxy_compatibility(self, test_url, proxy_url):
+                  """Test if proxy works with a specific provider's original URL"""
+                  try:
+                      proxies = {'http': proxy_url, 'https': proxy_url}
+                      headers = {
+                          'User-Agent': 'VLC/3.0.16',
+                          'Range': 'bytes=0-512'
+                      }
+                      
+                      response = requests.head(
+                          test_url,
+                          proxies=proxies,
+                          headers=headers,
+                          timeout=4
+                      )
+                      
+                      return response.status_code < 500
+                      
+                  except:
+                      return False
+
+              async def test_stream_accurate(self, session, stream):
+                  """Test stream with content validation"""
+                  try:
+                      # Use the wrapped URL for actual testing (your normal flow)
+                      test_url = stream['url']
+                      
+                      headers = {
+                          'User-Agent': 'VLC/3.0.16',
+                          'Range': 'bytes=0-1023',
+                          'Accept': '*/*'
+                      }
+                      
+                      timeout = aiohttp.ClientTimeout(total=TIMEOUT_SECONDS)
+                      
+                      async with session.get(test_url, headers=headers, timeout=timeout) as response:
+                          if response.status in [200, 206]:
+                              try:
+                                  content = await asyncio.wait_for(response.read(1024), timeout=2)
+                                  if len(content) > 100:
+                                      return {'status': 'working', 'code': response.status}
                                   else:
-                                      details = str(stream.get('error_details', 'Unknown error'))[:30].replace('|', '\\|')
-                                  
-                                  report += f"| {name} | {group} | {stream_type} | {details} |\n"
+                                      return {'status': 'failed', 'code': response.status, 'error': 'Empty content'}
+                              except asyncio.TimeoutError:
+                                  return {'status': 'failed', 'code': response.status, 'error': 'Content timeout'}
+                          elif response.status == 403:
+                              return {'status': 'geo_blocked', 'code': 403}
                           else:
-                              report += f"*Too many streams to list individually ({count} total)*\n"
+                              return {'status': 'failed', 'code': response.status}
+                              
+                  except asyncio.TimeoutError:
+                      return {'status': 'failed', 'error': 'Timeout'}
+                  except Exception as e:
+                      error_str = str(e).lower()
+                      if '403' in error_str:
+                          return {'status': 'geo_blocked', 'error': 'Geo-blocked'}
+                      else:
+                          return {'status': 'failed', 'error': 'Network error'}
+
+              async def test_via_smart_proxy(self, stream, assigned_proxy):
+                  """Test original URL via assigned proxy"""
+                  try:
+                      provider_info = stream.get('provider_info', {})
+                      original_url = provider_info.get('original_url')
+                      
+                      if not original_url or not assigned_proxy:
+                          return {'status': 'failed'}
+                      
+                      proxies = {'http': assigned_proxy, 'https': assigned_proxy}
+                      headers = {
+                          'User-Agent': 'VLC/3.0.16',
+                          'Range': 'bytes=0-512'
+                      }
+                      
+                      response = requests.get(
+                          original_url,  # Test original URL
+                          proxies=proxies,
+                          headers=headers,
+                          timeout=TIMEOUT_SECONDS + 1,
+                          stream=True
+                      )
+                      
+                      if response.status_code in [200, 206]:
+                          try:
+                              content = next(response.iter_content(512), b'')
+                              if len(content) > 50:
+                                  return {'status': 'working', 'method': 'smart_proxy'}
+                          except:
+                              pass
+                      
+                      return {'status': 'failed'}
+                      
+                  except:
+                      return {'status': 'failed'}
+
+              async def process_provider_groups(self, provider_groups):
+                  """Process streams by provider groups with smart proxy assignment"""
+                  print("Processing streams with smart provider-based proxy optimization...")
+                  
+                  connector = aiohttp.TCPConnector(limit=60, limit_per_host=15)
+                  timeout = aiohttp.ClientTimeout(total=TIMEOUT_SECONDS + 2)
+                  
+                  async with aiohttp.ClientSession(connector=connector, timeout=timeout) as session:
+                      
+                      for provider_key, provider_info in provider_groups.items():
+                          streams = provider_info['streams']
+                          assigned_proxy = provider_info['assigned_proxy']
                           
-                          report += "\n"
+                          print(f"Testing {provider_key}: {len(streams)} streams" + 
+                                (f" (smart proxy assigned)" if assigned_proxy else " (direct only)"))
+                          
+                          # Process in batches
+                          batch_size = 25
+                          provider_working = 0
+                          
+                          for i in range(0, len(streams), batch_size):
+                              batch = streams[i:i + batch_size]
+                              
+                              tasks = []
+                              for stream in batch:
+                                  tasks.append(self.test_stream_with_smart_fallback(
+                                      session, stream, assigned_proxy))
+                              
+                              results = await asyncio.gather(*tasks, return_exceptions=True)
+                              
+                              # Process results
+                              batch_working = 0
+                              for stream, result in zip(batch, results):
+                                  if isinstance(result, dict):
+                                      self.results['total_tested'] += 1
+                                      
+                                      if result['status'] == 'working':
+                                          self.results['working'] += 1
+                                          batch_working += 1
+                                          provider_working += 1
+                                      elif result['status'] == 'geo_recovered':
+                                          self.results['working'] += 1
+                                          self.results['geo_blocked'] += 1
+                                          batch_working += 1
+                                          provider_working += 1
+                                      else:
+                                          self.results['failed'] += 1
+                                      
+                                      # Store sample results
+                                      if len(self.results['details']) < 100:
+                                          self.results['details'].append({
+                                              'name': stream['name'][:40],
+                                              'status': result['status'],
+                                              'code': result.get('code'),
+                                              'type': self.classify_stream_type(stream),
+                                              'provider': provider_key,
+                                              'method': result.get('method', 'direct')
+                                          })
+                              
+                              await asyncio.sleep(0.3)
+                          
+                          success_rate = (provider_working / len(streams) * 100) if streams else 0
+                          print(f"  {provider_key}: {provider_working}/{len(streams)} working ({success_rate:.1f}%)")
+
+              async def test_stream_with_smart_fallback(self, session, stream, assigned_proxy):
+                  """Test stream with smart proxy fallback"""
+                  # First try wrapped URL directly
+                  direct_result = await self.test_stream_accurate(session, stream)
                   
-                  # Geo-restriction Analysis
-                  if USE_PROXIES and self.working_proxies:
-                      geo_blocked_direct = len(self.results_by_category['geo_blocked'])
-                      working_via_proxy = len(self.results_by_category['working_via_proxy'])
-                      total_geo_related = geo_blocked_direct + working_via_proxy
-                      
-                      if total_geo_related > 0:
-                          report += "## 🌍 Geo-restriction Analysis\n\n"
-                          report += f"- **Total geo-related streams:** {total_geo_related}\n"
-                          report += f"- **Successfully unblocked:** {working_via_proxy} ({(working_via_proxy/total_geo_related*100):.1f}%)\n"
-                          report += f"- **Confirmed geo-blocked:** {geo_blocked_direct} ({(geo_blocked_direct/total_geo_related*100):.1f}%)\n"
-                          report += f"- **Proxy effectiveness:** {len(self.working_proxies)} working proxies used\n\n"
+                  if direct_result['status'] == 'working':
+                      return direct_result
                   
-                  # Performance Metrics
-                  if total_checked > 0:
-                      streams_per_second = total_checked / duration if duration > 0 else 0
-                      report += "## ⚡ Performance Metrics\n\n"
-                      report += f"- **Analysis Speed:** {streams_per_second:.1f} streams/second\n"
-                      report += f"- **Success Rate:** {(total_working/total_checked*100):.1f}% overall\n"
-                      report += f"- **Average Response Time:** {sum(r.get('response_time', 0) for r in self.stream_results)/len([r for r in self.stream_results if r.get('response_time')]) if any(r.get('response_time') for r in self.stream_results) else 0:.2f}s\n"
+                  # If geo-blocked and we have smart proxy, try original URL
+                  if (direct_result['status'] == 'geo_blocked' and assigned_proxy and
+                      stream.get('provider_info', {}).get('is_wrapped')):
                       
-                      if USE_PROXIES:
-                          report += f"- **Proxy Utilization:** {len(self.working_proxies)} proxies, {working_via_proxy} successful recoveries\n"
+                      proxy_result = await self.test_via_smart_proxy(stream, assigned_proxy)
+                      if proxy_result['status'] == 'working':
+                          return {'status': 'geo_recovered', 'method': 'smart_proxy'}
+                  
+                  return direct_result
+
+              def generate_smart_report(self):
+                  """Generate report with smart provider analysis"""
+                  duration = time.time() - self.start_time
+                  total = self.results['total_tested']
+                  working = self.results['working']
+                  geo_blocked = self.results['geo_blocked']
+                  failed = self.results['failed']
+                  
+                  success_rate = (working / total * 100) if total > 0 else 0
+                  
+                  report = f"# Smart Provider-Optimized Stream Check Report\n\n"
+                  report += f"**Generated:** {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}  \n"
+                  report += f"**Duration:** {duration:.1f}s ({duration/60:.1f}m)  \n"
+                  report += f"**Method:** Smart provider grouping with proxy optimization  \n"
+                  report += f"**Scope:** {total} streams tested with unwrapped URL analysis  \n\n"
+                  
+                  # Summary
+                  report += "## Summary\n\n"
+                  report += f"- **Working:** {working} streams ({success_rate:.1f}%)\n"
+                  if geo_blocked > 0:
+                      report += f"- **Geo-blocked (recovered via smart proxy):** {geo_blocked} streams\n"
+                  report += f"- **Failed:** {failed} streams ({(failed/total*100) if total > 0 else 0:.1f}%)\n"
+                  report += f"- **Total tested:** {total} streams\n\n"
+                  
+                  # Performance
+                  if duration > 0:
+                      rate = total / duration
+                      report += f"**Performance:** {rate:.1f} streams/second with smart provider optimization\n\n"
+                  
+                  # Provider analysis
+                  provider_stats = {}
+                  method_stats = {'direct': 0, 'smart_proxy': 0}
+                  
+                  for detail in self.results['details']:
+                      provider = detail.get('provider', 'unknown')
+                      method = detail.get('method', 'direct')
+                      
+                      if provider not in provider_stats:
+                          provider_stats[provider] = {'working': 0, 'total': 0}
+                      
+                      provider_stats[provider]['total'] += 1
+                      if detail['status'] in ['working', 'geo_recovered']:
+                          provider_stats[provider]['working'] += 1
+                      
+                      if method in method_stats:
+                          method_stats[method] += 1
+                  
+                  if provider_stats:
+                      report += "## Smart Provider Analysis\n\n"
+                      sorted_providers = sorted(provider_stats.items(), 
+                                              key=lambda x: x[1]['total'], 
+                                              reverse=True)[:15]
+                      
+                      report += "| Real Provider | Working | Total | Success Rate |\n"
+                      report += "|---------------|---------|--------|-------------|\n"
+                      
+                      for provider, stats in sorted_providers:
+                          success = (stats['working'] / stats['total'] * 100) if stats['total'] > 0 else 0
+                          report += f"| {provider[:35]} | {stats['working']} | {stats['total']} | {success:.1f}% |\n"
+                      
                       report += "\n"
                   
-                  # Recommendations
-                  report += "## 💡 Recommendations\n\n"
+                  # Method effectiveness
+                  if method_stats['smart_proxy'] > 0:
+                      report += "## Smart Proxy Effectiveness\n\n"
+                      report += f"- **Direct connections:** {method_stats['direct']} streams\n"
+                      report += f"- **Smart proxy recovery:** {method_stats['smart_proxy']} streams\n"
+                      total_methods = sum(method_stats.values())
+                      if total_methods > 0:
+                          proxy_effectiveness = (method_stats['smart_proxy'] / total_methods * 100)
+                          report += f"- **Proxy effectiveness:** {proxy_effectiveness:.1f}% of working streams\n\n"
                   
-                  # Success rate recommendations
-                  overall_success_rate = (total_working/total_checked*100) if total_checked > 0 else 0
-                  if overall_success_rate < 20:
-                      report += "**Low Success Rate Detected:**\n"
-                      report += "- Consider checking different content types (enable VODs, PPV, or FAST)\n"
-                      report += "- Many streams may be offline or using different protocols\n"
-                      report += "- Try enabling Tor proxy for additional geo-unblocking\n\n"
+                  # Sample results
+                  if self.results['details']:
+                      working_samples = [d for d in self.results['details'] 
+                                       if d['status'] in ['working', 'geo_recovered']][:15]
+                      
+                      if working_samples:
+                          report += "## Sample Working Streams\n\n"
+                          report += "| Stream | Status | Provider | Method |\n"
+                          report += "|--------|--------|----------|--------|\n"
+                          
+                          for detail in working_samples:
+                              status_icon = '✅' if detail['status'] == 'working' else '🔓'
+                              method = detail.get('method', 'direct')
+                              report += f"| {detail['name']} | {status_icon} {detail['status']} | {detail['provider'][:20]} | {method} |\n"
+                          report += "\n"
                   
-                  # Geo-blocking recommendations
-                  if USE_PROXIES and working_via_proxy > 0:
-                      report += f"**Geo-blocking Bypass Success:**\n"
-                      report += f"- {working_via_proxy} streams recovered via proxy\n"
-                      report += f"- Consider increasing proxy count for better coverage\n"
-                      report += f"- Proxy method is effective for your content\n\n"
+                  report += f"## Smart Optimization Features\n\n"
+                  report += f"- **Real Provider Detection:** Unwraps base64-encoded URLs to identify actual sources\n"
+                  report += f"- **Smart Proxy Assignment:** Tests proxy compatibility per real provider\n"
+                  report += f"- **Efficient Recovery:** Uses original URLs with pre-tested proxies for geo-blocked content\n"
+                  report += f"- **Provider Grouping:** Groups streams by actual source domains for optimized testing\n"
+                  report += f"- **Content Validation:** Downloads sample data to verify streaming capability\n"
+                  if USE_PROXIES and self.working_proxies:
+                      report += f"- **Active Proxies:** {len(self.working_proxies)} working proxies for geo-unblocking\n"
                   
-                  # Performance recommendations
-                  if duration > 1800:  # Over 30 minutes
-                      report += "**Long Runtime Detected:**\n"
-                      report += "- Consider reducing timeout for faster analysis\n"
-                      report += "- Enable quick mode for routine checks\n"
-                      report += "- Use comprehensive mode only when detailed analysis needed\n\n"
-                  
-                  # Configuration Summary
-                  report += "## ⚙️ Configuration Summary\n\n"
-                  report += f"**Current Settings:**\n"
-                  report += f"- **Content Types:** "
-                  enabled_types = []
-                  if CHECK_VODS: enabled_types.append("VODs")
-                  if CHECK_PPV: enabled_types.append("PPV")
-                  if CHECK_FAST: enabled_types.append("FAST")
-                  if not enabled_types: enabled_types.append("Channels only")
-                  report += ", ".join(enabled_types) + "\n"
-                  
-                  report += f"- **Proxy Analysis:** {'Enabled' if USE_PROXIES else 'Disabled'}\n"
-                  if USE_PROXIES:
-                      report += f"  - Working proxies: {len(self.working_proxies)}\n"
-                      report += f"  - Tor support: {'Enabled' if SETUP_TOR else 'Disabled'}\n"
-                  
-                  report += f"- **Timeout Settings:** {TIMEOUT_SECONDS} seconds per test\n"
-                  report += f"- **Analysis Mode:** {'Comprehensive' if COMPREHENSIVE_MODE else 'Standard'}\n\n"
-                  
-                  report += "## 🎮 Manual Testing Options\n\n"
-                  report += "To run different analysis types:\n"
-                  report += "1. **Actions** → **Check M3U Streams - Comprehensive Analysis Version**\n"
-                  report += "2. Enable specific content: **VODs**, **PPV**, **FAST channels**\n"
-                  report += "3. Toggle **comprehensive_mode** for detailed vs quick analysis\n"
-                  report += "4. Adjust **timeout_seconds** based on connection speed\n"
-                  report += "5. Enable **setup_tor** for additional geo-unblocking\n"
-                  report += "6. Increase **target_working_proxies** for better geo-coverage\n\n"
-                  
-                  # Technical Details
-                  report += "## 🔧 Technical Details\n\n"
-                  report += "**Analysis Process:**\n"
-                  report += "1. Direct connection test for each stream\n"
-                  report += "2. Failure classification (timeout, geo-block, server error, etc.)\n"
-                  report += "3. Proxy testing for suspected geo-blocked content\n"
-                  report += "4. Comprehensive status determination\n\n"
-                  
-                  report += "**Failure Classification:**\n"
-                  report += "- HTTP 403 → Geo-blocked\n"
-                  report += "- HTTP 404 → Stream not found\n"
-                  report += "- HTTP 401 → Authentication required\n"
-                  report += "- HTTP 5xx → Server errors\n"
-                  report += "- Connection refused → Server blocking\n"
-                  report += "- DNS errors → Domain issues\n"
-                  report += "- Timeouts → Slow/unresponsive servers\n\n"
-                  
-                  report += f"---\n"
-                  report += f"*Comprehensive analysis completed in {duration:.1f} seconds*  \n"
-                  report += f"*Every stream individually tested and classified*  \n"
-                  report += f"*Generated by Enhanced M3U Stream Analyzer v3.0*\n"
+                  report += f"\n*Smart provider analysis completed with real URL detection and optimized proxy assignment*\n"
                   
                   return report
 
               async def run(self):
-                  """Main comprehensive analysis execution"""
-                  print("🔍 Starting Comprehensive M3U Stream Analysis...")
+                  """Main execution with smart provider optimization"""
+                  print("Smart Provider-Optimized Stream Checker starting...")
                   
-                  # Parse M3U
-                  streams = self.parse_m3u_comprehensive('channel playlist.m3u')
-                  if not streams:
-                      print("No streams found!")
+                  # Get working proxies
+                  if USE_PROXIES:
+                      self.working_proxies = self.get_fast_proxies()
+                  
+                  # Parse streams with provider info extraction
+                  all_streams = self.parse_m3u('channel playlist.m3u')
+                  if not all_streams:
+                      print("No streams found")
                       return
                   
-                  # Setup proxies for comprehensive geo-restriction analysis
-                  if USE_PROXIES:
-                      self.setup_comprehensive_proxies()
+                  # Filter streams
+                  test_streams = [s for s in all_streams if self.should_test_stream(s)]
                   
-                  # Run comprehensive analysis
-                  await self.run_comprehensive_analysis(streams)
+                  print(f"Smart analysis scope: {len(test_streams)} streams to test")
                   
-                  # Generate comprehensive report
-                  print("\nGenerating comprehensive report...")
-                  try:
-                      report = self.generate_comprehensive_report()
-                      
-                      with open('report.md', 'w', encoding='utf-8') as f:
-                          f.write(report)
-                      
-                      print("Comprehensive report generated successfully")
-                      
-                  except Exception as e:
-                      print(f"Error generating report: {e}")
-                      # Create minimal fallback
-                      fallback = f"# Stream Analysis Report\nError: {e}\nGenerated: {datetime.now(timezone.utc)}\n"
-                      with open('report.md', 'w', encoding='utf-8') as f:
-                          f.write(fallback)
+                  # Group by real providers (unwrapped URLs)
+                  provider_groups = self.group_streams_by_real_provider(test_streams)
                   
-                  # Final summary
+                  # Assign smart proxies to providers
+                  if USE_PROXIES and self.working_proxies:
+                      await self.assign_smart_proxies(provider_groups)
+                  
+                  # Process with smart provider optimization
+                  await self.process_provider_groups(provider_groups)
+                  
+                  # Generate report
+                  print("Generating smart analysis report...")
+                  report = self.generate_smart_report()
+                  
+                  with open('report.md', 'w', encoding='utf-8') as f:
+                      f.write(report)
+                  
+                  # Summary
                   duration = time.time() - self.start_time
-                  total_working = sum(counts['working'] for counts in self.by_type.values())
-                  total_checked = sum(counts['checked'] for counts in self.by_type.values())
-                  geo_recovered = len(self.results_by_category['working_via_proxy'])
-                  
-                  print(f"\n" + "="*70)
-                  print(f"🔍 COMPREHENSIVE ANALYSIS COMPLETE")
-                  print(f"="*70)
+                  print(f"\nSmart provider analysis complete:")
                   print(f"Duration: {duration:.1f}s ({duration/60:.1f}m)")
-                  print(f"Streams analyzed: {total_checked}")
-                  print(f"Working streams: {total_working} ({(total_working/total_checked*100) if total_checked > 0 else 0:.1f}%)")
-                  if USE_PROXIES:
-                      print(f"Geo-blocked streams recovered: {geo_recovered}")
-                      print(f"Working proxies used: {len(self.working_proxies)}")
-                  print(f"Report: {os.path.getsize('report.md') if os.path.exists('report.md') else 0} bytes")
-                  print(f"="*70)
+                  print(f"Real providers detected: {len(provider_groups)}")
+                  print(f"Results: {self.results['working']}/{self.results['total_tested']} working ({(self.results['working']/self.results['total_tested']*100) if self.results['total_tested'] > 0 else 0:.1f}%)")
+                  if self.results['geo_blocked'] > 0:
+                      print(f"Smart proxy recovery: {self.results['geo_blocked']} streams via provider-optimized proxies")
 
-          # Execute comprehensive analyzer
-          analyzer = ComprehensiveStreamAnalyzer()
-          asyncio.run(analyzer.run())
+          # Run the smart checker
+          checker = SmartStreamChecker()
+          asyncio.run(checker.run())
           EOF
-          
-          # Verify success
-          if [ $? -eq 0 ]; then
-            echo "✅ Comprehensive analysis completed"
-            if [ -f "report.md" ]; then
-              echo "📊 Report size: $(wc -c < report.md) bytes"
-              echo "📋 Report preview:"
-              head -12 report.md
-            else
-              echo "❌ Report missing!"
-              exit 1
-            fi
-          else
-            echo "❌ Comprehensive analysis failed"
-            exit 1
-          fi
 
-      - name: 📤 Commit comprehensive analysis report
+      - name: Commit report
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "github-actions[bot]"
           
           if [[ -f "report.md" ]]; then
-            echo "✅ Comprehensive report ready"
-            
-            # Sync with remote
-            git pull origin main --rebase || {
-              git reset --hard HEAD
-              git pull origin main
-            }
+            git stash || echo "Nothing to stash"
+            git pull origin main
+            git stash pop || echo "Nothing to unstash"
             
             git add report.md
             if ! git diff --staged --quiet; then
-              # Extract key metrics from report for commit message
-              COMMIT_MSG="🔍 Comprehensive stream analysis"
-              
-              if [[ -f "report.md" ]]; then
-                # Extract duration and working count from report
-                DURATION=$(grep -o '[0-9.]*s (' report.md | head -1 | sed 's/s (//g' || echo "?")
-                WORKING=$(grep "Working.*(" report.md | grep -o '[0-9]*/' | head -1 | tr -d '/' || echo "?")
-                ANALYZED=$(grep "Analyzed.*(" report.md | grep -o '[0-9]*' | head -2 | tail -1 || echo "?")
-                
-                if [[ "$WORKING" != "?" ]] && [[ "$ANALYZED" != "?" ]]; then
-                  SUCCESS_RATE=$(( WORKING * 100 / ANALYZED )) 2>/dev/null || SUCCESS_RATE="?"
-                  COMMIT_MSG="$COMMIT_MSG - ${WORKING}/${ANALYZED} working (${SUCCESS_RATE}%)"
-                fi
-                
-                if [[ "$DURATION" != "?" ]]; then
-                  COMMIT_MSG="$COMMIT_MSG, ${DURATION}s"
-                fi
-              fi
-              
-              # Add content type info
-              if [[ "${CHECK_VODS:-false}" == "true" ]]; then
-                COMMIT_MSG="$COMMIT_MSG +VODs"
-              fi
-              if [[ "${CHECK_PPV:-false}" == "true" ]]; then
-                COMMIT_MSG="$COMMIT_MSG +PPV"
-              fi
-              if [[ "${CHECK_FAST:-false}" == "true" ]]; then
-                COMMIT_MSG="$COMMIT_MSG +FAST"
-              fi
-              
-              COMMIT_MSG="$COMMIT_MSG - $(date -u '+%m/%d %H:%M UTC')"
-              
-              echo "Committing: $COMMIT_MSG"
-              git commit -m "$COMMIT_MSG"
-              
-              # Push with retry
-              for attempt in {1..3}; do
-                if git push origin main; then
-                  echo "✅ Comprehensive report pushed successfully"
-                  break
-                else
-                  if [ $attempt -lt 3 ]; then
-                    echo "Retrying push..."
-                    sleep 3
-                    git pull origin main --rebase || {
-                      git reset --hard HEAD~1
-                      git pull origin main
-                      git add report.md
-                      git commit -m "$COMMIT_MSG"
-                    }
-                  else
-                    echo "❌ Failed to push after 3 attempts"
-                    exit 1
-                  fi
-                fi
-              done
-            else
-              echo "ℹ️ No changes to commit"
+              git commit -m "Smart provider stream check - $(date -u '+%m/%d %H:%M UTC')"
+              git push origin main
             fi
-          else
-            echo "❌ Comprehensive report missing"
-            exit 1
           fi

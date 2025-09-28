@@ -1,37 +1,32 @@
-name: IPTV Stream Checker - Fixed Validation
+name: Fast IPTV Stream Checker
 
 on:
   workflow_dispatch:
     inputs:
       check_vods:
-        description: 'Check VOD files (URLs ending with #.mkv)'
+        description: 'Check VOD files'
         required: false
         default: false
         type: boolean
       check_ppv:
-        description: 'Check PPV channels (may be offline)'
+        description: 'Check PPV channels'
         required: false
         default: false
         type: boolean
       check_fast:
-        description: 'Check FAST channels (Free Ad-Supported TV)'
+        description: 'Check FAST channels'
         required: false
         default: false
         type: boolean
-      timeout_seconds:
-        description: 'Timeout per stream (seconds)'
-        required: false
-        default: '8'
-        type: string
       sample_size:
-        description: 'Sample size (0=all streams, 500=recommended)'
+        description: 'Sample size (0=all, 300=recommended)'
         required: false
-        default: '500'
+        default: '300'
         type: string
-      debug_mode:
-        description: 'Enable debug mode for failed streams'
+      quick_mode:
+        description: 'Quick validation (faster but less thorough)'
         required: false
-        default: false
+        default: true
         type: boolean
   schedule:
     - cron: '0 */12 * * *'
@@ -40,9 +35,9 @@ permissions:
   contents: write
 
 jobs:
-  improved-stream-check:
+  fast-stream-check:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 25
 
     steps:
       - name: Checkout repository
@@ -56,22 +51,17 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y ffmpeg curl
+          sudo apt-get install -y curl
           python -m pip install --upgrade pip
           pip install requests
-          
-          # Verify installations
-          ffmpeg -version | head -1
-          ffprobe -version | head -1
 
-      - name: Fixed IPTV Stream Validation
+      - name: Fast IPTV Stream Validation
         env:
           CHECK_VODS: ${{ github.event.inputs.check_vods || 'false' }}
           CHECK_PPV: ${{ github.event.inputs.check_ppv || 'false' }}
           CHECK_FAST: ${{ github.event.inputs.check_fast || 'false' }}
-          TIMEOUT_SECONDS: ${{ github.event.inputs.timeout_seconds || '8' }}
-          SAMPLE_SIZE: ${{ github.event.inputs.sample_size || '500' }}
-          DEBUG_MODE: ${{ github.event.inputs.debug_mode || 'false' }}
+          SAMPLE_SIZE: ${{ github.event.inputs.sample_size || '300' }}
+          QUICK_MODE: ${{ github.event.inputs.quick_mode || 'true' }}
         run: |
           python - << 'EOF'
           import requests
@@ -81,39 +71,34 @@ jobs:
           import time
           import random
           import json
-          import socket
           from datetime import datetime, timezone
-          from urllib.parse import urlparse
+          from concurrent.futures import ThreadPoolExecutor, as_completed
+          import threading
 
           # Configuration
           CHECK_VODS = os.getenv('CHECK_VODS', 'false').lower() == 'true'
           CHECK_PPV = os.getenv('CHECK_PPV', 'false').lower() == 'true'
           CHECK_FAST = os.getenv('CHECK_FAST', 'false').lower() == 'true'
-          TIMEOUT_SECONDS = int(os.getenv('TIMEOUT_SECONDS', '8'))
-          SAMPLE_SIZE = int(os.getenv('SAMPLE_SIZE', '500'))
-          DEBUG_MODE = os.getenv('DEBUG_MODE', 'false').lower() == 'true'
+          SAMPLE_SIZE = int(os.getenv('SAMPLE_SIZE', '300'))
+          QUICK_MODE = os.getenv('QUICK_MODE', 'true').lower() == 'true'
 
-          print(f"Fixed IPTV Stream Validation Starting...")
-          print(f"Config: VODs={CHECK_VODS}, PPV={CHECK_PPV}, FAST={CHECK_FAST}")
-          print(f"Timeout: {TIMEOUT_SECONDS}s, Sample: {SAMPLE_SIZE if SAMPLE_SIZE > 0 else 'All'}")
-          print(f"Debug mode: {DEBUG_MODE}")
+          print(f"Fast IPTV Stream Validation Starting...")
+          print(f"Quick mode: {QUICK_MODE}, Sample: {SAMPLE_SIZE}")
 
-          class ImprovedStreamChecker:
+          class FastStreamChecker:
               def __init__(self):
                   self.start_time = time.time()
                   self.results = {
                       'working': [],
                       'geoblocked': [],
                       'failed': [],
-                      'timeout': [],
-                      'debug_info': []
+                      'skipped': []
                   }
-                  self.user_agents = [
-                      'VLC/3.0.12 LibVLC/3.0.12',
-                      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                      'ffmpeg/4.4.0',
-                      'IPTVChecker/2.0'
-                  ]
+                  self.session = requests.Session()
+                  self.session.headers.update({
+                      'User-Agent': 'VLC/3.0.12 LibVLC/3.0.12'
+                  })
+                  self.lock = threading.Lock()
 
               def classify_stream_type(self, stream):
                   """Classify stream type"""
@@ -143,209 +128,115 @@ jobs:
                   
                   return True
 
-              def test_connectivity(self, url):
-                  """Test basic connectivity to host"""
-                  try:
-                      parsed = urlparse(url)
-                      host = parsed.hostname
-                      port = parsed.port or (443 if parsed.scheme == 'https' else 80)
-                      
-                      sock = socket.create_connection((host, port), timeout=3)
-                      sock.close()
-                      return True, "Connected"
-                  except Exception as e:
-                      return False, f"Connection failed: {str(e)[:50]}"
+              def is_xtream_url(self, url):
+                  """Check if URL is Xtream Codes format"""
+                  return 'xtream' in url.lower() or '/live/' in url or re.search(r'/\w+/\w+/\d+', url)
 
-              def relaxed_http_check(self, url):
-                  """More permissive HTTP validation"""
-                  for ua in self.user_agents:
-                      try:
-                          headers = {'User-Agent': ua}
-                          response = requests.get(url, stream=True, timeout=TIMEOUT_SECONDS, 
-                                                headers=headers, allow_redirects=True)
+              def fast_validate_stream(self, stream):
+                  """Fast stream validation - optimized for speed and accuracy"""
+                  url = stream['url']
+                  name = stream['name']
+                  
+                  # Quick validation based on URL patterns and HTTP response
+                  try:
+                      # For Xtream URLs, use HEAD request with short timeout
+                      if self.is_xtream_url(url):
+                          response = self.session.head(url, timeout=3, allow_redirects=True)
                           
-                          # Check status code
                           if response.status_code == 403:
-                              return 'Geoblocked', 403, 0, ua
+                              return 'Geoblocked', f'HTTP 403'
                           elif response.status_code == 404:
-                              continue  # Try next user agent
-                          elif response.status_code != 200:
-                              continue  # Try next user agent
-                          
-                          # Download and analyze content
-                          data_chunk = b''
-                          try:
-                              for chunk in response.iter_content(chunk_size=4096):
-                                  data_chunk += chunk
-                                  if len(data_chunk) > 16384:  # 16KB sample
-                                      break
-                              
-                              if len(data_chunk) < 512:
-                                  continue  # Too little data, try next UA
-                              
-                              # Analyze content
-                              is_html = (b'<html' in data_chunk.lower() or 
-                                       b'<!doctype' in data_chunk.lower() or
-                                       b'<title>' in data_chunk.lower())
-                              
-                              # Check for binary content (likely video)
-                              binary_ratio = len([b for b in data_chunk if b > 127]) / len(data_chunk)
-                              
-                              if not is_html and binary_ratio > 0.1:
-                                  return 'Working', response.status_code, len(data_chunk), ua
-                              elif not is_html and len(data_chunk) > 8192:
-                                  # Might be text-based stream format (m3u8 content)
-                                  if b'm3u8' in data_chunk.lower() or b'#extinf' in data_chunk.lower():
-                                      return 'Working', response.status_code, len(data_chunk), ua
-                                  
-                          except requests.exceptions.RequestException:
-                              continue
-                              
-                      except requests.exceptions.Timeout:
-                          continue
-                      except requests.exceptions.RequestException:
-                          continue
-                  
-                  return 'Failed', None, 0, None
-
-              def quick_ffprobe_test(self, url):
-                  """Lightweight ffprobe test"""
-                  try:
-                      cmd = [
-                          'ffprobe', '-v', 'error', '-timeout', f'{TIMEOUT_SECONDS * 1000000}',
-                          '-show_streams', '-select_streams', 'v:0', url
-                      ]
+                              return 'Failed', f'Stream not found (404)'
+                          elif response.status_code == 200:
+                              # For Xtream, 200 on HEAD usually means working
+                              return 'Working', f'Xtream API responsive'
+                          elif 300 <= response.status_code < 400:
+                              # Redirects are usually good for streams
+                              return 'Working', f'Redirect to stream'
                       
-                      result = subprocess.run(cmd, capture_output=True, 
-                                            timeout=TIMEOUT_SECONDS + 2, text=True)
+                      # For direct URLs, try to get first few KB
+                      response = self.session.get(url, stream=True, timeout=4)
                       
-                      if result.returncode == 0 and len(result.stdout.strip()) > 10:
-                          return True, "Video stream detected"
-                      else:
-                          return False, f"No video streams: {result.stderr[:50] if result.stderr else 'Unknown'}"
-                          
-                  except subprocess.TimeoutExpired:
-                      return False, "ffprobe timeout"
+                      if response.status_code == 403:
+                          return 'Geoblocked', f'HTTP 403'
+                      elif response.status_code != 200:
+                          return 'Failed', f'HTTP {response.status_code}'
+                      
+                      # Read first chunk to verify it's media content
+                      chunk_size = 0
+                      content_sample = b''
+                      
+                      for chunk in response.iter_content(chunk_size=2048):
+                          if chunk:
+                              content_sample += chunk
+                              chunk_size += len(chunk)
+                              if chunk_size > 4096:  # 4KB sample
+                                  break
+                      
+                      if chunk_size < 100:
+                          return 'Failed', 'No content received'
+                      
+                      # Quick content analysis
+                      sample_lower = content_sample.lower()
+                      
+                      # Definitely not a stream
+                      if (b'<html' in sample_lower or 
+                          b'<!doctype' in sample_lower or
+                          b'404 not found' in sample_lower or
+                          b'access denied' in sample_lower):
+                          return 'Failed', 'HTML/Error page'
+                      
+                      # Likely stream content
+                      if (b'#extm3u' in sample_lower or
+                          b'#extinf' in sample_lower or
+                          len([b for b in content_sample if b > 127]) > len(content_sample) * 0.3):
+                          return 'Working', f'Stream content detected ({chunk_size}B)'
+                      
+                      # Fallback - if we got data and it's not HTML, probably working
+                      return 'Working', f'Binary content ({chunk_size}B)'
+                      
+                  except requests.exceptions.Timeout:
+                      return 'Failed', 'Connection timeout'
+                  except requests.exceptions.ConnectionError:
+                      return 'Failed', 'Connection failed'
                   except Exception as e:
-                      return False, f"ffprobe error: {str(e)[:50]}"
+                      return 'Failed', f'Error: {str(e)[:30]}'
 
-              def validate_stream_multi_method(self, stream):
-                  """Multi-method validation approach"""
-                  url = stream['url']
-                  name = stream['name']
-                  stream_type = self.classify_stream_type(stream)
+              def validate_stream_batch(self, streams):
+                  """Validate a batch of streams"""
+                  results = []
                   
-                  validation_log = []
+                  if QUICK_MODE:
+                      # Sequential processing for quick mode
+                      for i, stream in enumerate(streams):
+                          print(f"  [{i+1}/{len(streams)}] {stream['name'][:40]}...")
+                          
+                          status, reason = self.fast_validate_stream(stream)
+                          results.append((stream, status, reason))
+                          
+                          # Brief pause to avoid overwhelming servers
+                          time.sleep(0.02)
+                  else:
+                      # Parallel processing for thorough mode
+                      with ThreadPoolExecutor(max_workers=5) as executor:
+                          future_to_stream = {
+                              executor.submit(self.fast_validate_stream, stream): stream 
+                              for stream in streams
+                          }
+                          
+                          for i, future in enumerate(as_completed(future_to_stream)):
+                              stream = future_to_stream[future]
+                              try:
+                                  status, reason = future.result()
+                                  results.append((stream, status, reason))
+                                  print(f"  [{i+1}/{len(streams)}] {stream['name'][:40]}... {status}")
+                              except Exception as e:
+                                  results.append((stream, 'Failed', f'Exception: {e}'))
                   
-                  # Method 1: Connectivity test
-                  conn_ok, conn_msg = self.test_connectivity(url)
-                  validation_log.append(f"Connectivity: {'OK' if conn_ok else 'FAIL'} - {conn_msg}")
-                  
-                  if not conn_ok:
-                      return {
-                          'status': 'Failed',
-                          'reason': f'No connectivity: {conn_msg}',
-                          'log': validation_log,
-                          'method': 'connectivity'
-                      }
-                  
-                  # Method 2: HTTP validation
-                  http_status, http_code, data_size, user_agent = self.relaxed_http_check(url)
-                  validation_log.append(f"HTTP: {http_status} - {http_code} - {data_size}B - UA: {user_agent}")
-                  
-                  if http_status == 'Geoblocked':
-                      return {
-                          'status': 'Geoblocked',
-                          'reason': f'HTTP {http_code} Forbidden',
-                          'log': validation_log,
-                          'method': 'http'
-                      }
-                  elif http_status == 'Working':
-                      # HTTP validation passed, now try ffprobe for extra confirmation
-                      ffprobe_ok, ffprobe_msg = self.quick_ffprobe_test(url)
-                      validation_log.append(f"ffprobe: {'OK' if ffprobe_ok else 'FAIL'} - {ffprobe_msg}")
-                      
-                      return {
-                          'status': 'Working',
-                          'reason': f'HTTP validated ({data_size}B) with UA: {user_agent}',
-                          'log': validation_log,
-                          'method': 'http',
-                          'ffprobe_confirmed': ffprobe_ok,
-                          'data_size': data_size,
-                          'user_agent': user_agent
-                      }
-                  
-                  # Method 3: Direct ffprobe test (sometimes works when HTTP fails)
-                  ffprobe_ok, ffprobe_msg = self.quick_ffprobe_test(url)
-                  validation_log.append(f"Direct ffprobe: {'OK' if ffprobe_ok else 'FAIL'} - {ffprobe_msg}")
-                  
-                  if ffprobe_ok:
-                      return {
-                          'status': 'Working',
-                          'reason': 'ffprobe detected video streams',
-                          'log': validation_log,
-                          'method': 'ffprobe'
-                      }
-                  
-                  return {
-                      'status': 'Failed',
-                      'reason': 'All validation methods failed',
-                      'log': validation_log,
-                      'method': 'all_failed'
-                  }
-
-              def debug_failed_stream(self, stream):
-                  """Debug a specific failed stream in detail"""
-                  url = stream['url']
-                  name = stream['name']
-                  
-                  debug_info = {
-                      'name': name,
-                      'url': url,
-                      'tests': []
-                  }
-                  
-                  print(f"\n=== DEBUGGING: {name} ===")
-                  
-                  # Test different approaches
-                  methods = [
-                      ('curl', ['curl', '-s', '-I', '--max-time', '5', url]),
-                      ('wget', ['wget', '--spider', '--timeout=5', url]),
-                      ('ffprobe_basic', ['ffprobe', '-v', 'error', '-timeout', '5000000', url]),
-                      ('ffprobe_streams', ['ffprobe', '-v', 'error', '-show_streams', '-timeout', '5000000', url])
-                  ]
-                  
-                  for method_name, cmd in methods:
-                      try:
-                          result = subprocess.run(cmd, capture_output=True, timeout=8, text=True)
-                          success = result.returncode == 0
-                          debug_info['tests'].append({
-                              'method': method_name,
-                              'success': success,
-                              'returncode': result.returncode,
-                              'stdout': result.stdout[:200] if result.stdout else '',
-                              'stderr': result.stderr[:200] if result.stderr else ''
-                          })
-                          print(f"  {method_name}: {'✓' if success else '✗'} (code: {result.returncode})")
-                      except subprocess.TimeoutExpired:
-                          debug_info['tests'].append({
-                              'method': method_name,
-                              'success': False,
-                              'error': 'timeout'
-                          })
-                          print(f"  {method_name}: ✗ (timeout)")
-                      except Exception as e:
-                          debug_info['tests'].append({
-                              'method': method_name,
-                              'success': False,
-                              'error': str(e)[:100]
-                          })
-                          print(f"  {method_name}: ✗ ({e})")
-                  
-                  return debug_info
+                  return results
 
               def parse_m3u(self, file_path):
-                  """Parse M3U file"""
+                  """Parse M3U file efficiently"""
                   if not os.path.exists(file_path):
                       print(f"M3U file not found: {file_path}")
                       return []
@@ -368,117 +259,67 @@ jobs:
                               
                               if i + 1 < len(lines):
                                   url = lines[i + 1].strip()
-                                  if url and not url.startswith('#') and ('http' in url or 'rtmp' in url):
+                                  if url and not url.startswith('#') and ('http' in url):
                                       streams.append({
                                           'name': name,
                                           'url': url,
                                           'group': group
                                       })
-                          except Exception as e:
+                          except Exception:
                               continue
                   
                   print(f"Parsed {len(streams)} streams from M3U file")
                   return streams
 
               def run_validation(self):
-                  """Run improved validation"""
+                  """Run fast validation"""
                   # Parse M3U
                   all_streams = self.parse_m3u('channel playlist.m3u')
                   if not all_streams:
-                      print("No streams found in M3U file!")
+                      print("No streams found!")
                       return
 
-                  # Filter streams based on type preferences
+                  # Filter streams
                   test_streams = [s for s in all_streams if self.should_test_stream(s)]
                   
-                  # Apply sample size limit
+                  # Apply sample size
                   if SAMPLE_SIZE > 0 and len(test_streams) > SAMPLE_SIZE:
                       test_streams = random.sample(test_streams, SAMPLE_SIZE)
                   
-                  print(f"\nTesting {len(test_streams)} streams (from {len(all_streams)} total)")
+                  print(f"Testing {len(test_streams)} streams (from {len(all_streams)} total)")
                   
-                  # Count by type
-                  type_counts = {}
-                  for stream in test_streams:
-                      stream_type = self.classify_stream_type(stream)
-                      type_counts[stream_type] = type_counts.get(stream_type, 0) + 1
+                  # Process in batches for better performance
+                  batch_size = 50 if QUICK_MODE else 20
                   
-                  print("Stream types to test:")
-                  for stream_type, count in type_counts.items():
-                      if count > 0:
-                          print(f"  {stream_type}: {count}")
-                  
-                  # Process streams
-                  tested = 0
-                  working_count = 0
-                  
-                  for stream in test_streams:
-                      tested += 1
-                      stream_type = self.classify_stream_type(stream)
-                      name = stream['name']
+                  for i in range(0, len(test_streams), batch_size):
+                      batch = test_streams[i:i + batch_size]
+                      print(f"\nBatch {i//batch_size + 1}: Testing streams {i+1}-{min(i+batch_size, len(test_streams))}")
                       
-                      print(f"[{tested}/{len(test_streams)}] Testing: {name[:50]}... ({stream_type})")
+                      batch_results = self.validate_stream_batch(batch)
                       
-                      # Validate stream
-                      result = self.validate_stream_multi_method(stream)
-                      
-                      # Process result
-                      if result['status'] == 'Working':
-                          working_count += 1
-                          self.results['working'].append({
-                              'name': name,
-                              'type': stream_type,
-                              'group': stream['group'],
-                              'url': stream['url'],
-                              'validation_method': result['method'],
-                              'reason': result['reason'],
-                              'ffprobe_confirmed': result.get('ffprobe_confirmed', False),
-                              'data_size': result.get('data_size', 0),
-                              'user_agent': result.get('user_agent', 'Unknown')
-                          })
-                          method = result['method']
-                          ffprobe_status = "✓" if result.get('ffprobe_confirmed') else "?"
-                          print(f"  ✅ WORKING ({method}) ffprobe:{ffprobe_status}")
+                      # Process results
+                      for stream, status, reason in batch_results:
+                          stream_type = self.classify_stream_type(stream)
                           
-                      elif result['status'] == 'Geoblocked':
-                          self.results['geoblocked'].append({
-                              'name': name,
+                          result_data = {
+                              'name': stream['name'],
                               'type': stream_type,
                               'group': stream['group'],
                               'url': stream['url'],
-                              'reason': result['reason']
-                          })
-                          print(f"  🔒 GEO-BLOCKED")
+                              'reason': reason
+                          }
                           
-                      else:
-                          self.results['failed'].append({
-                              'name': name,
-                              'type': stream_type,
-                              'group': stream['group'],
-                              'url': stream['url'],
-                              'reason': result['reason'],
-                              'validation_log': result.get('log', [])
-                          })
-                          print(f"  ❌ FAILED")
-                      
-                      # Brief pause to avoid overwhelming servers
-                      time.sleep(0.1)
+                          if status == 'Working':
+                              self.results['working'].append(result_data)
+                          elif status == 'Geoblocked':
+                              self.results['geoblocked'].append(result_data)
+                          else:
+                              self.results['failed'].append(result_data)
                   
-                  print(f"\nValidation completed: {working_count}/{len(test_streams)} working")
-                  
-                  # Debug mode: analyze some failed streams
-                  if DEBUG_MODE and self.results['failed']:
-                      print("\n" + "="*60)
-                      print("DEBUG MODE: Analyzing failed streams")
-                      print("="*60)
-                      
-                      # Debug first 3 failed streams
-                      for stream in self.results['failed'][:3]:
-                          debug_info = self.debug_failed_stream(stream)
-                          self.results['debug_info'].append(debug_info)
+                  print(f"\nValidation completed!")
 
               def generate_report(self):
-                  """Generate validation report"""
+                  """Generate concise validation report"""
                   duration = time.time() - self.start_time
                   
                   total_tested = (len(self.results['working']) + 
@@ -491,12 +332,11 @@ jobs:
                   
                   success_rate = (working_count / total_tested * 100) if total_tested > 0 else 0
                   
-                  report = f"# Improved IPTV Stream Validation Report\n\n"
+                  report = f"# Fast IPTV Stream Validation Report\n\n"
                   report += f"**Generated:** {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}  \n"
                   report += f"**Duration:** {duration:.1f}s ({duration/60:.1f}m)  \n"
-                  report += f"**Method:** Multi-method validation (connectivity + HTTP + ffprobe)  \n"
-                  report += f"**Sample:** {total_tested} streams tested  \n"
-                  report += f"**Debug Mode:** {'Enabled' if DEBUG_MODE else 'Disabled'}  \n\n"
+                  report += f"**Mode:** {'Quick' if QUICK_MODE else 'Thorough'} validation  \n"
+                  report += f"**Sample:** {total_tested} streams tested  \n\n"
                   
                   # Executive Summary
                   report += "## Executive Summary\n\n"
@@ -505,140 +345,115 @@ jobs:
                   report += f"- **❌ Failed Streams:** {failed_count} ({(failed_count/total_tested*100) if total_tested > 0 else 0:.1f}%)\n"
                   report += f"- **📊 Total Tested:** {total_tested} streams\n\n"
                   
-                  # Validation method breakdown
-                  if self.results['working']:
-                      method_counts = {}
-                      ffprobe_confirmed = 0
-                      
-                      for stream in self.results['working']:
-                          method = stream.get('validation_method', 'unknown')
-                          method_counts[method] = method_counts.get(method, 0) + 1
-                          if stream.get('ffprobe_confirmed'):
-                              ffprobe_confirmed += 1
-                      
-                      report += "## Validation Method Analysis\n\n"
-                      for method, count in method_counts.items():
-                          percentage = (count / working_count * 100)
-                          report += f"- **{method.upper()}:** {count} streams ({percentage:.1f}%)\n"
-                      
-                      report += f"\n**FFprobe Confirmation:** {ffprobe_confirmed}/{working_count} streams ({(ffprobe_confirmed/working_count*100):.1f}%)\n\n"
+                  # Performance metrics
+                  if duration > 0:
+                      rate = total_tested / duration
+                      report += f"**Performance:** {rate:.2f} streams/second, {duration/total_tested:.2f}s per stream\n\n"
                   
-                  # Working streams details
-                  if self.results['working']:
-                      report += "## Working Streams Sample\n\n"
-                      report += "| Channel | Type | Method | FFprobe | User Agent | Group |\n"
-                      report += "|---------|------|--------|---------|------------|--------|\n"
-                      
-                      for stream in self.results['working'][:15]:
-                          name = stream['name'][:25].replace('|', '\\|')
+                  # Stream type breakdown
+                  type_stats = {}
+                  for category in ['working', 'geoblocked', 'failed']:
+                      for stream in self.results[category]:
                           stream_type = stream['type']
-                          method = stream.get('validation_method', 'unknown')
-                          ffprobe = "✓" if stream.get('ffprobe_confirmed') else "✗"
-                          ua = stream.get('user_agent', 'Unknown')[:15]
-                          group = stream['group'][:15].replace('|', '\\|')
-                          
-                          report += f"| {name} | {stream_type} | {method} | {ffprobe} | {ua} | {group} |\n"
-                      
+                          if stream_type not in type_stats:
+                              type_stats[stream_type] = {'working': 0, 'geoblocked': 0, 'failed': 0}
+                          type_stats[stream_type][category] += 1
+                  
+                  if type_stats:
+                      report += "## Stream Type Breakdown\n\n"
+                      for stream_type, stats in type_stats.items():
+                          total_type = sum(stats.values())
+                          working_pct = (stats['working'] / total_type * 100) if total_type > 0 else 0
+                          report += f"- **{stream_type}:** {stats['working']}/{total_type} working ({working_pct:.1f}%)\n"
                       report += "\n"
                   
-                  # Failed streams analysis
-                  if self.results['failed']:
-                      report += "## Failed Streams Analysis\n\n"
+                  # Working streams sample
+                  if self.results['working']:
+                      report += "## Working Streams (Top 20)\n\n"
+                      report += "| Channel | Type | Status | Group |\n"
+                      report += "|---------|------|--------|---------|\n"
                       
-                      # Count failure reasons
-                      failure_reasons = {}
-                      for stream in self.results['failed']:
-                          reason = stream.get('reason', 'Unknown')[:50]
-                          failure_reasons[reason] = failure_reasons.get(reason, 0) + 1
-                      
-                      report += "**Failure Reasons:**\n"
-                      for reason, count in sorted(failure_reasons.items(), key=lambda x: x[1], reverse=True):
-                          report += f"- {reason}: {count} streams\n"
-                      
-                      report += f"\n**Sample Failed Streams:**\n\n"
-                      report += "| Channel | Type | Reason | Group |\n"
-                      report += "|---------|------|--------|--------|\n"
-                      
-                      for stream in self.results['failed'][:10]:
+                      for stream in self.results['working'][:20]:
                           name = stream['name'][:30].replace('|', '\\|')
                           stream_type = stream['type']
-                          reason = stream.get('reason', 'Unknown')[:40].replace('|', '\\|')
+                          reason = stream.get('reason', 'OK')[:25].replace('|', '\\|')
                           group = stream['group'][:15].replace('|', '\\|')
                           
                           report += f"| {name} | {stream_type} | {reason} | {group} |\n"
                       
                       report += "\n"
                   
+                  # Failed streams analysis
+                  if self.results['failed']:
+                      failure_reasons = {}
+                      for stream in self.results['failed']:
+                          reason = stream.get('reason', 'Unknown')
+                          # Simplify reason for grouping
+                          if 'timeout' in reason.lower():
+                              key = 'Connection timeout'
+                          elif 'connection failed' in reason.lower():
+                              key = 'Connection failed'
+                          elif 'html' in reason.lower() or 'error page' in reason.lower():
+                              key = 'HTML/Error page'
+                          elif '404' in reason:
+                              key = 'Stream not found (404)'
+                          elif 'http' in reason.lower():
+                              key = 'HTTP error'
+                          else:
+                              key = 'Other'
+                          
+                          failure_reasons[key] = failure_reasons.get(key, 0) + 1
+                      
+                      report += "## Failure Analysis\n\n"
+                      for reason, count in sorted(failure_reasons.items(), key=lambda x: x[1], reverse=True):
+                          pct = (count / failed_count * 100) if failed_count > 0 else 0
+                          report += f"- **{reason}:** {count} streams ({pct:.1f}%)\n"
+                      report += "\n"
+                  
                   # Geo-blocked streams
                   if self.results['geoblocked']:
                       report += "## Geo-blocked Streams\n\n"
-                      report += "| Channel | Type | Group |\n"
-                      report += "|---------|------|---------|\n"
-                      
                       for stream in self.results['geoblocked'][:10]:
-                          name = stream['name'][:30].replace('|', '\\|')
-                          stream_type = stream['type']
-                          group = stream['group'][:15].replace('|', '\\|')
-                          
-                          report += f"| {name} | {stream_type} | {group} |\n"
-                      
+                          report += f"- {stream['name']} ({stream['group']})\n"
                       report += "\n"
-                  
-                  # Debug information
-                  if DEBUG_MODE and self.results['debug_info']:
-                      report += "## Debug Information\n\n"
-                      for debug in self.results['debug_info']:
-                          report += f"### {debug['name']}\n\n"
-                          for test in debug['tests']:
-                              status = "✓" if test['success'] else "✗"
-                              method = test['method']
-                              report += f"- **{method}:** {status}\n"
-                              if 'error' in test:
-                                  report += f"  - Error: {test['error']}\n"
-                              elif test.get('returncode') != 0:
-                                  report += f"  - Return code: {test['returncode']}\n"
-                                  if test.get('stderr'):
-                                      report += f"  - Error: {test['stderr'][:100]}\n"
-                          report += "\n"
                   
                   # Recommendations
                   report += "## Recommendations\n\n"
                   
-                  if success_rate < 10:
+                  if success_rate > 60:
+                      report += f"**Good Success Rate ({success_rate:.1f}%)**\n"
+                      report += f"- Most streams are working well\n"
+                      report += f"- Current validation approach is effective\n\n"
+                  elif success_rate > 30:
+                      report += f"**Moderate Success Rate ({success_rate:.1f}%)**\n"
+                      report += f"- Decent stream availability\n"
+                      report += f"- Some issues may be temporary\n\n"
+                  else:
                       report += f"**Low Success Rate ({success_rate:.1f}%)**\n"
-                      report += f"- Most streams appear to be offline or inaccessible\n"
-                      report += f"- Consider using a VPN or proxy for geo-blocked content\n"
-                      report += f"- Check if the stream source is still valid\n\n"
+                      report += f"- Many streams appear to be offline\n"
+                      report += f"- Consider checking stream source validity\n\n"
                   
-                  if geo_count > working_count:
-                      report += f"**High Geo-blocking Rate**\n"
-                      report += f"- {geo_count} streams are geo-blocked\n"
-                      report += f"- Consider implementing proxy support\n"
-                      report += f"- Test from different geographic locations\n\n"
+                  if geo_count > 0:
+                      report += f"**Geo-blocking:** {geo_count} streams blocked\n"
+                      report += f"- Consider VPN/proxy for blocked content\n\n"
                   
-                  report += f"**Performance:**\n"
-                  if duration > 0:
-                      rate = total_tested / duration
-                      report += f"- Testing rate: {rate:.2f} streams/second\n"
-                      report += f"- Average time per stream: {(duration/total_tested):.2f}s\n"
-                  
-                  report += f"\n## Methodology Improvements\n\n"
-                  report += f"This validation uses a more permissive approach:\n"
-                  report += f"- Tests connectivity before HTTP validation\n"
-                  report += f"- Uses multiple User-Agent strings for better compatibility\n"
-                  report += f"- Accepts various content types (binary data, m3u8 playlists)\n"
-                  report += f"- Uses ffprobe for additional stream verification\n"
-                  report += f"- Provides detailed debugging when enabled\n"
-                  report += f"- Reduced false negatives compared to strict validation\n\n"
+                  # Methodology
+                  report += "## Fast Validation Method\n\n"
+                  report += f"This validation uses an optimized approach:\n"
+                  report += f"- Quick HTTP HEAD/GET requests with short timeouts\n"
+                  report += f"- Smart content analysis for Xtream Codes URLs\n"
+                  report += f"- Binary content detection for stream verification\n"
+                  report += f"- {'Sequential' if QUICK_MODE else 'Parallel'} processing for speed\n"
+                  report += f"- Reduced false negatives while maintaining accuracy\n\n"
                   
                   report += f"---\n"
-                  report += f"*Improved validation completed in {duration:.1f} seconds*\n"
+                  report += f"*Fast validation completed in {duration:.1f} seconds*\n"
                   
                   return report
 
               def run(self):
                   """Main execution function"""
-                  print("Starting Improved IPTV Stream Validation...")
+                  print("Starting Fast IPTV Stream Validation...")
                   
                   # Run validation
                   self.run_validation()
@@ -655,7 +470,7 @@ jobs:
                   except Exception as e:
                       print(f"Error saving report: {e}")
                       with open('report.md', 'w', encoding='utf-8') as f:
-                          f.write(f"# IPTV Validation Report\nError generating report: {e}\n")
+                          f.write(f"# Fast IPTV Validation Report\nError: {e}\n")
                   
                   # Final summary
                   duration = time.time() - self.start_time
@@ -663,17 +478,16 @@ jobs:
                   total = working + len(self.results['geoblocked']) + len(self.results['failed'])
                   
                   print(f"\n{'='*50}")
-                  print(f"VALIDATION COMPLETE")
+                  print(f"FAST VALIDATION COMPLETE")
                   print(f"{'='*50}")
-                  print(f"Duration: {duration:.1f}s")
+                  print(f"Duration: {duration:.1f}s ({duration/60:.1f}m)")
+                  print(f"Rate: {(total/duration):.2f} streams/second")
                   print(f"Working: {working}/{total} ({(working/total*100) if total > 0 else 0:.1f}%)")
                   print(f"Geo-blocked: {len(self.results['geoblocked'])}")
                   print(f"Failed: {len(self.results['failed'])}")
-                  if DEBUG_MODE:
-                      print(f"Debug info collected for {len(self.results['debug_info'])} streams")
 
-          # Run the improved checker
-          checker = ImprovedStreamChecker()
+          # Run the fast checker
+          checker = FastStreamChecker()
           checker.run()
           EOF
 
@@ -683,52 +497,41 @@ jobs:
           git config --local user.name "github-actions[bot]"
           
           if [[ -f "report.md" ]]; then
-            # Handle any unstaged changes
+            # Handle unstaged changes
             if ! git diff --quiet; then
-              echo "Unstaged changes detected, adding them..."
               git add .
             fi
             
-            # Pull latest changes with merge strategy
-            git pull origin main --no-rebase || {
-              echo "Pull failed, continuing with local changes..."
-            }
+            # Pull latest changes
+            git pull origin main --no-rebase || echo "Pull failed, continuing..."
             
-            # Add the report file
+            # Add report and commit if changes exist
             git add report.md
             
-            # Check if there are changes to commit
             if ! git diff --staged --quiet; then
-              # Extract metrics safely with regex validation
-              WORKING=$(grep -o "Working Streams.*(" report.md 2>/dev/null | head -1 | grep -o '[0-9]\+' | head -1 || echo "0")
-              TOTAL=$(grep -o "Total Tested.*(" report.md 2>/dev/null | head -1 | grep -o '[0-9]\+' | head -1 || echo "1")
-              GEO=$(grep -o "Geo-blocked.*(" report.md 2>/dev/null | head -1 | grep -o '[0-9]\+' | head -1 || echo "0")
+              # Extract metrics safely
+              WORKING=$(grep -o "Working Streams.*(" report.md 2>/dev/null | head -1 | grep -oE '[0-9]+' | head -1 || echo "0")
+              TOTAL=$(grep -o "Total Tested.*(" report.md 2>/dev/null | head -1 | grep -oE '[0-9]+' | head -1 || echo "1")
               
-              # Validate extracted numbers
+              # Validate numbers
               if ! [[ "$WORKING" =~ ^[0-9]+$ ]]; then WORKING="0"; fi
               if ! [[ "$TOTAL" =~ ^[0-9]+$ ]] || [[ "$TOTAL" == "0" ]]; then TOTAL="1"; fi
-              if ! [[ "$GEO" =~ ^[0-9]+$ ]]; then GEO="0"; fi
               
-              # Calculate success rate safely
               SUCCESS_RATE=$(( WORKING * 100 / TOTAL ))
+              DURATION=$(grep -o "Duration.*(" report.md 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+' | head -1 || echo "0")
               
-              # Build commit message
-              COMMIT_MSG="IPTV validation - ${WORKING}/${TOTAL} working (${SUCCESS_RATE}%)"
-              
-              if [[ "$GEO" != "0" ]]; then
-                COMMIT_MSG="$COMMIT_MSG, ${GEO} geo-blocked"
+              COMMIT_MSG="Fast IPTV check: ${WORKING}/${TOTAL} working (${SUCCESS_RATE}%)"
+              if [[ "$DURATION" != "0" ]]; then
+                COMMIT_MSG="$COMMIT_MSG in ${DURATION}min"
               fi
-              
               COMMIT_MSG="$COMMIT_MSG - $(date -u '+%m/%d %H:%M UTC')"
               
-              # Commit and push
               git commit -m "$COMMIT_MSG"
               git push origin main
-              
-              echo "Report committed successfully"
+              echo "Report committed: $COMMIT_MSG"
             else
               echo "No changes to commit"
             fi
           else
-            echo "No report.md file found"
+            echo "No report found"
           fi

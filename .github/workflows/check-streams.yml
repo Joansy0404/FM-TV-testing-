@@ -256,6 +256,11 @@ jobs:
                   
                   working = self.diagnostic_test_proxies(filtered[:test_count])
                   
+                  # Fallback: If no proxies work, try a different approach
+                  if len(working) == 0:
+                      print("\n⚠️ Primary proxy testing failed, trying fallback approach...")
+                      working = self.fallback_proxy_test(filtered[:MAX_PROXIES * 2])
+                  
                   # Add Tor if enabled
                   if SETUP_TOR and self.setup_tor_fast():
                       working.append("tor://127.0.0.1:9050")
@@ -395,123 +400,161 @@ jobs:
                       return False
 
               def diagnostic_test_proxies(self, proxy_list):
-                  """Ultra-fast proxy testing with intelligent batching"""
+                  """More lenient proxy testing for GitHub Actions environment"""
                   working = []
                   tested = 0
-                  pre_filtered = 0
-                  detailed_failures = {
-                      'connection_refused': 0,
-                      'timeout': 0, 
-                      'connection_error': 0,
-                      'proxy_error': 0,
-                      'invalid_response': 0,
-                      'http_error': 0,
-                      'other': 0
-                  }
                   
-                  print(f"  Ultra-fast testing with intelligent pre-validation...")
+                  print(f"  GitHub Actions optimized proxy testing...")
                   
-                  # Smart pre-validation with parallel processing
-                  print(f"  Parallel pre-validation of {len(proxy_list)} proxies...")
-                  pre_validated = []
+                  # Less aggressive pre-validation - many proxies may work despite failing socket tests
+                  print(f"  Testing {min(MAX_PROXIES, len(proxy_list))} proxies directly...")
                   
-                  # Parallel pre-validation
-                  with ThreadPoolExecutor(max_workers=50) as pre_executor:
-                      pre_futures = {
-                          pre_executor.submit(self.pre_validate_proxy_connection, *proxy.split(':')): proxy 
-                          for proxy in proxy_list if ':' in proxy
-                      }
+                  # Test more proxies since pre-validation was too aggressive
+                  test_proxies = proxy_list[:MAX_PROXIES * 2] if len(proxy_list) > MAX_PROXIES else proxy_list
+                  
+                  # Prioritize by port success patterns
+                  priority_ports = [3128, 80, 8080]
+                  priority_proxies = [p for p in test_proxies if any(f':{port}' in p for port in priority_ports)]
+                  other_proxies = [p for p in test_proxies if p not in priority_proxies]
+                  
+                  test_order = priority_proxies + other_proxies
+                  max_test = min(len(test_order), MAX_PROXIES * 3)  # Test more to account for failures
+                  
+                  print(f"  Testing {max_test} proxies ({len(priority_proxies)} priority)")
+                  
+                  # Use more workers but with shorter timeouts for GitHub Actions
+                  with ThreadPoolExecutor(max_workers=30) as executor:
+                      futures = []
                       
-                      for future in as_completed(pre_futures, timeout=60):
-                          try:
-                              proxy = pre_futures[future]
-                              if future.result(timeout=4):
-                                  pre_validated.append(proxy)
-                              else:
-                                  pre_filtered += 1
-                          except:
-                              pre_filtered += 1
-                  
-                  print(f"    Pre-validation: {len(pre_validated)} passed, {pre_filtered} filtered")
-                  
-                  if not pre_validated:
-                      print("    No proxies passed pre-validation!")
-                      return []
-                  
-                  # Intelligent batching - test high-priority ports first
-                  priority_proxies = []
-                  standard_proxies = []
-                  
-                  for proxy in pre_validated:
-                      try:
-                          port = int(proxy.split(':')[1])
-                          if port in [3128, 80, 8080]:  # Your most successful ports
-                              priority_proxies.append(proxy)
-                          else:
-                              standard_proxies.append(proxy)
-                      except:
-                          standard_proxies.append(proxy)
-                  
-                  print(f"  Smart batching: {len(priority_proxies)} priority, {len(standard_proxies)} standard")
-                  
-                  # Test priority proxies first with higher concurrency
-                  test_order = priority_proxies + standard_proxies
-                  max_test = min(TARGET_WORKING_PROXIES * 4, len(test_order))  # Test 4x target
-                  
-                  with ThreadPoolExecutor(max_workers=20) as executor:  # Optimized worker count
-                      future_to_proxy = {
-                          executor.submit(self.diagnostic_test_single_proxy, proxy): proxy 
-                          for proxy in test_order[:max_test]
-                      }
-                      
-                      for future in as_completed(future_to_proxy, timeout=90):
-                          tested += 1
+                      for i, proxy in enumerate(test_order[:max_test]):
+                          future = executor.submit(self.test_proxy_github_actions, proxy)
+                          futures.append((future, proxy))
                           
+                          # Submit in smaller batches to avoid overwhelming
+                          if i % 20 == 19:
+                              time.sleep(0.5)
+                      
+                      # Collect results with timeout
+                      for future, proxy in futures:
+                          tested += 1
                           try:
-                              proxy = future_to_proxy[future]
-                              result = future.result(timeout=8)  # Slightly longer per-proxy timeout
-                              
-                              if result['success']:
+                              if future.result(timeout=12):  # Longer timeout for individual tests
                                   working.append(f"http://{proxy}")
-                                  print(f"    ✅ [{len(working)}] {proxy} - {result['method']} ({result['response_time']:.1f}s)")
-                              else:
-                                  failure_type = result['error_type']
-                                  detailed_failures[failure_type] += 1
+                                  print(f"    ✅ [{len(working)}] {proxy}")
                                   
-                                  # Show failures from priority proxies
-                                  if proxy in priority_proxies[:10]:
-                                      print(f"    ❌ {proxy} - {result['error']}")
+                                  # Stop when we have enough working proxies
+                                  if len(working) >= TARGET_WORKING_PROXIES:
+                                      print(f"    Target {TARGET_WORKING_PROXIES} reached, stopping tests")
+                                      break
                               
-                              # More frequent progress for faster feedback
-                              if tested % 10 == 0:
-                                  success_rate = len(working)/tested*100 if tested > 0 else 0
-                                  print(f"    Progress: {tested}/{max_test} tested, {len(working)} working ({success_rate:.1f}%)")
-                              
-                              # Early termination - faster exit
-                              if len(working) >= TARGET_WORKING_PROXIES:
-                                  print(f"    Target reached early! Cancelling remaining.")
-                                  for remaining_future in future_to_proxy:
-                                      if not remaining_future.done():
-                                          remaining_future.cancel()
-                                  break
+                              # Show progress less frequently
+                              if tested % 25 == 0:
+                                  success_rate = (len(working) / tested * 100) if tested > 0 else 0
+                                  print(f"    Progress: {tested} tested, {len(working)} working ({success_rate:.1f}%)")
                                   
-                          except Exception as e:
-                              detailed_failures['other'] += 1
+                          except Exception:
                               continue
                   
-                  # Performance analysis
-                  total_processed = pre_filtered + tested
-                  print(f"\n  Enhanced testing results:")
-                  print(f"    Total proxies processed: {total_processed}")
-                  print(f"    Pre-filtered: {pre_filtered} ({pre_filtered/total_processed*100:.1f}%)")
-                  print(f"    Full tested: {tested}")
-                  print(f"    Working found: {len(working)}")
-                  print(f"    Success rate: {len(working)/tested*100 if tested > 0 else 0:.1f}%")
-                  
-                  if len(working) >= TARGET_WORKING_PROXIES:
-                      print(f"    🎯 Target achieved efficiently!")
+                  print(f"\n  Proxy testing complete:")
+                  print(f"    Tested: {tested}")
+                  print(f"    Working: {len(working)}")
+                  print(f"    Success rate: {(len(working)/tested*100) if tested > 0 else 0:.1f}%")
                   
                   return working
+
+              def fallback_proxy_test(self, proxy_list):
+                  """Fallback proxy testing with minimal validation"""
+                  print("  Trying simple proxy validation without pre-filtering...")
+                  working = []
+                  
+                  # Simple port-based prioritization
+                  good_ports = [3128, 8080, 80, 8000, 1080]
+                  priority_proxies = []
+                  other_proxies = []
+                  
+                  for proxy in proxy_list:
+                      try:
+                          port = int(proxy.split(':')[1])
+                          if port in good_ports:
+                              priority_proxies.append(proxy)
+                          else:
+                              other_proxies.append(proxy)
+                      except:
+                          other_proxies.append(proxy)
+                  
+                  # Test up to 100 proxies in order of priority
+                  test_proxies = (priority_proxies + other_proxies)[:100]
+                  
+                  print(f"  Fallback testing {len(test_proxies)} proxies...")
+                  
+                  for i, proxy in enumerate(test_proxies):
+                      if len(working) >= TARGET_WORKING_PROXIES:
+                          print(f"  Target reached in fallback mode")
+                          break
+                          
+                      try:
+                          # Very simple test
+                          proxy_dict = {'http': f'http://{proxy}', 'https': f'http://{proxy}'}
+                          response = requests.get('http://httpbin.org/ip', 
+                                                proxies=proxy_dict, 
+                                                timeout=15, 
+                                                headers={'User-Agent': 'Mozilla/5.0'})
+                          
+                          if response.status_code == 200:
+                              working.append(f"http://{proxy}")
+                              print(f"  Fallback ✅ [{len(working)}]: {proxy}")
+                      except:
+                          pass
+                      
+                      # Progress every 20 tests
+                      if (i + 1) % 20 == 0:
+                          print(f"  Fallback progress: {i+1}/{len(test_proxies)}, {len(working)} working")
+                  
+                  print(f"  Fallback result: {len(working)} working proxies found")
+                  return working
+
+              def test_proxy_github_actions(self, proxy_address):
+                  """GitHub Actions optimized proxy test"""
+                  try:
+                      proxy_url = f"http://{proxy_address}"
+                      proxies = {'http': proxy_url, 'https': proxy_url}
+                      
+                      # Try simpler, more reliable endpoints first
+                      test_endpoints = [
+                          "http://httpbin.org/ip",
+                          "http://icanhazip.com",
+                          "https://api.ipify.org?format=text"
+                      ]
+                      
+                      for test_url in test_endpoints:
+                          try:
+                              response = requests.get(
+                                  test_url,
+                                  proxies=proxies,
+                                  timeout=10,  # Longer timeout for GitHub Actions
+                                  headers={
+                                      'User-Agent': 'Mozilla/5.0 (compatible; StreamChecker)',
+                                      'Accept': 'text/plain, application/json, */*'
+                                  }
+                              )
+                              
+                              if response.status_code == 200 and len(response.text.strip()) > 5:
+                                  # Basic validation - should contain IP-like content
+                                  content = response.text.strip()
+                                  if ('.' in content and len(content) < 500) or 'origin' in content.lower():
+                                      return True
+                                      
+                          except requests.exceptions.ConnectTimeout:
+                              continue  # Try next endpoint
+                          except requests.exceptions.ProxyError:
+                              break  # Proxy is definitely bad
+                          except Exception:
+                              continue  # Try next endpoint
+                              
+                  except Exception:
+                      pass
+                  
+                  return False
 
               def diagnostic_test_single_proxy(self, proxy_address):
                   """Single proxy test with detailed error reporting"""
@@ -1150,81 +1193,109 @@ jobs:
             exit 1
           fi
 
-      - name: 📤 Commit enhanced report
+      - name: 📤 Commit enhanced report with debug
         run: |
+          set -x  # Enable debug mode
           git config --local user.email "action@github.com"
           git config --local user.name "github-actions[bot]"
           
+          echo "🔍 Debug: Checking report file..."
           if [[ -f "report.md" ]]; then
-            echo "✅ Enhanced report ready for commit"
-            
-            # Ensure we're up to date
-            git pull origin main --rebase || {
-              echo "Rebase failed, trying merge..."
-              git reset --hard HEAD
-              git pull origin main
-            }
-            
-            git add report.md
-            if ! git diff --staged --quiet; then
-              # Build enhanced commit message
-              COMMIT_MSG="🚀 Enhanced stream check"
-              
-              if [[ "${QUICK_MODE:-true}" == "true" ]]; then
-                COMMIT_MSG="$COMMIT_MSG (quick)"
-              fi
-              
-              # Add content flags
-              CONTENT_FLAGS=""
-              if [[ "${CHECK_VODS:-false}" == "true" ]]; then
-                CONTENT_FLAGS="$CONTENT_FLAGS +VODs"
-              fi
-              if [[ "${CHECK_PPV:-false}" == "true" ]]; then
-                CONTENT_FLAGS="$CONTENT_FLAGS +PPV" 
-              fi
-              if [[ "${CHECK_FAST:-false}" == "true" ]]; then
-                CONTENT_FLAGS="$CONTENT_FLAGS +FAST" 
-              fi
-              
-              if [[ -n "$CONTENT_FLAGS" ]]; then
-                COMMIT_MSG="$COMMIT_MSG$CONTENT_FLAGS"
-              fi
-              
-              # Add performance info if available
-              if [[ -f "report.md" ]]; then
-                REPORT_SIZE=$(wc -c < report.md)
-                COMMIT_MSG="$COMMIT_MSG - ${REPORT_SIZE}B"
-              fi
-              
-              COMMIT_MSG="$COMMIT_MSG - $(date -u '+%m/%d %H:%M')"
-              
-              git commit -m "$COMMIT_MSG"
-              
-              # Enhanced push with retry logic
-              for i in {1..5}; do
-                if git push origin main; then
-                  echo "✅ Enhanced report pushed successfully (attempt $i)"
-                  break
-                else
-                  if [ $i -lt 5 ]; then
-                    echo "Push failed, retrying in 3s... (attempt $i/5)"
-                    sleep 3
-                    git pull origin main --rebase || {
-                      git reset --hard HEAD~1 
-                      git pull origin main 
-                      git add report.md 
-                      git commit -m "$COMMIT_MSG"
-                    }
-                  else
-                    echo "❌ Push failed after 5 attempts"
-                    exit 1
-                  fi
-                fi
-              done
-            else
-              echo "ℹ️ No changes to commit"
-            fi
+            REPORT_SIZE=$(wc -c < report.md)
+            echo "✅ Report exists: ${REPORT_SIZE} bytes"
+            echo "📄 Report preview:"
+            head -5 report.md
           else
-            echo "❌ Report file missing"
+            echo "❌ Report file missing!"
             exit 1
           fi
+          
+          echo "🔍 Debug: Git status before commit..."
+          git status
+          
+          echo "🔍 Debug: Syncing with remote..."
+          git fetch origin main
+          git pull origin main --rebase || {
+            echo "⚠️ Rebase failed, trying merge..."
+            git reset --hard HEAD
+            git pull origin main
+          }
+          
+          echo "🔍 Debug: Adding report file..."
+          git add report.md
+          git status
+          
+          if ! git diff --staged --quiet; then
+            echo "✅ Changes detected, creating commit..."
+            
+            # Enhanced commit message with more info
+            COMMIT_MSG="🚀 Enhanced stream check"
+            
+            if [[ "${QUICK_MODE:-true}" == "true" ]]; then
+              COMMIT_MSG="$COMMIT_MSG (quick)"
+            fi
+            
+            # Add performance info from report if available
+            if [[ -f "report.md" ]]; then
+              DURATION=$(grep "Performance:" report.md | grep -o '[0-9.]*s' | head -1 || echo "?s")
+              WORKING=$(grep "Working" report.md | grep -o '[0-9]*/' | head -1 | tr -d '/' || echo "?")
+              COMMIT_MSG="$COMMIT_MSG - ${WORKING} working, ${DURATION}"
+            fi
+            
+            COMMIT_MSG="$COMMIT_MSG - $(date -u '+%m/%d %H:%M UTC')"
+            
+            echo "📝 Committing: $COMMIT_MSG"
+            git commit -m "$COMMIT_MSG"
+            
+            echo "🔍 Debug: Commit created successfully"
+            git log -1 --oneline
+            
+            # Enhanced push with detailed retry logic
+            echo "📤 Pushing to remote..."
+            for attempt in {1..5}; do
+              echo "Push attempt $attempt/5..."
+              
+              if git push origin main; then
+                echo "✅ Successfully pushed on attempt $attempt"
+                break
+              else
+                EXIT_CODE=$?
+                echo "❌ Push failed with exit code $EXIT_CODE"
+                
+                if [ $attempt -lt 5 ]; then
+                  echo "🔄 Waiting 5 seconds before retry..."
+                  sleep 5
+                  
+                  echo "🔄 Syncing before retry..."
+                  git fetch origin main
+                  
+                  # Check if we need to rebase
+                  if ! git merge-base --is-ancestor origin/main HEAD; then
+                    echo "🔄 Rebasing on latest changes..."
+                    git rebase origin/main || {
+                      echo "⚠️ Rebase failed, resetting and pulling..."
+                      git rebase --abort
+                      git reset --hard HEAD~1
+                      git pull origin main
+                      git add report.md
+                      git commit -m "$COMMIT_MSG"
+                    }
+                  fi
+                else
+                  echo "❌ All push attempts failed"
+                  echo "🔍 Final git status:"
+                  git status
+                  echo "🔍 Remote info:"
+                  git remote -v
+                  echo "🔍 Branch info:"
+                  git branch -vv
+                  exit 1
+                fi
+              fi
+            done
+            
+          else
+            echo "ℹ️ No changes detected to commit"
+          fi
+          
+          echo "✅ Commit process completed successfully"

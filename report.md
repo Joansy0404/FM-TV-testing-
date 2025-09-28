@@ -1,55 +1,85 @@
-# Simple Stream Check Report
+# IPTV Stream Validation Report
 
-**Generated:** 2025-09-28 15:35 UTC  
-**Duration:** 43.0s (0.7m)  
-**Method:** Simple and reliable - back to basics  
+**Generated:** 2025-09-28 18:15 UTC  
+**Duration:** 537.1s (9.0m)  
+**Method:** Robust content validation (IPTV Checker methodology)  
+**Sample:** 100 streams tested  
 
 ## Summary
 
-- **Working (Direct):** 103 streams
-- **Total Working:** 103 streams (17.5%)
-- **Failed:** 485 streams
-- **Total Tested:** 588 streams
-- **Available Proxies:** 2
+- **✅ Working:** 13 streams (13.0%)
+- **🔒 Geo-blocked:** 4 streams (4.0%)
+- **❌ Failed:** 83 streams (83.0%)
+- **📊 Total tested:** 100 streams
 
-**Performance:** 13.7 streams/second
+**Performance:** 0.2 streams/second with content validation
+
+## Stream Type Analysis
+
+| Type | Working | Geo-blocked | Failed | Total | Success Rate |
+|------|---------|-------------|--------|-------|-------------|
+| Channel | 13 | 4 | 83 | 100 | 13.0% |
 
 ## Sample Working Streams
 
-| Stream Name | Status | Type |
-|-------------|--------|------|
-| A WEALTH OF ENTERTAINMENT (AWE) | ✅ Direct | Channel |
-| A&E | ✅ Direct | Channel |
-| ABC | ✅ Direct | Channel |
-| ABC NEWS LIVE | ✅ Direct | Channel |
-| ACC NETWORK | ✅ Direct | Channel |
-| ALTITUDE SPORTS | ✅ Direct | Channel |
-| AMC (EAST) | ✅ Direct | Channel |
-| ANIMAL PLANET | ✅ Direct | Channel |
-| BBC AMERICA (EAST) | ✅ Direct | Channel |
-| BIG TEN NETWORK | ✅ Direct | Channel |
-| BLOOMBERG TELEVISION | ✅ Direct | Channel |
-| BOOMERANG | ✅ Direct | Channel |
-| BOUNCE | ✅ Direct | Channel |
-| BUZZR | ✅ Direct | Channel |
-| CBS SPORTS GOLAZO NETWORK | ✅ Direct | Channel |
-| CHARGE! | ✅ Direct | Channel |
-| CHEDDAR NEWS | ✅ Direct | Channel |
-| CINEMAX | ✅ Direct | Channel |
-| CINEMAX CLASSICS | ✅ Direct | Channel |
-| CINEMAX HITS | ✅ Direct | Channel |
-| CNBC | ✅ Direct | Channel |
-| CNN | ✅ Direct | Channel |
-| COMEDY CENTRAL (EAST) | ✅ Direct | Channel |
-| COOKING CHANNEL | ✅ Direct | Channel |
-| COURT TV | ✅ Direct | Channel |
+| Channel | Type | Group |
+|---------|------|---------|
+| HUB PREMIER 2 | Channel | INT |
+| BBC ALBA | Channel | UK |
+| SKY SCI-FI | Channel | UK |
+| U&ALIBI | Channel | UK |
+| NATIONAL GEOGRAPHIC | Channel | UK |
+| SUPERSPORT FOOTBALL | Channel | ZA |
+| SKY SPORTS MAIN EVENT UHD | Channel | UK |
+| U&GOLD | Channel | UK |
+| TSN 4 | Channel | CA |
+| ITV QUIZ | Channel | UK |
+| VIRGIN MEDIA FOUR | Channel | IE |
+| Global TV | Channel | CA |
+| ALTITUDE SPORTS | Channel | USA |
+
+## Geo-blocked Streams
+
+| Channel | Type | Group |
+|---------|------|---------|
+| BLAZE | Channel | UK |
+| TG 4 | Channel | IE |
+| TV WAREHOUSE | Channel | UK |
+| ORA NEWS | Channel | AL |
+
+## Sample Failed Streams
+
+| Channel | Type | Group |
+|---------|------|---------|
+| SKY CINEMA ACTION | Channel | UK |
+| GAME SHOW NETWORK (EAST) | Channel | USA |
+| RTÈ NEWS | Channel | IE |
+| DISCOVERY KIDS | Channel | IN |
+| AL ARABIYA | Channel | AE |
+| CHARGE! | Channel | USA |
+| HORSE & COUNTRY | Channel | UK |
+| NOUR TV | Channel | AE |
+| NICK JR. | Channel | USA |
+| ITV 4 | Channel | UK |
+
+## Validation Methodology
+
+This checker uses robust IPTV validation techniques:
+
+- **Content Validation:** Downloads 500KB of actual stream data
+- **Content-Type Checking:** Validates IPTV-specific MIME types
+- **Retry Logic:** 10s initial timeout, 15s extended
+- **Geo-blocking Detection:** Identifies HTTP 403, 451, 426 status codes
+- **Rate Limit Handling:** Automatic retry with delays
+- **Streaming Verification:** Tests actual data flow, not just HTTP responses
 
 ## Configuration
 
-- **Test Method:** Simple GET requests (no complex validation)
-- **Content Types:** Channels
-- **Timeout:** 6s per stream
-- **Proxy Support:** Enabled
-- **Geo-unblocking:** 2 proxies available
+- **Content Types:** Channels only
+- **Timeouts:** 10s initial, 15s extended
+- **Sample Size:** 100
+- **Validation Threshold:** 500KB minimum data
 
-*Simple, reliable stream testing - less complexity, more accuracy*
+---
+*IPTV validation completed in 537.1 seconds*  
+*Uses proven IPTV Checker methodology for accurate results*

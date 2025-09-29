@@ -291,35 +291,51 @@ jobs:
 
               # ==================== FFPROBE METHOD ====================
               def test_ffprobe(self, url, proxy=None):
-                  """Test stream with ffprobe"""
+                  """Test stream with ffprobe - prioritizing accuracy over speed"""
                   if proxy:
                       env = os.environ.copy()
                       env['http_proxy'] = proxy
                       env['https_proxy'] = proxy
-                      env['HTTP_PROXY'] = proxy
-                      env['HTTPS_PROXY'] = proxy
                       
+                      # Reliable ffprobe command:
+                      # -timeout: 30s (generous timeout for VPN latency and slow servers)
+                      # -analyzeduration: 5s (analyze enough data to be confident stream works)
+                      # -probesize: 5MB (read enough data to verify stream quality)
                       cmd = ['ffprobe', '-v', 'error', '-show_entries', 'format=duration', 
-                             '-of', 'default=noprint_wrappers=1:nokey=1', '-timeout', '20000000', url]
+                             '-of', 'default=noprint_wrappers=1:nokey=1', 
+                             '-timeout', '30000000', '-analyzeduration', '5000000', 
+                             '-probesize', '5000000', url]
                   else:
                       env = None
                       cmd = ['ffprobe', '-v', 'error', '-show_entries', 'format=duration', 
-                             '-of', 'default=noprint_wrappers=1:nokey=1', '-timeout', '20000000', url]
+                             '-of', 'default=noprint_wrappers=1:nokey=1', 
+                             '-timeout', '30000000', '-analyzeduration', '5000000', 
+                             '-probesize', '5000000', url]
                   
                   try:
-                      result = subprocess.run(cmd, capture_output=True, text=True, timeout=30, env=env)
+                      # Longer subprocess timeout to accommodate thorough analysis
+                      result = subprocess.run(cmd, capture_output=True, text=True, timeout=45, env=env)
                       
                       if result.returncode == 0:
                           return 'working', None
                       
                       err = result.stderr.lower()
                       
+                      # Comprehensive error detection - prioritize geo-blocking first
                       if '403' in err or 'forbidden' in err:
                           return 'geoblocked', 'HTTP 403 Forbidden'
-                      if '404' in err or 'not found' in err:
-                          return 'notfound', 'HTTP 404 Not Found'
                       if '401' in err or 'unauthorized' in err:
                           return 'geoblocked', 'HTTP 401 Unauthorized'
+                      if '451' in err:  # HTTP 451 Unavailable For Legal Reasons
+                          return 'geoblocked', 'HTTP 451 Legal/Geo Restriction'
+                      if '404' in err or 'not found' in err:
+                          return 'notfound', 'HTTP 404 Not Found'
+                      if '400' in err or 'bad request' in err:
+                          return 'failed', 'HTTP 400 Bad Request'
+                      if '406' in err or 'not acceptable' in err:
+                          return 'failed', 'HTTP 406 Not Acceptable'
+                      if '410' in err or 'gone' in err:
+                          return 'failed', 'HTTP 410 Gone'
                       if 'connection refused' in err or 'could not connect' in err:
                           return 'connection_error', 'Connection refused'
                       if 'proxy' in err or 'tunnel' in err:
@@ -328,12 +344,16 @@ jobs:
                           return 'timeout', 'Connection timeout'
                       if 'ssl' in err or 'certificate' in err or 'tls' in err:
                           return 'failed', 'SSL/TLS error'
+                      if 'invalid data' in err or 'invalid' in err:
+                          return 'failed', 'Invalid stream data'
+                      if 'server returned' in err and '5' in err:
+                          return 'failed', 'Server error (5xx)'
                       
                       first_error = err.split('\n')[0][:100] if err else 'Unknown error'
                       return 'failed', first_error
                   
                   except subprocess.TimeoutExpired:
-                      return 'timeout', 'Process timeout (30s)'
+                      return 'timeout', 'Process timeout (45s)'
                   except Exception as e:
                       return 'error', str(e)[:100]
 

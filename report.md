@@ -1,22 +1,22 @@
 # ProtonVPN Multi-Country Stream Analysis
 
-**Generated:** 2025-09-29 01:18 UTC  
-**Duration:** 2.1 minutes  
+**Generated:** 2025-09-29 01:48 UTC  
+**Duration:** 9.0 minutes  
 **VPN Provider:** ProtonVPN  
 **Countries Tested:** VPN  
 **Configuration:** VODs: ❌, PPV: ❌, FAST: ❌  
-**Sample Size:** 30 streams per location  
+**Sample Size:** 100 streams per location  
 
 ## Executive Summary
 
 | Location | Working | Geo-blocked | Failed | Success Rate | IP Country | ISP |
 |----------|---------|-------------|--------|--------------|------------|-----|
-| **Direct** | 23 | 0 | 7 | **76.7%** | US | AS8075 Microsoft Cor |
-| **VPN** | 23 | 0 | 7 | **76.7%** | GB | AS212238 Datacamp Li |
+| **Direct** | 67 | 6 | 27 | **67.0%** | US | AS8075 Microsoft Cor |
+| **VPN** | 68 | 6 | 26 | **68.0%** | GB | AS9009 M247 Europe S |
 
-**🏆 Best Performing Location:** Direct (76.7% success rate)  
-**📉 Lowest Success Rate:** Direct (76.7% success rate)  
+**🏆 Best Performing Location:** VPN (68.0% success rate)  
+**📉 Lowest Success Rate:** Direct (67.0% success rate)  
 
 ---
-*Analysis completed in 2.1 minutes*  
-*Tested 2 locations with 30 streams each*
+*Analysis completed in 9.0 minutes*  
+*Tested 2 locations with 100 streams each*

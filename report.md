@@ -2,30 +2,30 @@
 
 **Test method:** ffprobe
 **Test scope:** direct_only
-**Last update:** 2025-09-29 11:37 UTC
-**Test duration:** 13.6 minutes
+**Last update:** 2025-09-29 18:25 UTC
+**Test duration:** 15.3 minutes
 
 ## Latest Test Results
 
 | Location | Working | Geo-blocked | Failed | Total | Success Rate |
 |----------|---------|-------------|--------|-------|--------------|
-| Direct | 116 | 323 | 123 | 562 | **20.6%** |
+| Direct | 116 | 339 | 117 | 572 | **20.3%** |
 
 ## Error Analysis
 
-- **HTTP 403 Forbidden**: 322 occurrences
-- **Connection refused**: 50 occurrences
-- **Server error (5xx)**: 49 occurrences
+- **HTTP 403 Forbidden**: 339 occurrences
+- **Connection refused**: 61 occurrences
+- **Server error (5xx)**: 37 occurrences
 - **HTTP 404 Not Found**: 9 occurrences
-- **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly9jdnr2lmn2ywxszxkubmv0l2hscy9l**: 3 occurrences
-- **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0cdovlzizljizny4xmdqumta2ojgwodavvvnb**: 3 occurrences
-- **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly9hmxhzlnzpcc8zmdawmdkilcaiawqi**: 1 occurrences
+- **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0cdovlzizljizny4xmdqumta2ojgwodavvvnb**: 2 occurrences
 - **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly9hmxhzlnzpcc8zmdawmzqilcaiawqi**: 1 occurrences
-- **HTTP 401 Unauthorized**: 1 occurrences
-- **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly9uagwtzmlyzxr2lmftywdplnr2l3bs**: 1 occurrences
+- **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly9hmxhzlnzpcc80mdawmdazmcisicjp**: 1 occurrences
+- **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly9hmxhzlnzpcc8zmdawmdgilcaiawqi**: 1 occurrences
+- **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly9jdnr2lmn2ywxszxkubmv0l2hscy9x**: 1 occurrences
+- **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly9hmxhzlnzpcc80mdawmda0myisicjp**: 1 occurrences
 
 ---
-*Generated at 2025-09-29 11:37 UTC*
+*Generated at 2025-09-29 18:25 UTC*
 
 <!-- HISTORY
 {
@@ -222,6 +222,22 @@
           "failed": 123,
           "total": 562,
           "rate": 20.640569395017792
+        }
+      }
+    },
+    {
+      "date": "2025-09-29 18:25 UTC",
+      "country": "US",
+      "method": "ffprobe",
+      "scope": "direct_only",
+      "duration_min": 15.3,
+      "results": {
+        "direct": {
+          "working": 116,
+          "geoblocked": 339,
+          "failed": 117,
+          "total": 572,
+          "rate": 20.27972027972028
         }
       }
     }

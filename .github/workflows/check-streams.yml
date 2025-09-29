@@ -1,12 +1,17 @@
-name: VPN Stream Test (UK/US Alternating)
+name: ProtonVPN Multi-Country Stream Checker
 
 on:
   workflow_dispatch:
     inputs:
-      sample_size:
-        description: 'Sample size (0=all streams, 100=sample)'
+      countries:
+        description: 'Countries to test (us,uk,ca,de,nl,fr,ch,se,jp,au)'
         required: false
-        default: '0'
+        default: 'uk,us,ca'
+        type: string
+      sample_size:
+        description: 'Sample size per country (0=all, 50=recommended)'
+        required: false
+        default: '50'
         type: string
       check_vods:
         description: 'Check VOD files (URLs ending with #.mkv)'
@@ -19,20 +24,40 @@ on:
         default: false
         type: boolean
       check_fast:
-        description: 'Check FAST channels'
+        description: 'Check FAST channels (Free Ad-Supported TV)'
         required: false
         default: false
         type: boolean
-  schedule:
-    - cron: '15 1,7,13,19 * * *'
+      include_direct:
+        description: 'Also test without VPN (direct connection)'
+        required: false
+        default: true
+        type: boolean
 
 permissions:
   contents: write
 
 jobs:
-  vpn-test:
+  protonvpn-multi-country-check:
     runs-on: ubuntu-latest
     timeout-minutes: 90
+
+    services:
+      gluetun:
+        image: qmcgaw/gluetun:latest
+        options: --cap-add=NET_ADMIN --device /dev/net/tun
+        env:
+          VPN_SERVICE_PROVIDER: protonvpn
+          OPENVPN_USER: ${{ secrets.VPN_USER }}
+          OPENVPN_PASSWORD: ${{ secrets.VPN_PASSWORD }}
+          SERVER_COUNTRIES: us  # Start with US, will be changed dynamically
+          HEALTH_VPN_DURATION_INITIAL: 20s
+          HEALTH_SUCCESS_WAIT_DURATION: 10s
+          LOG_LEVEL: info
+          FIREWALL_OUTBOUND_SUBNETS: 10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
+        ports:
+          - 8888:8888  # HTTP proxy
+          - 8000:8000  # Control server
 
     steps:
       - name: Checkout repository
@@ -47,348 +72,767 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install requests
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg
-          ffprobe -version
 
-      - name: Determine VPN country
+      - name: Wait for initial VPN connection
         run: |
-          if [ -f "report.md" ]; then
-            LAST=$(grep -oP "Last tested: \K(UK|US)" report.md | head -1 || echo "US")
-          else
-            LAST="US"
-          fi
+          echo "Waiting for Gluetun to establish initial connection..."
+          sleep 30
           
-          if [ "$LAST" = "UK" ]; then
-            echo "COUNTRY_CODE=us" >> $GITHUB_ENV
-            echo "COUNTRY_NAME=United States" >> $GITHUB_ENV
-          else
-            echo "COUNTRY_CODE=uk" >> $GITHUB_ENV
-            echo "COUNTRY_NAME=United Kingdom" >> $GITHUB_ENV
-          fi
-          echo "Testing $COUNTRY_NAME"
-
-      - name: Start VPN
-        run: |
-          docker network create vpn-network || true
-          docker run -d \
-            --name gluetun \
-            --cap-add=NET_ADMIN \
-            --device /dev/net/tun \
-            --network vpn-network \
-            -p 8888:8888 \
-            -e VPN_SERVICE_PROVIDER=protonvpn \
-            -e OPENVPN_USER="${{ secrets.VPN_USER }}" \
-            -e OPENVPN_PASSWORD="${{ secrets.VPN_PASSWORD }}" \
-            -e SERVER_COUNTRIES="${{ env.COUNTRY_NAME }}" \
-            -e SERVER_FEATURES=p2p \
-            -e FREE_ONLY=off \
-            -e LOG_LEVEL=info \
-            -e HTTPPROXY=on \
-            -e HTTPPROXY_LISTENING_ADDRESS=:8888 \
-            qmcgaw/gluetun:latest
+          echo "=== Testing Gluetun Control Server ==="
+          curl -f http://gluetun:8000/v1/openvpn/status || echo "Control server not ready yet"
           
-          for i in {1..24}; do
-            sleep 15
-            if curl -x localhost:8888 -s --connect-timeout 10 https://ipinfo.io/json > /tmp/vpn.json 2>/dev/null; then
-              C=$(cat /tmp/vpn.json | jq -r '.country' 2>/dev/null || echo "Unknown")
-              IP=$(cat /tmp/vpn.json | jq -r '.ip' 2>/dev/null || echo "Unknown")
-              echo "Attempt $i: $C - $IP"
-              if [[ "$C" != "null" && "$C" != "Unknown" ]]; then
-                echo "VPN_READY=true" >> $GITHUB_ENV
-                echo "CONNECTED_IP=$IP" >> $GITHUB_ENV
-                break
-              fi
+          echo -e "\n=== Testing Proxy Connection ==="
+          if curl -x gluetun:8888 -s --connect-timeout 10 https://ipinfo.io/json > /tmp/vpn_test.json 2>/dev/null; then
+            echo "Proxy responding!"
+            cat /tmp/vpn_test.json | jq .
+            
+            PROXY_COUNTRY=$(cat /tmp/vpn_test.json | jq -r '.country' 2>/dev/null || echo "Unknown")
+            PROXY_IP=$(cat /tmp/vpn_test.json | jq -r '.ip' 2>/dev/null || echo "Unknown")
+            PROXY_ORG=$(cat /tmp/vpn_test.json | jq -r '.org' 2>/dev/null || echo "Unknown")
+            
+            echo "Proxy IP: $PROXY_IP"
+            echo "Proxy Country: $PROXY_COUNTRY"
+            echo "Proxy ISP: $PROXY_ORG"
+            
+            if [[ "$PROXY_ORG" == *"Proton"* ]] || [[ "$PROXY_ORG" == *"proton"* ]]; then
+              echo "✅ ProtonVPN detected in ISP name"
+            else
+              echo "⚠️  WARNING: ISP does not contain 'Proton' - VPN may not be working"
+              echo "ISP detected: $PROXY_ORG"
             fi
-          done
+          else
+            echo "❌ Proxy not responding!"
+            exit 1
+          fi
+          
+          echo -e "\n=== Gluetun Container Logs (last 50 lines) ==="
+          docker logs gluetun --tail 50
+          
+          echo -e "\n=== Initial setup complete ==="
 
-      - name: Test Streams
+      - name: ProtonVPN Multi-Country Stream Testing
         env:
-          SAMPLE_SIZE: ${{ github.event.inputs.sample_size || '0' }}
+          COUNTRIES: ${{ github.event.inputs.countries || 'uk,us,ca' }}
+          SAMPLE_SIZE: ${{ github.event.inputs.sample_size || '50' }}
           CHECK_VODS: ${{ github.event.inputs.check_vods || 'false' }}
           CHECK_PPV: ${{ github.event.inputs.check_ppv || 'false' }}
           CHECK_FAST: ${{ github.event.inputs.check_fast || 'false' }}
-          VPN_READY: ${{ env.VPN_READY }}
-          COUNTRY_CODE: ${{ env.COUNTRY_CODE }}
-          CONNECTED_IP: ${{ env.CONNECTED_IP }}
+          INCLUDE_DIRECT: ${{ github.event.inputs.include_direct || 'true' }}
         run: |
-          python << 'ENDPY'
-          import requests, os, re, time, random, subprocess, json
+          python - << 'EOF'
+          import requests
+          import os
+          import re
+          import time
+          import random
+          import json
           from datetime import datetime, timezone
 
-          SAMPLE_SIZE = int(os.getenv('SAMPLE_SIZE', '0'))
+          COUNTRIES = [c.strip().lower() for c in os.getenv('COUNTRIES', 'uk,us,ca').split(',')]
+          SAMPLE_SIZE = int(os.getenv('SAMPLE_SIZE', '50'))
           CHECK_VODS = os.getenv('CHECK_VODS', 'false').lower() == 'true'
           CHECK_PPV = os.getenv('CHECK_PPV', 'false').lower() == 'true'
           CHECK_FAST = os.getenv('CHECK_FAST', 'false').lower() == 'true'
-          VPN_READY = os.getenv('VPN_READY', 'false').lower() == 'true'
-          COUNTRY = os.getenv('COUNTRY_CODE', 'uk').upper()
-          CONNECTED_IP = os.getenv('CONNECTED_IP', 'Unknown')
+          INCLUDE_DIRECT = os.getenv('INCLUDE_DIRECT', 'true').lower() == 'true'
 
-          class StreamTester:
+          class ProtonVPNMultiCountryChecker:
               def __init__(self):
-                  self.start = time.time()
-                  self.results = {}
-                  self.history = self.load_history()
+                  self.start_time = time.time()
+                  self.all_results = {}
+                  self.streams_sample = None
+                  
+                  # ProtonVPN specific country mappings
+                  self.proton_countries = {
+                      'us': 'United States',
+                      'uk': 'United Kingdom', 
+                      'ca': 'Canada',
+                      'de': 'Germany',
+                      'nl': 'Netherlands',
+                      'fr': 'France',
+                      'ch': 'Switzerland',
+                      'se': 'Sweden',
+                      'jp': 'Japan',
+                      'au': 'Australia',
+                      'it': 'Italy',
+                      'es': 'Spain',
+                      'no': 'Norway',
+                      'dk': 'Denmark',
+                      'at': 'Austria',
+                      'be': 'Belgium',
+                      'lu': 'Luxembourg',
+                      'fi': 'Finland',
+                      'is': 'Iceland',
+                      'cz': 'Czech Republic',
+                      'pl': 'Poland',
+                      'ro': 'Romania',
+                      'bg': 'Bulgaria',
+                      'hr': 'Croatia',
+                      'sk': 'Slovakia',
+                      'si': 'Slovenia',
+                      'ee': 'Estonia',
+                      'lv': 'Latvia',
+                      'lt': 'Lithuania',
+                      'hu': 'Hungary'
+                  }
 
-              def load_history(self):
-                  h = {'tests': []}
-                  try:
-                      if os.path.exists('report.md'):
-                          with open('report.md', 'r') as f:
-                              m = re.search(r'<!-- HIST\n(.*?)\n-->', f.read(), re.DOTALL)
-                              if m: h = json.loads(m.group(1))
-                  except: pass
-                  return h
+              def is_vod_url(self, url):
+                  """VOD detection - URLs ending with #.mkv"""
+                  return url.endswith('#.mkv')
 
-              def parse_m3u(self, path):
+              def is_ppv_channel(self, name, group):
+                  """PPV detection based on group names"""
+                  group_lower = group.lower()
+                  name_lower = name.lower()
+                  
+                  # UK/USA Events groups
+                  event_groups = ['uk events', 'usa events', 'events']
+                  ppv_indicators = ['ppv', 'pay per view', 'boxing', 'ufc', 'wwe']
+                  
+                  return (any(event_group in group_lower for event_group in event_groups) or
+                          any(indicator in name_lower or indicator in group_lower for indicator in ppv_indicators))
+
+              def is_fast_channel(self, name, group):
+                  """FAST channel detection"""
+                  return 'fast' in group.lower()
+
+              def classify_stream_type(self, stream):
+                  """Classify stream type"""
+                  if self.is_vod_url(stream['url']):
+                      return 'VOD'
+                  elif self.is_ppv_channel(stream['name'], stream['group']):
+                      return 'PPV'
+                  elif self.is_fast_channel(stream['name'], stream['group']):
+                      return 'FAST'
+                  else:
+                      return 'Channel'
+
+              def should_skip_stream(self, stream):
+                  """Check if stream should be skipped based on config"""
+                  stream_type = self.classify_stream_type(stream)
+                  
+                  if stream_type == 'VOD' and not CHECK_VODS:
+                      return True, 'VOD file (skipped)'
+                  elif stream_type == 'PPV' and not CHECK_PPV:
+                      return True, 'PPV channel (skipped)'
+                  elif stream_type == 'FAST' and not CHECK_FAST:
+                      return True, 'FAST channel (skipped)'
+                  
+                  return False, None
+
+              def get_streams_sample(self):
+                  """Get consistent sample of streams for all tests"""
+                  if self.streams_sample is not None:
+                      return self.streams_sample
+                  
+                  streams = self.parse_m3u('channel playlist.m3u')
+                  
+                  # Filter streams based on configuration
+                  filtered_streams = []
+                  skipped_counts = {'vods': 0, 'ppv': 0, 'fast': 0}
+                  
+                  for stream in streams:
+                      stream_type = self.classify_stream_type(stream)
+                      should_skip, skip_reason = self.should_skip_stream(stream)
+                      
+                      if should_skip:
+                          if stream_type == 'VOD':
+                              skipped_counts['vods'] += 1
+                          elif stream_type == 'PPV':
+                              skipped_counts['ppv'] += 1
+                          elif stream_type == 'FAST':
+                              skipped_counts['fast'] += 1
+                      else:
+                          filtered_streams.append(stream)
+                  
+                  # Sample from filtered streams
+                  if SAMPLE_SIZE > 0 and len(filtered_streams) > SAMPLE_SIZE:
+                      random.seed(42)  # Consistent sampling
+                      filtered_streams = random.sample(filtered_streams, SAMPLE_SIZE)
+                  
+                  self.streams_sample = filtered_streams
+                  
+                  total_original = len(streams)
+                  total_filtered = len(filtered_streams)
+                  print(f"Stream filtering: {total_original} total → {total_filtered} selected")
+                  if skipped_counts['vods'] > 0:
+                      print(f"  Skipped {skipped_counts['vods']} VODs (Check VODs: {'✅' if CHECK_VODS else '❌'})")
+                  if skipped_counts['ppv'] > 0:
+                      print(f"  Skipped {skipped_counts['ppv']} PPV (Check PPV: {'✅' if CHECK_PPV else '❌'})")
+                  if skipped_counts['fast'] > 0:
+                      print(f"  Skipped {skipped_counts['fast']} FAST (Check FAST: {'✅' if CHECK_FAST else '❌'})")
+                  
+                  return filtered_streams
+
+              def parse_m3u(self, file_path):
+                  """Parse M3U file"""
                   streams = []
                   try:
-                      with open(path, 'r', encoding='utf-8', errors='ignore') as f:
+                      with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
                           lines = f.readlines()
+                      
                       for i in range(len(lines)):
-                          if lines[i].startswith('#EXTINF'):
-                              g = re.search(r'group-title="([^"]*)"', lines[i])
-                              n = lines[i].split(',')[-1].strip() or f"Stream {len(streams)+1}"
-                              if i+1 < len(lines):
-                                  u = lines[i+1].strip()
-                                  if u and 'http' in u:
-                                      streams.append({'name': n, 'url': u, 'group': g.group(1) if g else "Unknown"})
+                          line = lines[i].strip()
+                          if line.startswith('#EXTINF'):
+                              group_match = re.search(r'group-title="([^"]*)"', line)
+                              group = group_match.group(1) if group_match else "Unknown"
+                              
+                              name = line.split(',')[-1].strip()
+                              if not name:
+                                  name = f"Stream {len(streams)+1}"
+                              
+                              if i + 1 < len(lines):
+                                  url = lines[i + 1].strip()
+                                  if url and 'http' in url:
+                                      streams.append({
+                                          'name': name,
+                                          'url': url,
+                                          'group': group
+                                      })
                   except Exception as e:
-                      print(f"Parse error: {e}")
+                      print(f"Error parsing M3U: {e}")
+                  
                   return streams
 
-              def classify(self, s):
-                  if s['url'].endswith('#.mkv'): return 'VOD'
-                  g, n = s['group'].lower(), s['name'].lower()
-                  if any(x in g for x in ['ppv', 'events']) or any(x in n for x in ['boxing', 'ufc', 'wwe']): return 'PPV'
-                  if 'fast' in g: return 'FAST'
-                  return 'Channel'
-
-              def should_skip(self, s):
-                  t = self.classify(s)
-                  return (t == 'VOD' and not CHECK_VODS) or (t == 'PPV' and not CHECK_PPV) or (t == 'FAST' and not CHECK_FAST)
-
-              def get_sample(self):
-                  all_s = self.parse_m3u('channel playlist.m3u')
-                  print(f"Total streams: {len(all_s)}")
-                  
-                  filt = [s for s in all_s if not self.should_skip(s)]
-                  skipped = {'VOD': 0, 'PPV': 0, 'FAST': 0}
-                  for s in all_s:
-                      if self.should_skip(s):
-                          skipped[self.classify(s)] += 1
-                  
-                  print(f"After filtering: {len(filt)} streams")
-                  if skipped['VOD'] > 0: print(f"  Skipped {skipped['VOD']} VODs")
-                  if skipped['PPV'] > 0: print(f"  Skipped {skipped['PPV']} PPV")
-                  if skipped['FAST'] > 0: print(f"  Skipped {skipped['FAST']} FAST")
-                  
-                  if SAMPLE_SIZE > 0 and len(filt) > SAMPLE_SIZE:
-                      random.seed(42)
-                      filt = random.sample(filt, SAMPLE_SIZE)
-                      print(f"Sampled: {SAMPLE_SIZE} streams")
-                  
-                  return filt
-
-              def test_ffprobe(self, url, proxy=None):
-                  cmd = ['ffprobe', '-v', 'error', '-show_entries', 'format=duration', 
-                         '-of', 'default=noprint_wrappers=1:nokey=1', '-timeout', '8000000', url]
-                  if proxy: cmd[2:2] = ['-http_proxy', proxy]
+              def change_vpn_country(self, target_country):
+                  """Change ProtonVPN country using Gluetun API"""
                   try:
-                      r = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-                      if r.returncode == 0: return 'working'
-                      err = r.stderr.lower()
-                      if '403' in err or 'forbidden' in err: return 'geoblocked'
-                      if '404' in err: return 'notfound'
-                      return 'failed'
-                  except subprocess.TimeoutExpired: return 'timeout'
-                  except: return 'error'
-
-              def test_location(self, name, vpn=False):
-                  print(f"\n{'='*50}\n{name}\n{'='*50}")
-                  proxy = 'http://localhost:8888' if vpn else None
-                  
-                  sess = requests.Session()
-                  if proxy: sess.proxies = {'http': proxy, 'https': proxy}
-                  
-                  try:
-                      info = sess.get('https://ipinfo.io/json', timeout=10).json()
-                      print(f"Location: {info.get('country')} - {info.get('ip')}")
+                      print(f"Changing VPN to {target_country.upper()}...")
+                      
+                      # Stop current VPN
+                      stop_response = requests.post("http://gluetun:8000/v1/openvpn/stop", timeout=10)
+                      if stop_response.status_code == 200:
+                          print("VPN stopped successfully")
+                      else:
+                          print(f"Stop VPN response: {stop_response.status_code}")
+                      
+                      time.sleep(5)
+                      
+                      # Update country settings
+                      settings_payload = {
+                          "server_countries": [target_country]
+                      }
+                      
+                      settings_response = requests.put(
+                          "http://gluetun:8000/v1/openvpn/settings", 
+                          json=settings_payload, 
+                          timeout=15
+                      )
+                      
+                      if settings_response.status_code == 200:
+                          print(f"Country setting updated to {target_country}")
+                      else:
+                          print(f"Settings update failed: {settings_response.status_code}")
+                          print(f"Response: {settings_response.text}")
+                      
+                      time.sleep(3)
+                      
+                      # Start VPN with new country
+                      start_response = requests.post("http://gluetun:8000/v1/openvpn/start", timeout=15)
+                      if start_response.status_code == 200:
+                          print("VPN restart initiated")
+                      else:
+                          print(f"Start VPN failed: {start_response.status_code}")
+                          return False
+                      
+                      return True
+                      
                   except Exception as e:
-                      print(f"Location check failed: {e}")
-                      if vpn: return None
-                      info = {}
-                  
-                  streams = self.get_sample()
-                  working, geoblocked, failed = [], [], []
-                  
-                  for i, s in enumerate(streams):
-                      print(f"[{i+1}/{len(streams)}] {s['name'][:40]}...", end=' ')
-                      
-                      result = self.test_ffprobe(s['url'], proxy)
-                      
-                      if result == 'working':
-                          working.append(s['name'])
-                          print("OK")
-                      elif result == 'geoblocked':
-                          geoblocked.append(s['name'])
-                          print("GEO")
-                      else:
-                          failed.append(s['name'])
-                          print(f"FAIL({result})")
-                      
-                      time.sleep(0.25)
-                      
-                      if i > 0 and i % 10 == 0:
-                          delay = random.uniform(1.5, 2.5)
-                          print(f"  Pause {delay:.1f}s...")
-                          time.sleep(delay)
-                      
-                      if (i+1) % 20 == 0:
-                          print(f"  Progress: {len(working)}/{i+1} ({len(working)/(i+1)*100:.1f}%)")
-                  
-                  rate = (len(working)/len(streams)*100) if streams else 0
-                  print(f"\n{name}: {len(working)}/{len(streams)} ({rate:.1f}%)")
-                  return {'working': working, 'geoblocked': geoblocked, 'failed': failed, 'rate': rate, 'info': info}
+                      print(f"Error changing VPN country: {e}")
+                      return False
 
-              def generate_report(self):
-                  now = datetime.now(timezone.utc)
-                  dur = (time.time() - self.start) / 60
+              def wait_for_vpn_country(self, target_country, max_attempts=8):
+                  """Wait for VPN to connect to specific country"""
+                  print(f"Connecting to {target_country.upper()} via ProtonVPN...")
                   
-                  entry = {
-                      'date': now.strftime('%Y-%m-%d %H:%M UTC'),
-                      'country': COUNTRY,
-                      'ip': CONNECTED_IP,
-                      'config': f"S:{SAMPLE_SIZE},V:{CHECK_VODS},P:{CHECK_PPV},F:{CHECK_FAST}",
-                      'duration': f"{dur:.1f}min",
-                      'results': {}
-                  }
+                  # Change country
+                  if not self.change_vpn_country(target_country):
+                      print("Failed to change VPN country")
+                      return None
                   
-                  for k, v in self.results.items():
-                      total = len(v['working']) + len(v['geoblocked']) + len(v['failed'])
-                      entry['results'][k] = {'rate': v['rate'], 'working': len(v['working']), 'total': total}
+                  # Wait for connection to establish
+                  for attempt in range(max_attempts):
+                      try:
+                          print(f"\n{'='*50}")
+                          print(f"Connection attempt {attempt + 1}/{max_attempts}")
+                          print('='*50)
+                          
+                          # Wait longer on first attempts
+                          wait_time = 20 if attempt < 2 else 15
+                          print(f"Waiting {wait_time} seconds for VPN to stabilize...")
+                          time.sleep(wait_time)
+                          
+                          # Test connection through proxy
+                          session = requests.Session()
+                          session.proxies = {
+                              'http': 'http://gluetun:8888',
+                              'https': 'http://gluetun:8888'
+                          }
+                          
+                          # Get IP info
+                          print("Testing proxy connection...")
+                          ip_response = session.get('https://ipinfo.io/json', timeout=15)
+                          ip_info = ip_response.json()
+                          
+                          current_country = ip_info.get('country', '').lower()
+                          current_ip = ip_info.get('ip', 'Unknown')
+                          current_org = ip_info.get('org', 'Unknown')
+                          current_city = ip_info.get('city', 'Unknown')
+                          
+                          print(f"\n📍 Connection Details:")
+                          print(f"  IP Address: {current_ip}")
+                          print(f"  Country: {ip_info.get('country')} ({current_country})")
+                          print(f"  City: {current_city}")
+                          print(f"  ISP/Org: {current_org}")
+                          
+                          # Verify it's ProtonVPN
+                          is_proton = 'proton' in current_org.lower()
+                          print(f"  ProtonVPN Detected: {'✅ YES' if is_proton else '❌ NO'}")
+                          
+                          if not is_proton:
+                              print(f"\n⚠️  WARNING: Not connected through ProtonVPN!")
+                              print(f"  Expected ISP to contain 'Proton'")
+                              print(f"  Got: {current_org}")
+                          
+                          # Check if we're connected to target country
+                          if current_country == target_country:
+                              print(f"\n✅ Successfully connected to {target_country.upper()} via ProtonVPN!")
+                              if is_proton:
+                                  print(f"   VPN verified and country correct")
+                                  return ip_info
+                              else:
+                                  print(f"   ⚠️  Country matches but VPN provider unclear")
+                                  return ip_info
+                          else:
+                              print(f"\n❌ Wrong country: expected {target_country}, got {current_country}")
+                              if is_proton:
+                                  print(f"   Connected to ProtonVPN but wrong location")
+                              
+                              if attempt < max_attempts - 1:
+                                  print("   Retrying...")
+                                  continue
+                          
+                      except Exception as e:
+                          print(f"❌ Connection test failed: {e}")
+                          if attempt < max_attempts - 1:
+                              print("Retrying...")
+                              continue
                   
-                  self.history['tests'].append(entry)
-                  if len(self.history['tests']) > 50:
-                      self.history['tests'] = self.history['tests'][-50:]
+                  print(f"\n❌ Failed to establish {target_country.upper()} VPN connection after {max_attempts} attempts")
+                  return None
+
+              def test_streams_with_location(self, location_name, use_proxy=True):
+                  """Test streams from specific location"""
+                  print(f"\n{'='*60}")
+                  print(f"Testing from {location_name}")
+                  print('='*60)
                   
-                  r = f"# VPN Stream Test - Historical Tracking\n\n"
-                  r += f"**Last tested:** {COUNTRY}\n"
-                  r += f"**Last update:** {now.strftime('%Y-%m-%d %H:%M UTC')}\n"
-                  r += f"**Duration:** {dur:.1f} minutes\n"
-                  r += f"**Config:** Sample={SAMPLE_SIZE}, VODs={'Y' if CHECK_VODS else 'N'}, PPV={'Y' if CHECK_PPV else 'N'}, FAST={'Y' if CHECK_FAST else 'N'}\n"
-                  r += f"**Total historical tests:** {len(self.history['tests'])}\n\n"
+                  session = requests.Session()
+                  if use_proxy:
+                      session.proxies = {
+                          'http': 'http://gluetun:8888',
+                          'https': 'http://gluetun:8888'
+                      }
+                      print("🔒 Using proxy: http://gluetun:8888")
+                  else:
+                      print("🌐 Direct connection (no proxy)")
                   
-                  r += "## Latest Test Results\n\n"
-                  r += "| Location | Working | Geo-blocked | Failed | Total | Success Rate |\n"
-                  r += "|----------|---------|-------------|--------|-------|-------------|\n"
+                  streams = self.get_streams_sample()
+                  results = {'working': [], 'geoblocked': [], 'failed': [], 'location_info': None}
                   
-                  for k, v in self.results.items():
-                      loc = "Direct" if k == 'direct' else f"{COUNTRY} VPN (Premium)"
-                      w, g, f = len(v['working']), len(v['geoblocked']), len(v['failed'])
-                      t = w + g + f
-                      r += f"| {loc} | {w} | {g} | {f} | {t} | **{v['rate']:.1f}%** |\n"
+                  # Get and verify location info
+                  print("\n📍 Verifying connection location...")
+                  try:
+                      ip_response = session.get('https://ipinfo.io/json', timeout=10)
+                      results['location_info'] = ip_response.json()
+                      info = results['location_info']
+                      
+                      print(f"✅ Connection verified:")
+                      print(f"   IP: {info.get('ip', 'Unknown')}")
+                      print(f"   Country: {info.get('country', 'Unknown')}")
+                      print(f"   City: {info.get('city', 'Unknown')}")
+                      print(f"   ISP: {info.get('org', 'Unknown')}")
+                      
+                      if use_proxy:
+                          is_vpn = 'proton' in info.get('org', '').lower()
+                          print(f"   VPN Status: {'✅ ProtonVPN Active' if is_vpn else '❌ VPN Not Detected'}")
+                          if not is_vpn:
+                              print(f"   ⚠️  WARNING: Proxy set but ProtonVPN not detected!")
+                      
+                  except Exception as e:
+                      print(f"❌ Could not verify location: {e}")
+                      if use_proxy:
+                          print("⚠️  This likely means the VPN proxy isn't working!")
+                      return results
                   
-                  r += "\n## Historical Analysis\n\n"
+                  working_count = 0
+                  print(f"\n🎬 Starting stream tests ({len(streams)} streams)...\n")
                   
-                  uk = [t for t in self.history['tests'] if t['country'] == 'UK']
-                  us = [t for t in self.history['tests'] if t['country'] == 'US']
+                  for i, stream in enumerate(streams):
+                      progress = f"[{i+1}/{len(streams)}]"
+                      stream_name = stream['name'][:40]
+                      print(f"{progress} {stream_name}...", end=' ', flush=True)
+                      
+                      try:
+                          headers = {
+                              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                              'Accept': '*/*',
+                              'Accept-Language': 'en-US,en;q=0.9',
+                              'Referer': 'https://github.com/'
+                          }
+                          
+                          timeout = 12 if use_proxy else 8
+                          
+                          # Try HEAD request first
+                          response = session.head(stream['url'], timeout=timeout, headers=headers, allow_redirects=True)
+                          
+                          stream_result = {
+                              'name': stream['name'],
+                              'group': stream['group'],
+                              'url': stream['url'][:60] + '...' if len(stream['url']) > 60 else stream['url']
+                          }
+                          
+                          if response.status_code < 400:
+                              results['working'].append(stream_result)
+                              working_count += 1
+                              print(f"✅ ({response.status_code})")
+                          elif response.status_code == 403:
+                              results['geoblocked'].append(stream_result)
+                              print("🔒 Geo-blocked (403)")
+                          else:
+                              stream_result['error'] = f"HTTP {response.status_code}"
+                              results['failed'].append(stream_result)
+                              print(f"❌ {response.status_code}")
+                              
+                      except requests.exceptions.Timeout:
+                          stream_result = {
+                              'name': stream['name'],
+                              'group': stream['group'],
+                              'url': stream['url'][:60] + '...' if len(stream['url']) > 60 else stream['url'],
+                              'error': 'Timeout'
+                          }
+                          results['failed'].append(stream_result)
+                          print("⏱️  Timeout")
+                      except requests.exceptions.ProxyError as e:
+                          stream_result = {
+                              'name': stream['name'],
+                              'group': stream['group'],
+                              'url': stream['url'][:60] + '...' if len(stream['url']) > 60 else stream['url'],
+                              'error': 'Proxy error'
+                          }
+                          results['failed'].append(stream_result)
+                          print(f"🚫 Proxy error: {str(e)[:30]}")
+                      except Exception as e:
+                          stream_result = {
+                              'name': stream['name'], 
+                              'group': stream['group'],
+                              'url': stream['url'][:60] + '...' if len(stream['url']) > 60 else stream['url'],
+                              'error': str(e)[:30]
+                          }
+                          results['failed'].append(stream_result)
+                          print(f"❌ {str(e)[:20]}")
+                      
+                      time.sleep(0.1)
+                      
+                      # Progress update every 10 streams
+                      if (i + 1) % 10 == 0:
+                          success_rate = (working_count / (i + 1) * 100)
+                          print(f"    📊 Progress: {working_count}/{i+1} working ({success_rate:.1f}%)")
                   
-                  if uk:
-                      uk_avg = sum(t['results'].get('vpn', {}).get('rate', 0) for t in uk) / len(uk)
-                      uk_last = uk[-1]['results'].get('vpn', {}).get('rate', 0)
-                      r += f"**UK VPN**\n"
-                      r += f"- Tests: {len(uk)}\n"
-                      r += f"- Average: {uk_avg:.1f}%\n"
-                      r += f"- Latest: {uk_last:.1f}%\n\n"
+                  total = len(streams)
+                  final_rate = (working_count / total * 100) if total > 0 else 0
+                  print(f"\n{'='*60}")
+                  print(f"📊 {location_name} Results")
+                  print(f"   Working: {working_count}/{total} ({final_rate:.1f}%)")
+                  print(f"   Geo-blocked: {len(results['geoblocked'])}")
+                  print(f"   Failed: {len(results['failed'])}")
+                  print('='*60)
                   
-                  if us:
-                      us_avg = sum(t['results'].get('vpn', {}).get('rate', 0) for t in us) / len(us)
-                      us_last = us[-1]['results'].get('vpn', {}).get('rate', 0)
-                      r += f"**US VPN**\n"
-                      r += f"- Tests: {len(us)}\n"
-                      r += f"- Average: {us_avg:.1f}%\n"
-                      r += f"- Latest: {us_last:.1f}%\n\n"
+                  return results
+
+              def run_multi_country_test(self):
+                  """Run tests across multiple countries"""
+                  print("Starting ProtonVPN Multi-Country Analysis")
+                  print(f"Countries to test: {', '.join([c.upper() for c in COUNTRIES])}")
+                  print(f"Sample size: {len(self.get_streams_sample())} streams per location")
                   
-                  if uk and us:
-                      r += f"**Recommendation:** "
-                      if uk_avg > us_avg:
-                          r += f"UK VPN performs better (avg +{uk_avg-us_avg:.1f}%)\n"
-                      elif us_avg > uk_avg:
-                          r += f"US VPN performs better (avg +{us_avg-uk_avg:.1f}%)\n"
+                  # Test direct connection first if requested
+                  if INCLUDE_DIRECT:
+                      print("\n" + "="*60)
+                      print("TESTING DIRECT CONNECTION (NO VPN)")
+                      print("="*60)
+                      direct_results = self.test_streams_with_location("Direct Connection", use_proxy=False)
+                      self.all_results['direct'] = direct_results
+                  
+                  # Test each ProtonVPN country
+                  for country in COUNTRIES:
+                      if country not in self.proton_countries:
+                          print(f"\nSkipping {country.upper()} - not supported by ProtonVPN")
+                          continue
+                      
+                      print(f"\n" + "="*60)
+                      print(f"SWITCHING TO {country.upper()} VPN")
+                      print("="*60)
+                      
+                      # Connect to country
+                      location_info = self.wait_for_vpn_country(country)
+                      
+                      if location_info:
+                          country_results = self.test_streams_with_location(f"{country.upper()} ProtonVPN", use_proxy=True)
+                          self.all_results[country] = country_results
                       else:
-                          r += f"UK and US VPN perform equally\n"
-                      r += "\n"
+                          print(f"Skipping {country.upper()} due to connection failure")
+                          continue
+                      
+                      # Brief pause between countries
+                      print("Pausing before next country...")
+                      time.sleep(10)
+
+              def generate_comprehensive_report(self):
+                  """Generate detailed multi-country comparison report"""
+                  duration = time.time() - self.start_time
                   
-                  if 'direct' in self.results and 'vpn' in self.results:
-                      imp = self.results['vpn']['rate'] - self.results['direct']['rate']
-                      r += f"**Latest VPN Impact:** {imp:+.1f}% vs direct connection\n\n"
+                  report = f"# ProtonVPN Multi-Country Stream Analysis\n\n"
+                  report += f"**Generated:** {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}  \n"
+                  report += f"**Duration:** {duration/60:.1f} minutes  \n"
+                  report += f"**VPN Provider:** ProtonVPN  \n"
+                  report += f"**Countries Tested:** {', '.join([c.upper() for c in COUNTRIES if c in [k for k in self.all_results.keys() if k != 'direct']])}  \n"
+                  report += f"**Configuration:** VODs: {'✅' if CHECK_VODS else '❌'}, PPV: {'✅' if CHECK_PPV else '❌'}, FAST: {'✅' if CHECK_FAST else '❌'}  \n"
+                  report += f"**Sample Size:** {len(self.get_streams_sample())} streams per location  \n\n"
                   
-                  r += "## Recent Test History\n\n"
-                  r += "| Date | Country | Config | Duration | Success Rate | Improvement |\n"
-                  r += "|------|---------|--------|----------|--------------|-------------|\n"
+                  # Results Summary Table
+                  report += "## Executive Summary\n\n"
+                  report += "| Location | Working | Geo-blocked | Failed | Success Rate | IP Country | ISP |\n"
+                  report += "|----------|---------|-------------|--------|--------------|------------|-----|\n"
                   
-                  for t in self.history['tests'][-15:]:
-                      vpn_rate = t['results'].get('vpn', {}).get('rate', 0)
-                      direct_rate = t['results'].get('direct', {}).get('rate', 0)
-                      imp = f"+{vpn_rate-direct_rate:.1f}%" if direct_rate > 0 else "N/A"
-                      r += f"| {t['date']} | {t['country']} | {t.get('config', 'N/A')} | {t.get('duration', 'N/A')} | {vpn_rate:.1f}% | {imp} |\n"
+                  summary_data = []
                   
-                  if 'vpn' in self.results and self.results['vpn']['geoblocked']:
-                      r += f"\n## Geo-blocked Streams ({len(self.results['vpn']['geoblocked'])})\n\n"
-                      for s in self.results['vpn']['geoblocked'][:10]:
-                          r += f"- {s}\n"
-                      if len(self.results['vpn']['geoblocked']) > 10:
-                          r += f"- ... and {len(self.results['vpn']['geoblocked'])-10} more\n"
+                  for location_key, results in self.all_results.items():
+                      working = len(results['working'])
+                      geo = len(results['geoblocked'])
+                      failed = len(results['failed'])
+                      total = working + geo + failed
+                      success_rate = (working / total * 100) if total > 0 else 0
+                      
+                      location_name = location_key.upper() if location_key != 'direct' else 'Direct'
+                      ip_country = results.get('location_info', {}).get('country', 'Unknown')
+                      isp = results.get('location_info', {}).get('org', 'Unknown')[:20]
+                      
+                      report += f"| **{location_name}** | {working} | {geo} | {failed} | **{success_rate:.1f}%** | {ip_country} | {isp} |\n"
+                      
+                      summary_data.append({
+                          'location': location_name,
+                          'working': working,
+                          'geo': geo,
+                          'failed': failed,
+                          'success_rate': success_rate
+                      })
                   
-                  r += f"\n<!-- HIST\n{json.dumps(self.history, indent=2)}\n-->\n"
-                  return r
+                  report += "\n"
+                  
+                  # Key insights
+                  if summary_data:
+                      best_location = max(summary_data, key=lambda x: x['success_rate'])
+                      worst_location = min(summary_data, key=lambda x: x['success_rate'])
+                      
+                      report += f"**🏆 Best Performing Location:** {best_location['location']} ({best_location['success_rate']:.1f}% success rate)  \n"
+                      report += f"**📉 Lowest Success Rate:** {worst_location['location']} ({worst_location['success_rate']:.1f}% success rate)  \n"
+                      
+                      # Calculate improvement with best VPN vs direct
+                      if 'direct' in self.all_results:
+                          direct_rate = next((item['success_rate'] for item in summary_data if item['location'] == 'Direct'), 0)
+                          best_vpn_rate = max([item['success_rate'] for item in summary_data if item['location'] != 'Direct'], default=0)
+                          improvement = best_vpn_rate - direct_rate
+                          
+                          if improvement > 5:
+                              report += f"**📈 VPN Improvement:** +{improvement:.1f}% more streams accessible with best VPN location  \n"
+                          elif improvement < -5:
+                              report += f"**📉 VPN Impact:** -{abs(improvement):.1f}% fewer streams accessible with VPN  \n"
+                  
+                  report += "\n"
+                  
+                  # Geo-blocking analysis
+                  report += "## Geo-blocking Analysis\n\n"
+                  
+                  # Find streams that work in some locations but not others
+                  stream_availability = {}
+                  
+                  for location, results in self.all_results.items():
+                      for stream in results['working']:
+                          stream_name = stream['name']
+                          if stream_name not in stream_availability:
+                              stream_availability[stream_name] = {'working_in': [], 'blocked_in': [], 'failed_in': []}
+                          stream_availability[stream_name]['working_in'].append(location.upper())
+                  
+                  for location, results in self.all_results.items():
+                      for stream in results['geoblocked']:
+                          stream_name = stream['name']
+                          if stream_name not in stream_availability:
+                              stream_availability[stream_name] = {'working_in': [], 'blocked_in': [], 'failed_in': []}
+                          stream_availability[stream_name]['blocked_in'].append(location.upper())
+                  
+                  # Categorize streams
+                  region_specific = {}
+                  universal_streams = []
+                  geo_blocked_everywhere = []
+                  
+                  for stream_name, availability in stream_availability.items():
+                      working_locations = len(availability['working_in'])
+                      blocked_locations = len(availability['blocked_in'])
+                      total_locations = len(self.all_results)
+                      
+                      if working_locations == 1:
+                          # Region-specific stream
+                          location = availability['working_in'][0]
+                          if location not in region_specific:
+                              region_specific[location] = []
+                          region_specific[location].append(stream_name)
+                      elif working_locations >= total_locations - 1:
+                          # Universal stream
+                          universal_streams.append(stream_name)
+                      elif working_locations == 0 and blocked_locations > 0:
+                          # Geo-blocked everywhere
+                          geo_blocked_everywhere.append(stream_name)
+                  
+                  # Report findings
+                  if region_specific:
+                      report += f"### 📍 Region-Specific Streams\n"
+                      report += "*Streams that only work in specific locations*\n\n"
+                      
+                      for location, streams in region_specific.items():
+                          if len(streams) > 0:
+                              report += f"**Exclusive to {location}:** {len(streams)} streams\n"
+                              for stream_name in streams[:3]:
+                                  report += f"- {stream_name}\n"
+                              if len(streams) > 3:
+                                  report += f"- ... and {len(streams) - 3} more\n"
+                              report += "\n"
+                  
+                  if universal_streams:
+                      report += f"### 🌍 Universal Streams ({len(universal_streams)} found)\n"
+                      report += "*These streams work across all tested locations*\n\n"
+                      for stream_name in universal_streams[:8]:
+                          report += f"- {stream_name}\n"
+                      if len(universal_streams) > 8:
+                          report += f"- ... and {len(universal_streams) - 8} more\n"
+                      report += "\n"
+                  
+                  if geo_blocked_everywhere:
+                      report += f"### 🚫 Heavily Geo-blocked Streams ({len(geo_blocked_everywhere)} found)\n"
+                      report += "*These streams are blocked across all tested locations*\n\n"
+                      for stream_name in geo_blocked_everywhere[:5]:
+                          report += f"- {stream_name}\n"
+                      if len(geo_blocked_everywhere) > 5:
+                          report += f"- ... and {len(geo_blocked_everywhere) - 5} more\n"
+                      report += "\n"
+                  
+                  # Detailed results per successful location
+                  successful_locations = [(k, v) for k, v in self.all_results.items() if len(v['working']) > 0]
+                  
+                  for location_key, results in sorted(successful_locations, key=lambda x: len(x[1]['working']), reverse=True):
+                      location_name = location_key.upper() if location_key != 'direct' else 'Direct Connection'
+                      working_count = len(results['working'])
+                      
+                      if working_count > 0:
+                          report += f"## {location_name} - Detailed Results ({working_count} working streams)\n\n"
+                          
+                          # Group by category
+                          by_group = {}
+                          for stream in results['working']:
+                              group = stream.get('group', 'Unknown')
+                              if group not in by_group:
+                                  by_group[group] = []
+                              by_group[group].append(stream['name'])
+                          
+                          # Show top categories
+                          for group, streams in sorted(by_group.items(), key=lambda x: len(x[1]), reverse=True)[:8]:
+                              if len(streams) > 0:
+                                  report += f"**{group}** ({len(streams)} streams)\n"
+                                  for stream_name in streams[:4]:
+                                      report += f"- {stream_name}\n"
+                                  if len(streams) > 4:
+                                      report += f"- ... and {len(streams) - 4} more\n"
+                                  report += "\n"
+                  
+                  # Strategic recommendations
+                  report += "## Strategic Recommendations\n\n"
+                  
+                  if len(self.all_results) > 1:
+                      best_loc_data = max(self.all_results.items(), key=lambda x: len(x[1]['working']))
+                      report += f"1. **Primary VPN Location:** Use {best_loc_data[0].upper()} ProtonVPN for maximum coverage ({len(best_loc_data[1]['working'])} working streams)\n"
+                  
+                  # Calculate total unique streams across all locations
+                  all_working_streams = set()
+                  for results in self.all_results.values():
+                      all_working_streams.update(s['name'] for s in results['working'])
+                  
+                  total_unique = len(all_working_streams)
+                  report += f"2. **Multi-location Strategy:** Rotating between all tested locations provides access to {total_unique} unique working streams\n"
+                  
+                  if any(len(r['geoblocked']) > 0 for r in self.all_results.values()):
+                      report += f"3. **Geo-blocking Active:** Strong evidence of location-based content restrictions - VPN rotation recommended\n"
+                  
+                  if region_specific:
+                      report += f"4. **Regional Content:** {sum(len(streams) for streams in region_specific.values())} streams are exclusive to specific locations\n"
+                  
+                  # Technical recommendations
+                  report += f"\n### Technical Recommendations\n\n"
+                  report += f"- **ProtonVPN Performance:** Average connection time ~30-45 seconds per country switch\n"
+                  report += f"- **Optimal Testing:** Use country rotation for comprehensive coverage\n"
+                  report += f"- **Stream Categories:** Focus testing on categories with highest success rates per location\n\n"
+                  
+                  report += f"---\n"
+                  report += f"*ProtonVPN Multi-Country Analysis completed in {duration/60:.1f} minutes*  \n"
+                  report += f"*Tested {len(self.all_results)} locations with {len(self.get_streams_sample())} streams each*\n"
+                  
+                  return report
 
               def run(self):
-                  print(f"Start: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}")
-                  print(f"Config: SIZE={SAMPLE_SIZE}, VODS={CHECK_VODS}, PPV={CHECK_PPV}, FAST={CHECK_FAST}")
+                  """Main execution"""
+                  print("Starting ProtonVPN Multi-Country Analysis")
+                  self.run_multi_country_test()
                   
-                  d = self.test_location("Direct", vpn=False)
-                  if d: self.results['direct'] = d
+                  if not self.all_results:
+                      print("No successful tests completed!")
+                      return
                   
-                  if VPN_READY:
-                      v = self.test_location(f"{COUNTRY} VPN (Premium)", vpn=True)
-                      if v: self.results['vpn'] = v
-                  else:
-                      print("\nVPN not ready")
+                  print("\nGenerating comprehensive report...")
+                  report = self.generate_comprehensive_report()
                   
-                  rep = self.generate_report()
-                  with open('report.md', 'w') as f:
-                      f.write(rep)
+                  with open('report.md', 'w', encoding='utf-8') as f:
+                      f.write(report)
                   
-                  dur = (time.time() - self.start) / 60
-                  print(f"\n{'='*50}\nComplete - {dur:.1f} min\n{'='*50}")
-                  for k, v in self.results.items():
-                      n = "Direct" if k == 'direct' else f"{COUNTRY} VPN"
-                      t = len(v['working']) + len(v['geoblocked']) + len(v['failed'])
-                      print(f"{n:20}: {len(v['working'])}/{t} ({v['rate']:.1f}%)")
+                  print(f"\nProtonVPN Multi-Country Analysis Complete!")
+                  print("="*50)
+                  for location, results in self.all_results.items():
+                      working = len(results['working'])
+                      total = working + len(results['geoblocked']) + len(results['failed'])
+                      success_rate = (working/total*100) if total > 0 else 0
+                      location_name = location.upper() if location != 'direct' else 'Direct'
+                      print(f"{location_name:15}: {working:3d}/{total:3d} working ({success_rate:5.1f}%)")
 
-          StreamTester().run()
-          ENDPY
+          # Run the ProtonVPN multi-country checker
+          checker = ProtonVPNMultiCountryChecker()
+          checker.run()
+          EOF
 
-      - name: Cleanup
-        if: always()
-        run: |
-          docker stop gluetun || true
-          docker rm gluetun || true
-          docker network rm vpn-network || true
-
-      - name: Commit
+      - name: Commit ProtonVPN multi-country report
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "github-actions[bot]"
           
           if [[ -f "report.md" ]]; then
             git add report.md
-            git pull origin main --rebase || true
+            git pull origin main --rebase || echo "Pull failed"
+            
             if ! git diff --staged --quiet; then
-              RATE=$(grep -oE "\*\*[0-9.]+%" report.md | grep -oE "[0-9.]+" | head -1 || echo "0")
-              git commit -m "${{ env.COUNTRY_CODE }} VPN: ${RATE}% - $(date -u '+%m/%d %H:%M')"
+              # Extract best success rate for commit message
+              BEST_RATE=$(grep -oE "\*\*[0-9.]+%" report.md | grep -oE "[0-9.]+" | sort -nr | head -1 || echo "0")
+              COUNTRIES_TESTED=$(echo "${COUNTRIES}" | tr ',' ' ')
+              
+              COMMIT_MSG="ProtonVPN analysis: ${BEST_RATE}% best rate across ${COUNTRIES_TESTED// /,}"
+              COMMIT_MSG="$COMMIT_MSG - $(date -u '+%m/%d %H:%M UTC')"
+              
+              git commit -m "$COMMIT_MSG"
               git push origin main
             fi
           fi

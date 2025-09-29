@@ -755,7 +755,7 @@ jobs:
                   if len(self.history['tests']) > 100:
                       self.history['tests'] = self.history['tests'][-100:]
                   
-                  report = f"# VPN Stream Test Report\n\n"
+                  report = "# VPN Stream Test Report\n\n"
                   report += f"**Last tested:** {COUNTRY}\n"
                   report += f"**Test method:** {self.test_method}\n"
                   report += f"**Test scope:** {self.test_scope}\n"
@@ -786,7 +786,7 @@ jobs:
                       report += f"- **IP:** {CONNECTED_IP}\n"
                       report += f"- **ISP:** {CONNECTED_ORG}\n\n"
                   
-                  # Error analysis for the tested connection (VPN if available, otherwise direct)
+                  # Error analysis for the tested connection
                   test_type = 'vpn' if 'vpn' in self.results else 'direct'
                   if test_type in self.results and self.results[test_type].get('error_samples'):
                       report += "## Error Analysis\n\n"
@@ -821,7 +821,7 @@ jobs:
                           report += "\n"
                   
                   next_country = "US" if COUNTRY == "UK" else "UK"
-                  report += f"## Next Test\n\n"
+                  report += "## Next Test\n\n"
                   if self.test_scope == 'direct_and_vpn':
                       report += f"Next automatic test will use **{next_country} VPN**\n\n"
                   else:
@@ -829,10 +829,12 @@ jobs:
                   
                   report += "---\n"
                   report += f"*Report generated at {now.strftime('%Y-%m-%d %H:%M UTC')}*\n"
-                  report += f"*Test method: {self.test_method} | Scope: {self.test_scope} | Auto-alternates between UK and US ProtonVPN*\n\n"
+                  report += f"*Test method: {self.test_method} | Scope: {self.test_scope}*\n\n"
                   
                   # Save history as JSON in HTML comment
-                  report += f"<!-- HISTORY\n{json.dumps(self.history, indent=2)}\n-->\n"
+                  report += "<!-- HISTORY\n"
+                  report += json.dumps(self.history, indent=2)
+                  report += "\n-->\n"
                   
                   return reportd US ProtonVPN*\n\n"
                   

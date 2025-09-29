@@ -304,69 +304,68 @@ jobs:
                   return filtered
 
               def test_ffprobe(self, url, proxy=None):
-                  """Test stream with smart retry - only retry transient errors"""
-                  
-                  base_cmd = [
-                      'ffprobe', '-v', 'error',
-                      '-select_streams', 'v:0',
-                      '-show_entries', 'stream=nb_read_packets',
-                      '-count_packets',
-                      '-of', 'default=noprint_wrappers=1:nokey=1',
-                      '-timeout', '20000000',  # 20s - faster for bulk testing
-                      '-analyzeduration', '5000000',  # 5s
-                      '-probesize', '5000000'  # 5MB
-                  ]
-                  
-                  env = os.environ.copy() if proxy else None
+                  # Deep analysis for maximum accuracy
+                  # Probe more data to catch streams that take time to initialize
                   if proxy:
+                      # VPN: very generous settings due to latency
+                      timeout_ms = '40000000'  # 40s
+                      analyze_duration = '15000000'  # 15s
+                      probe_size = '15000000'  # 15MB
+                      subprocess_timeout = 90
+                  else:
+                      # Direct: thorough but reasonable
+                      timeout_ms = '30000000'  # 30s
+                      analyze_duration = '10000000'  # 10s
+                      probe_size = '10000000'  # 10MB
+                      subprocess_timeout = 60
+                  
+                  cmd = ['ffprobe', '-v', 'error', 
+                         '-select_streams', 'v:0',  # Only check video stream
+                         '-show_entries', 'format=duration', 
+                         '-of', 'default=noprint_wrappers=1:nokey=1', 
+                         '-timeout', timeout_ms, 
+                         '-analyzeduration', analyze_duration, 
+                         '-probesize', probe_size]
+                  
+                  if proxy:
+                      env = os.environ.copy()
                       env['ALL_PROXY'] = 'socks5://localhost:1080'
                       env['all_proxy'] = 'socks5://localhost:1080'
-                  
-                  # First attempt
-                  cmd = base_cmd + [url]
+                      cmd.append(url)
+                  else:
+                      env = None
+                      cmd.append(url)
                   
                   try:
                       result = subprocess.run(cmd, capture_output=True, text=True, 
-                                            timeout=30, env=env)
+                                            timeout=subprocess_timeout, env=env)
                       
-                      # Success: got packet count > 0
                       if result.returncode == 0:
-                          output = result.stdout.strip()
-                          if output.isdigit() and int(output) > 0:
-                              return 'working', None
+                          return 'working', None
                       
-                      # Parse error to determine if retry is worthwhile
                       err = result.stderr.lower()
                       
-                      # Permanent failures - don't retry these
                       if '403' in err or 'forbidden' in err:
                           return 'geoblocked', 'HTTP 403 Forbidden'
                       if '401' in err or 'unauthorized' in err:
                           return 'geoblocked', 'HTTP 401 Unauthorized'
+                      if '451' in err:
+                          return 'geoblocked', 'HTTP 451 Legal/Geo Restriction'
                       if '404' in err or 'not found' in err:
                           return 'notfound', 'HTTP 404 Not Found'
                       if '400' in err or 'bad request' in err:
                           return 'failed', 'HTTP 400 Bad Request'
+                      if '406' in err or 'not acceptable' in err:
+                          return 'failed', 'HTTP 406 Not Acceptable'
                       if '410' in err or 'gone' in err:
                           return 'failed', 'HTTP 410 Gone'
-                      
-                      # Transient failures - worth retrying (1 retry only)
-                      if 'timeout' in err or 'timed out' in err or result.returncode == -1:
-                          time.sleep(2)
-                          result = subprocess.run(cmd, capture_output=True, text=True, 
-                                                timeout=30, env=env)
-                          if result.returncode == 0:
-                              output = result.stdout.strip()
-                              if output.isdigit() and int(output) > 0:
-                                  return 'working', None
-                          return 'timeout', 'Connection timeout'
-                      
-                      # Other errors - classify
                       if 'connection refused' in err or 'could not connect' in err:
                           return 'connection_error', 'Connection refused'
-                      if 'socks' in err or 'proxy' in err:
-                          return 'proxy_error', 'Proxy error'
-                      if 'ssl' in err or 'certificate' in err:
+                      if 'socks' in err or 'proxy' in err or 'tunnel' in err:
+                          return 'proxy_error', 'SOCKS5 proxy error'
+                      if 'timed out' in err or 'timeout' in err:
+                          return 'timeout', 'Connection timeout'
+                      if 'ssl' in err or 'certificate' in err or 'tls' in err:
                           return 'failed', 'SSL/TLS error'
                       if 'invalid data' in err or 'invalid' in err:
                           return 'failed', 'Invalid stream data'
@@ -377,19 +376,7 @@ jobs:
                       return 'failed', first_error
                   
                   except subprocess.TimeoutExpired:
-                      # Retry once on subprocess timeout
-                      try:
-                          time.sleep(2)
-                          result = subprocess.run(cmd, capture_output=True, text=True, 
-                                                timeout=30, env=env)
-                          if result.returncode == 0:
-                              output = result.stdout.strip()
-                              if output.isdigit() and int(output) > 0:
-                                  return 'working', None
-                      except:
-                          pass
-                      return 'timeout', 'Probe timeout (30s)'
-                  
+                      return 'timeout', f'Process timeout ({subprocess_timeout}s)'
                   except Exception as e:
                       return 'error', str(e)[:100]
 

@@ -12,6 +12,14 @@ on:
           - ffprobe
           - browser
           - hybrid
+      test_scope:
+        description: 'Test scope'
+        required: true
+        default: 'direct_only'
+        type: choice
+        options:
+          - direct_only
+          - direct_and_vpn
       sample_size:
         description: 'Sample size (0=all streams)'
         required: false
@@ -82,7 +90,8 @@ jobs:
         run: |
           echo "Checking last test location..."
           if [ -f "report.md" ]; then
-            LAST=$(grep -oP "Last tested: \K(UK|US)" report.md | head -1 || echo "US")
+            # FIXED: Extract from JSON history instead of markdown header
+            LAST=$(grep -A 1000 "<!-- HISTORY" report.md | grep '"country"' | tail -1 | grep -oP '(UK|US)' || echo "US")
             echo "Last test was: $LAST"
           else
             LAST="US"
@@ -100,6 +109,7 @@ jobs:
           fi
 
       - name: Start ProtonVPN via Gluetun
+        if: github.event.inputs.test_scope == 'direct_and_vpn' || github.event_name == 'schedule'
         run: |
           docker network create vpn-network || true
           
@@ -127,6 +137,7 @@ jobs:
           sleep 30
 
       - name: Verify VPN Connection
+        if: github.event.inputs.test_scope == 'direct_and_vpn' || github.event_name == 'schedule'
         run: |
           echo "=== VPN Connection Verification ==="
           
@@ -170,6 +181,7 @@ jobs:
       - name: Run Unified Stream Tests
         env:
           TEST_METHOD: ${{ github.event.inputs.test_method || 'ffprobe' }}
+          TEST_SCOPE: ${{ github.event.inputs.test_scope || 'direct_only' }}
           SAMPLE_SIZE: ${{ github.event.inputs.sample_size || '0' }}
           CHECK_VODS: ${{ github.event.inputs.check_vods || 'false' }}
           CHECK_PPV: ${{ github.event.inputs.check_ppv || 'false' }}
@@ -192,6 +204,7 @@ jobs:
 
           # Import Playwright only if needed
           TEST_METHOD = os.getenv('TEST_METHOD', 'ffprobe')
+          TEST_SCOPE = os.getenv('TEST_SCOPE', 'direct_only')
           if TEST_METHOD in ['browser', 'hybrid']:
               from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
 
@@ -211,6 +224,7 @@ jobs:
                   self.results = {}
                   self.history = self.load_history()
                   self.test_method = TEST_METHOD
+                  self.test_scope = TEST_SCOPE
 
               def load_history(self):
                   history = {'tests': []}
@@ -718,6 +732,7 @@ jobs:
                       'date': now.strftime('%Y-%m-%d %H:%M UTC'),
                       'country': COUNTRY,
                       'method': self.test_method,
+                      'scope': self.test_scope,
                       'ip': CONNECTED_IP,
                       'city': CONNECTED_CITY,
                       'isp': CONNECTED_ORG,
@@ -743,6 +758,7 @@ jobs:
                   report = f"# VPN Stream Test Report\n\n"
                   report += f"**Last tested:** {COUNTRY}\n"
                   report += f"**Test method:** {self.test_method}\n"
+                  report += f"**Test scope:** {self.test_scope}\n"
                   report += f"**Last update:** {now.strftime('%Y-%m-%d %H:%M UTC')}\n"
                   report += f"**Test duration:** {duration:.1f} minutes\n"
                   report += f"**Sample size:** {SAMPLE_SIZE if SAMPLE_SIZE > 0 else 'All streams'}\n"
@@ -762,6 +778,7 @@ jobs:
                   
                   report += "\n"
                   
+                  # VPN connection details only if VPN was tested
                   if 'vpn' in self.results:
                       report += "## VPN Connection Details\n\n"
                       report += f"- **Country:** {CONNECTED_COUNTRY}\n"
@@ -769,9 +786,11 @@ jobs:
                       report += f"- **IP:** {CONNECTED_IP}\n"
                       report += f"- **ISP:** {CONNECTED_ORG}\n\n"
                   
-                  if 'vpn' in self.results and self.results['vpn'].get('error_samples'):
+                  # Error analysis for the tested connection (VPN if available, otherwise direct)
+                  test_type = 'vpn' if 'vpn' in self.results else 'direct'
+                  if test_type in self.results and self.results[test_type].get('error_samples'):
                       report += "## Error Analysis\n\n"
-                      for err, count in sorted(self.results['vpn']['error_samples'].items(), 
+                      for err, count in sorted(self.results[test_type]['error_samples'].items(), 
                                              key=lambda x: x[1], reverse=True)[:10]:
                           report += f"- **{err}**: {count} occurrences\n"
                       report += "\n"
@@ -780,11 +799,13 @@ jobs:
                       vpn_improvement = self.results['vpn']['rate'] - self.results['direct']['rate']
                       report += f"**VPN Impact:** {vpn_improvement:+.1f}% vs direct connection\n\n"
                   
-                  if 'vpn' in self.results and self.results['vpn']['working']:
-                      report += f"## Working Streams via VPN ({len(self.results['vpn']['working'])} total)\n\n"
+                  # Working streams
+                  if test_type in self.results and self.results[test_type]['working']:
+                      title = f"Working Streams via {COUNTRY} VPN" if test_type == 'vpn' else "Working Streams (Direct)"
+                      report += f"## {title} ({len(self.results[test_type]['working'])} total)\n\n"
                       
                       by_group = {}
-                      for stream in self.results['vpn']['working']:
+                      for stream in self.results[test_type]['working']:
                           group = stream.get('group', 'Unknown')
                           if group not in by_group:
                               by_group[group] = []
@@ -801,11 +822,19 @@ jobs:
                   
                   next_country = "US" if COUNTRY == "UK" else "UK"
                   report += f"## Next Test\n\n"
-                  report += f"Next automatic test will use **{next_country} VPN**\n\n"
+                  if self.test_scope == 'direct_and_vpn':
+                      report += f"Next automatic test will use **{next_country} VPN**\n\n"
+                  else:
+                      report += f"Testing in direct-only mode. Next VPN test would use **{next_country}**\n\n"
                   
                   report += "---\n"
                   report += f"*Report generated at {now.strftime('%Y-%m-%d %H:%M UTC')}*\n"
-                  report += f"*Test method: {self.test_method} | Auto-alternates between UK and US ProtonVPN*\n\n"
+                  report += f"*Test method: {self.test_method} | Scope: {self.test_scope} | Auto-alternates between UK and US ProtonVPN*\n\n"
+                  
+                  # CRITICAL FIX: Save history as JSON in HTML comment
+                  report += f"<!-- HISTORY\n{json.dumps(self.history, indent=2)}\n-->\n"
+                  
+                  return reportd US ProtonVPN*\n\n"
                   
                   # CRITICAL FIX: Save history as JSON in HTML comment
                   report += f"<!-- HISTORY\n{json.dumps(self.history, indent=2)}\n-->\n"
@@ -815,7 +844,8 @@ jobs:
               def run(self):
                   print(f"{'='*60}")
                   print(f"Unified VPN Stream Test")
-                  print(f"Testing: {COUNTRY} VPN")
+                  print(f"Test Scope: {self.test_scope.upper()}")
+                  print(f"Testing: {COUNTRY} VPN" if self.test_scope == 'direct_and_vpn' else "Direct Connection Only")
                   print(f"Method: {self.test_method.upper()}")
                   print(f"{'='*60}\n")
                   
@@ -829,10 +859,13 @@ jobs:
                   if direct:
                       self.results['direct'] = direct
                   
-                  # Test VPN
-                  vpn = self.test_location(f"{COUNTRY} ProtonVPN", use_vpn=True)
-                  if vpn:
-                      self.results['vpn'] = vpn
+                  # Test VPN only if scope is direct_and_vpn
+                  if self.test_scope == 'direct_and_vpn':
+                      vpn = self.test_location(f"{COUNTRY} ProtonVPN", use_vpn=True)
+                      if vpn:
+                          self.results['vpn'] = vpn
+                  else:
+                      print("\n⚠️  Skipping VPN test (direct_only mode)")
                   
                   # Generate report
                   print("\nGenerating report...")
@@ -845,6 +878,7 @@ jobs:
                   print(f"\n{'='*60}")
                   print(f"Test Complete - {duration:.1f} minutes")
                   print(f"Method: {self.test_method}")
+                  print(f"Scope: {self.test_scope}")
                   print('='*60)
                   
                   for location, data in self.results.items():
@@ -881,8 +915,14 @@ jobs:
             if ! git diff --staged --quiet; then
               RATE=$(grep -oE "\*\*[0-9.]+%" report.md | grep -oE "[0-9.]+" | head -1 || echo "0")
               METHOD="${{ github.event.inputs.test_method || 'ffprobe' }}"
+              SCOPE="${{ github.event.inputs.test_scope || 'direct_only' }}"
               
-              git commit -m "${{ env.COUNTRY_CODE }} $METHOD test: ${RATE}% - $(date -u '+%m/%d %H:%M')"
+              if [ "$SCOPE" = "direct_only" ]; then
+                git commit -m "Direct test ($METHOD): ${RATE}% - $(date -u '+%m/%d %H:%M')"
+              else
+                git commit -m "${{ env.COUNTRY_CODE }} $METHOD test: ${RATE}% - $(date -u '+%m/%d %H:%M')"
+              fi
+              
               git push origin "$BRANCH"
             fi
           fi

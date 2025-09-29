@@ -19,6 +19,7 @@ on:
         type: choice
         options:
           - direct_only
+          - vpn_only
           - direct_and_vpn
       sample_size:
         description: 'Sample size (0=all streams)'
@@ -103,7 +104,7 @@ jobs:
           fi
 
       - name: Start ProtonVPN via Gluetun
-        if: github.event.inputs.test_scope == 'direct_and_vpn' || github.event_name == 'schedule'
+        if: github.event.inputs.test_scope == 'vpn_only' || github.event.inputs.test_scope == 'direct_and_vpn' || github.event_name == 'schedule'
         run: |
           docker network create vpn-network || true
           
@@ -127,7 +128,7 @@ jobs:
           sleep 20
 
       - name: Verify VPN Connection
-        if: github.event.inputs.test_scope == 'direct_and_vpn' || github.event_name == 'schedule'
+        if: github.event.inputs.test_scope == 'vpn_only' || github.event.inputs.test_scope == 'direct_and_vpn' || github.event_name == 'schedule'
         run: |
           echo "=== VPN Connection Verification ==="
           
@@ -309,10 +310,11 @@ jobs:
 
               def test_ffprobe(self, url, use_proxy=False):
                   if use_proxy:
-                      timeout_ms = '45000000'
-                      analyze_duration = '15000000'
-                      probe_size = '15000000'
-                      subprocess_timeout = 120
+                      # More lenient timeouts for VPN but faster probing
+                      timeout_ms = '60000000'  # 60s connection timeout
+                      analyze_duration = '8000000'  # 8s analyze (reduced from 15s)
+                      probe_size = '8000000'  # 8MB (reduced from 15MB)
+                      subprocess_timeout = 90  # 90s max (reduced from 120s)
                   else:
                       timeout_ms = '30000000'
                       analyze_duration = '10000000'
@@ -329,13 +331,19 @@ jobs:
                   
                   if use_proxy:
                       cmd.extend(['-http_proxy', 'http://localhost:8888'])
+                      # Try multiple methods to skip SSL verification
                       cmd.extend(['-tls_verify', '0'])
-                  
+                      
                   cmd.append(url)
+                  
+                  # Set environment variable as backup SSL skip method
+                  env = os.environ.copy() if use_proxy else None
+                  if use_proxy and env:
+                      env['FFMPEG_HTTP_PROXY'] = 'http://localhost:8888'
                   
                   try:
                       result = subprocess.run(cmd, capture_output=True, text=True, 
-                                            timeout=subprocess_timeout)
+                                            timeout=subprocess_timeout, env=env)
                       
                       if result.returncode == 0:
                           return 'working', None
@@ -551,18 +559,17 @@ jobs:
                   print(f"Method: {self.test_method}")
                   print(f"{'='*60}\n")
                   
-                  direct = self.test_location("Direct Connection", use_vpn=False)
-                  if direct:
-                      self.results['direct'] = direct
+                  if self.test_scope in ['direct_only', 'direct_and_vpn']:
+                      direct = self.test_location("Direct Connection", use_vpn=False)
+                      if direct:
+                          self.results['direct'] = direct
                   
-                  if self.test_scope == 'direct_and_vpn':
+                  if self.test_scope in ['vpn_only', 'direct_and_vpn']:
                       vpn = self.test_location(f"{COUNTRY} ProtonVPN", use_vpn=True)
                       if vpn:
                           self.results['vpn'] = vpn
                       else:
                           print("\n⚠️  VPN test failed - check logs above")
-                  else:
-                      print("\nSkipping VPN test (direct_only mode)")
                   
                   print("\nGenerating report...")
                   report = self.generate_report()

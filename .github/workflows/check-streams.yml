@@ -521,7 +521,7 @@ jobs:
                       print(f"Could not get location info: {e}")
                       location_info = {}
                   
-                  streams = self.get_stream_sample()
+                  streams = self.get_streams_sample()
                   results = {'working': [], 'geoblocked': [], 'failed': [], 'location_info': location_info}
                   
                   working_count = 0
@@ -674,7 +674,7 @@ jobs:
               def run_tests(self):
                   """Run tests on available VPN connections"""
                   print("Starting Multi-VPN Stream Test")
-                  print(f"Sample size: {len(self.get_stream_sample())} streams\n")
+                  print(f"Sample size: {len(self.get_streams_sample())} streams\n")
                   
                   # Test direct connection
                   if INCLUDE_DIRECT:

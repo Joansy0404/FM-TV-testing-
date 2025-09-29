@@ -152,155 +152,17 @@ jobs:
           import subprocess
           from datetime import datetime, timezone
 
-          COUNTRIES = [c.strip().lower() for c in os.getenv('COUNTRIES', 'uk,us').split(',')]
           SAMPLE_SIZE = int(os.getenv('SAMPLE_SIZE', '100'))
-          CHECK_VODS = os.getenv('CHECK_VODS', 'false').lower() == 'true'
-          CHECK_PPV = os.getenv('CHECK_PPV', 'false').lower() == 'true'
-          CHECK_FAST = os.getenv('CHECK_FAST', 'false').lower() == 'true'
           INCLUDE_DIRECT = os.getenv('INCLUDE_DIRECT', 'true').lower() == 'true'
           SKIP_VPN = os.getenv('SKIP_VPN', 'false').lower() == 'true'
+          UK_VPN_READY = os.getenv('UK_VPN_READY', 'false').lower() == 'true'
+          US_VPN_READY = os.getenv('US_VPN_READY', 'false').lower() == 'true'
 
-          class ProtonVPNMultiCountryChecker:
+          class MultiVPNStreamTester:
               def __init__(self):
                   self.start_time = time.time()
                   self.all_results = {}
                   self.streams_sample = None
-                  self.vpn_available = not SKIP_VPN
-                  
-                  # ProtonVPN country mappings
-                  self.proton_countries = {
-                      'us': 'United States',
-                      'uk': 'United Kingdom', 
-                      'ca': 'Canada',
-                      'de': 'Germany',
-                      'nl': 'Netherlands',
-                      'fr': 'France',
-                      'ch': 'Switzerland',
-                      'se': 'Sweden',
-                      'jp': 'Japan',
-                      'au': 'Australia'
-                  }
-
-              def restart_vpn_container(self, country_code):
-                  """Restart Gluetun container with new country"""
-                  import subprocess
-                  
-                  country_name = self.proton_countries.get(country_code, country_code)
-                  print(f"\nRestarting container for {country_code.upper()} ({country_name})...")
-                  
-                  try:
-                      # Stop and remove existing container
-                      subprocess.run(['docker', 'stop', 'gluetun'], capture_output=True, timeout=30)
-                      subprocess.run(['docker', 'rm', 'gluetun'], capture_output=True, timeout=10)
-                      print("Old container removed")
-                      time.sleep(5)
-                      
-                      # Get credentials from temporary files
-                      try:
-                          with open('/tmp/vpn_user.txt', 'r') as f:
-                              vpn_user = f.read().strip()
-                          with open('/tmp/vpn_pass.txt', 'r') as f:
-                              vpn_password = f.read().strip()
-                      except FileNotFoundError:
-                          print("❌ VPN credential files not found")
-                          return False
-                      
-                      if not vpn_user or not vpn_password:
-                          print("❌ VPN credentials are empty")
-                          print(f"VPN_USER present: {bool(vpn_user)}")
-                          print(f"VPN_PASSWORD present: {bool(vpn_password)}")
-                          return False
-                      
-                      print(f"VPN credentials found (user: {vpn_user[:4]}...)")
-                      
-                      # Build docker command with credentials embedded
-                      docker_cmd = f'''docker run -d \
-                        --name gluetun \
-                        --cap-add=NET_ADMIN \
-                        --device /dev/net/tun \
-                        --network vpn-network \
-                        -p 8888:8888 \
-                        -e VPN_SERVICE_PROVIDER=protonvpn \
-                        -e OPENVPN_USER="{vpn_user}" \
-                        -e OPENVPN_PASSWORD="{vpn_password}" \
-                        -e SERVER_COUNTRIES="{country_name}" \
-                        -e HEALTH_VPN_DURATION_INITIAL=60s \
-                        -e HEALTH_SUCCESS_WAIT_DURATION=30s \
-                        -e LOG_LEVEL=info \
-                        -e HTTPPROXY=on \
-                        -e HTTPPROXY_LISTENING_ADDRESS=:8888 \
-                        qmcgaw/gluetun:latest'''
-                      
-                      result = subprocess.run(docker_cmd, shell=True, capture_output=True, text=True, timeout=30)
-                      
-                      if result.returncode != 0:
-                          print(f"Failed to start container: {result.stderr}")
-                          return False
-                      
-                      print(f"Container started, waiting for VPN connection...")
-                      print("(This can take 2-3 minutes for VPN to establish)")
-                      
-                      # Wait for VPN to connect - increased attempts and better checking
-                      for attempt in range(24):  # 6 minutes total (24 × 15s)
-                          time.sleep(15)
-                          
-                          # Check container logs every few attempts
-                          if attempt % 3 == 0:
-                              logs_result = subprocess.run(['docker', 'logs', '--tail', '5', 'gluetun'], 
-                                                         capture_output=True, text=True, timeout=10)
-                              logs = logs_result.stdout.lower()
-                              
-                              if 'error' in logs or 'failed' in logs:
-                                  print(f"  ⚠️ Error in logs (attempt {attempt+1}/24)")
-                                  print(f"  Last log lines: {logs_result.stdout[-200:]}")
-                              elif 'connected' in logs or 'vpn is up' in logs:
-                                  print(f"  ✅ VPN connection detected in logs (attempt {attempt+1}/24)")
-                              else:
-                                  print(f"  ⏳ Waiting for connection... (attempt {attempt+1}/24)")
-                          else:
-                              print(f"  Checking proxy... (attempt {attempt+1}/24)")
-                          
-                          try:
-                              session = requests.Session()
-                              session.proxies = {'http': 'http://localhost:8888', 'https': 'http://localhost:8888'}
-                              response = session.get('https://ipinfo.io/json', timeout=12)
-                              
-                              if response.status_code == 200:
-                                  data = response.json()
-                                  current_country = data.get('country', '').upper()
-                                  ip = data.get('ip', 'Unknown')
-                                  org = data.get('org', 'Unknown')
-                                  
-                                  print(f"  Connected: {current_country} - {ip}")
-                                  print(f"  ISP: {org}")
-                                  
-                                  # Accept any ProtonVPN connection
-                                  if 'proton' in org.lower():
-                                      print(f"✅ ProtonVPN ready (connected to {current_country})!")
-                                      return True
-                                  elif current_country == country_code.upper():
-                                      print(f"✅ {country_code.upper()} VPN ready!")
-                                      return True
-                                  else:
-                                      print(f"  ⚠️ Connected but not through ProtonVPN or target country")
-                          except Exception as e:
-                              if attempt % 3 == 0:
-                                  print(f"  Proxy not ready yet: {str(e)[:50]}")
-                      
-                      # Final check of logs before giving up
-                      print("\n❌ Connection timeout - checking final logs:")
-                      logs_result = subprocess.run(['docker', 'logs', '--tail', '30', 'gluetun'], 
-                                                 capture_output=True, text=True, timeout=10)
-                      print(logs_result.stdout[-500:])
-                      
-                      print(f"❌ Failed to connect to {country_code.upper()} VPN after 6 minutes")
-                      return False
-                      
-                  except Exception as e:
-                      print(f"Error restarting container: {e}")
-                      import traceback
-                      traceback.print_exc()
-                      return False
 
               def is_vod_url(self, url):
                   """VOD detection - URLs ending with #.mkv"""
@@ -636,7 +498,33 @@ jobs:
                   print(f"Could not verify {target_country.upper()} VPN connection")
                   return None
 
-              def test_streams_with_location(self, location_name, use_proxy=True):
+              def test_streams_with_location(self, location_name, proxy_port=None):
+                  """Test streams from specific location"""
+                  print(f"\n{'='*50}")
+                  print(f"Testing: {location_name}")
+                  print('='*50)
+                  
+                  session = requests.Session()
+                  if proxy_port:
+                      session.proxies = {
+                          'http': f'http://localhost:{proxy_port}',
+                          'https': f'http://localhost:{proxy_port}'
+                      }
+                  
+                  # Get location info
+                  try:
+                      ip_response = session.get('https://ipinfo.io/json', timeout=10)
+                      location_info = ip_response.json()
+                      print(f"Location: {location_info.get('country')} - {location_info.get('ip')}")
+                      print(f"ISP: {location_info.get('org', 'Unknown')}")
+                  except Exception as e:
+                      print(f"Could not get location info: {e}")
+                      location_info = {}
+                  
+                  streams = self.get_stream_sample()
+                  results = {'working': [], 'geoblocked': [], 'failed': [], 'location_info': location_info}
+                  
+                  working_count = 0
                   """Test streams from specific location"""
                   print(f"\n{'='*60}")
                   print(f"Testing from {location_name}")
@@ -783,45 +671,38 @@ jobs:
                       direct_results = self.test_streams_with_location("Direct Connection", use_proxy=False)
                       self.all_results['direct'] = direct_results
                   
-              def run_multi_country_test(self):
-                  """Run tests across multiple countries"""
-                  print("Starting Multi-Country VPN Stream Test")
-                  print(f"Countries to test: {', '.join([c.upper() for c in COUNTRIES])}")
-                  print(f"Sample size: {len(self.get_streams_sample())} streams per location\n")
+              def run_tests(self):
+                  """Run tests on available VPN connections"""
+                  print("Starting Multi-VPN Stream Test")
+                  print(f"Sample size: {len(self.get_stream_sample())} streams\n")
                   
-                  # Test direct connection first if requested
+                  # Test direct connection
                   if INCLUDE_DIRECT:
-                      print("="*60)
-                      print("TESTING DIRECT CONNECTION (NO VPN)")
-                      print("="*60)
-                      direct_results = self.test_streams_with_location("Direct", use_proxy=False)
+                      print("="*50)
+                      print("TESTING DIRECT CONNECTION")
+                      print("="*50)
+                      direct_results = self.test_streams_with_location("Direct")
                       self.all_results['direct'] = direct_results
                   
-                  # Test each VPN country if available
-                  if self.vpn_available and COUNTRIES:
-                      for i, country in enumerate(COUNTRIES):
-                          if country not in self.proton_countries:
-                              print(f"\n❌ {country.upper()} not supported")
-                              continue
-                          
-                          print("\n" + "="*60)
-                          print(f"TESTING {country.upper()} VPN ({i+1}/{len(COUNTRIES)})")
-                          print("="*60)
-                          
-                          # Restart container with new country
-                          if self.restart_vpn_container(country):
-                              # Test streams
-                              vpn_results = self.test_streams_with_location(f"{country.upper()} VPN", use_proxy=True)
-                              self.all_results[country] = vpn_results
-                              
-                              # Brief pause before next country
-                              if i < len(COUNTRIES) - 1:
-                                  print("\nBrief pause before next country...")
-                                  time.sleep(5)
-                          else:
-                              print(f"❌ Failed to connect to {country.upper()} VPN, skipping")
+                  # Test UK VPN if ready
+                  if UK_VPN_READY:
+                      print("\n" + "="*50)
+                      print("TESTING UK VPN")
+                      print("="*50)
+                      uk_results = self.test_streams_with_location("UK VPN", proxy_port=8888)
+                      self.all_results['uk'] = uk_results
                   else:
-                      print("\n❌ VPN not available or no countries specified")
+                      print("\n❌ UK VPN not ready, skipping")
+                  
+                  # Test US VPN if ready
+                  if US_VPN_READY:
+                      print("\n" + "="*50)
+                      print("TESTING US VPN")
+                      print("="*50)
+                      us_results = self.test_streams_with_location("US VPN", proxy_port=8889)
+                      self.all_results['us'] = us_results
+                  else:
+                      print("\n❌ US VPN not ready, skipping")
 
               def generate_comprehensive_report(self):
                   """Generate detailed multi-country comparison report"""
@@ -1053,21 +934,21 @@ jobs:
 
               def run(self):
                   """Main execution"""
-                  print("Starting ProtonVPN Multi-Country Analysis")
-                  self.run_multi_country_test()
+                  print("Starting Multi-VPN Stream Test")
+                  self.run_tests()
                   
                   if not self.all_results:
                       print("No successful tests completed!")
                       return
                   
-                  print("\nGenerating comprehensive report...")
+                  print("\nGenerating report...")
                   report = self.generate_comprehensive_report()
                   
                   with open('report.md', 'w', encoding='utf-8') as f:
                       f.write(report)
                   
-                  print(f"\nProtonVPN Multi-Country Analysis Complete!")
-                  print("="*50)
+                  print(f"\nTest Complete!")
+                  print("="*40)
                   for location, results in self.all_results.items():
                       working = len(results['working'])
                       total = working + len(results['geoblocked']) + len(results['failed'])
@@ -1075,9 +956,9 @@ jobs:
                       location_name = location.upper() if location != 'direct' else 'Direct'
                       print(f"{location_name:15}: {working:3d}/{total:3d} working ({success_rate:5.1f}%)")
 
-          # Run the ProtonVPN multi-country checker
-          checker = ProtonVPNMultiCountryChecker()
-          checker.run()
+          # Run the test
+          tester = MultiVPNStreamTester()
+          tester.run()
           EOF
 
       - name: Cleanup VPN container

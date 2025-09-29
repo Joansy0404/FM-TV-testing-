@@ -1,4 +1,4 @@
-name: VPN Stream Test (HTTP Proxy)
+name: VPN Stream Test (HTTP Proxy with SSL Fix)
 
 on:
   workflow_dispatch:
@@ -329,6 +329,7 @@ jobs:
                   
                   if use_proxy:
                       cmd.extend(['-http_proxy', 'http://localhost:8888'])
+                      cmd.extend(['-tls_verify', '0'])
                   
                   cmd.append(url)
                   
@@ -381,7 +382,7 @@ jobs:
                   print(f"Testing: {location_name}")
                   print(f"Method: {self.test_method.upper()}")
                   if use_vpn:
-                      print("Proxy: HTTP on localhost:8888")
+                      print("Proxy: HTTP on localhost:8888 (SSL verify disabled)")
                   print('='*60)
                   
                   print("\nVerifying connection...")

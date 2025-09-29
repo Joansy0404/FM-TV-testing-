@@ -499,9 +499,16 @@ jobs:
                       print(f"  City: {info.get('city')}")
                       print(f"  ISP: {info.get('org')}")
                   except Exception as e:
-                      print(f"  Location check failed: {e}")
+                      print(f"  ❌ Location check failed: {e}")
+                      
+                      # FIXED: Fail for both direct and VPN if connection check fails
                       if use_vpn:
+                          print("  ⚠️  VPN connection verification failed, aborting VPN test")
                           return None
+                      else:
+                          print("  ⚠️  Direct connection verification failed")
+                          print("  ⚠️  This indicates network issues on the runner")
+                          print("  ⚠️  Results will be unreliable, but continuing anyway...")
                       info = {}
                   
                   streams = self.get_filtered_streams()
@@ -604,7 +611,7 @@ jobs:
                           elif result == 'geoblocked':
                               geoblocked.append(stream)
                           else:
-                              suspicious.append(stream)
+                              suspicious.append((stream, error_msg))  # Store with error message
                           
                           if (i+1) % 50 == 0:
                               print(f"  Scanned: {i+1}/{len(streams)}")
@@ -616,7 +623,7 @@ jobs:
                       with sync_playwright() as p:
                           browser = p.chromium.launch(headless=True)
                           
-                          for i, stream in enumerate(suspicious[:50]):
+                          for i, (stream, ffprobe_error) in enumerate(suspicious[:50]):
                               print(f"[{i+1}/{len(suspicious[:50])}] {stream['name'][:40]}... ", end='', flush=True)
                               
                               result, error_msg = self.test_browser(browser, stream['url'], use_vpn)
@@ -630,11 +637,29 @@ jobs:
                               else:
                                   failed.append(stream)
                                   print(f"❌ {result.upper()}")
+                                  if error_msg:
+                                      if error_msg not in error_samples:
+                                          error_samples[error_msg] = 0
+                                      error_samples[error_msg] += 1
                           
                           browser.close()
                       
-                      # Rest go to failed
-                      failed.extend(suspicious[50:])
+                      # FIXED: Handle remaining suspicious streams properly
+                      if len(suspicious) > 50:
+                          skipped_count = len(suspicious) - 50
+                          print(f"\n⚠️  {skipped_count} streams skipped browser verification (sample limit)")
+                          
+                          skip_msg = 'Skipped browser verification (sample limit)'
+                          error_samples[skip_msg] = skipped_count
+                          
+                          # Add skipped streams to failed with proper tracking
+                          for stream, ffprobe_error in suspicious[50:]:
+                              failed.append(stream)
+                              # Also track the original ffprobe error
+                              if ffprobe_error:
+                                  if ffprobe_error not in error_samples:
+                                      error_samples[ffprobe_error] = 0
+                                  error_samples[ffprobe_error] += 1
                   
                   total = len(streams)
                   success_rate = (len(working)/total*100) if total > 0 else 0
@@ -664,6 +689,33 @@ jobs:
               def generate_report(self):
                   duration = (time.time() - self.start_time) / 60
                   now = datetime.now(timezone.utc)
+                  
+                  # Add current test to history
+                  entry = {
+                      'date': now.strftime('%Y-%m-%d %H:%M UTC'),
+                      'country': COUNTRY,
+                      'method': self.test_method,
+                      'ip': CONNECTED_IP,
+                      'city': CONNECTED_CITY,
+                      'isp': CONNECTED_ORG,
+                      'config': f"S:{SAMPLE_SIZE if SAMPLE_SIZE > 0 else 'All'},V:{CHECK_VODS},P:{CHECK_PPV},F:{CHECK_FAST}",
+                      'duration_min': round(duration, 1),
+                      'results': {}
+                  }
+                  
+                  for location, data in self.results.items():
+                      total = len(data['working']) + len(data['geoblocked']) + len(data['failed'])
+                      entry['results'][location] = {
+                          'working': len(data['working']),
+                          'geoblocked': len(data['geoblocked']),
+                          'failed': len(data['failed']),
+                          'total': total,
+                          'rate': data['rate']
+                      }
+                  
+                  self.history['tests'].append(entry)
+                  if len(self.history['tests']) > 100:
+                      self.history['tests'] = self.history['tests'][-100:]
                   
                   report = f"# VPN Stream Test Report\n\n"
                   report += f"**Last tested:** {COUNTRY}\n"
@@ -730,7 +782,10 @@ jobs:
                   
                   report += "---\n"
                   report += f"*Report generated at {now.strftime('%Y-%m-%d %H:%M UTC')}*\n"
-                  report += f"*Test method: {self.test_method} | Auto-alternates between UK and US ProtonVPN*\n"
+                  report += f"*Test method: {self.test_method} | Auto-alternates between UK and US ProtonVPN*\n\n"
+                  
+                  # CRITICAL FIX: Save history as JSON in HTML comment
+                  report += f"<!-- HISTORY\n{json.dumps(self.history, indent=2)}\n-->\n"
                   
                   return report
 
@@ -793,15 +848,18 @@ jobs:
           if [[ -f "report.md" ]]; then
             git add report.md
             
+            # FIXED: Use dynamic branch name instead of hardcoded 'main'
+            BRANCH="${{ github.ref_name }}"
+            
             # Fetch and attempt a fast-forward merge (safe)
-            git fetch origin main
-            git merge origin/main --ff-only || true
+            git fetch origin "$BRANCH"
+            git merge "origin/$BRANCH" --ff-only || true
             
             if ! git diff --staged --quiet; then
               RATE=$(grep -oE "\*\*[0-9.]+%" report.md | grep -oE "[0-9.]+" | head -1 || echo "0")
               METHOD="${{ github.event.inputs.test_method || 'ffprobe' }}"
               
               git commit -m "${{ env.COUNTRY_CODE }} $METHOD test: ${RATE}% - $(date -u '+%m/%d %H:%M')"
-              git push origin main
+              git push origin "$BRANCH"
             fi
           fi

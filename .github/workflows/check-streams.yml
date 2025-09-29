@@ -65,7 +65,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install requests pysocks
           
-          # Install method-specific dependencies
           METHOD="${{ github.event.inputs.test_method || 'ffprobe' }}"
           
           if [ "$METHOD" = "browser" ] || [ "$METHOD" = "hybrid" ]; then
@@ -78,19 +77,14 @@ jobs:
           if [ "$METHOD" = "ffprobe" ] || [ "$METHOD" = "hybrid" ]; then
             echo "Installing ffmpeg for ffprobe testing..."
             sudo apt-get update
-            sudo apt-get install -y ffmpeg dante-client
+            sudo apt-get install -y ffmpeg
             ffprobe -version
-            
-            # Verify SOCKS proxy support
-            echo "Checking SOCKS proxy support..."
-            which socksify || echo "Warning: socksify not found"
           fi
 
       - name: Determine next VPN country (auto-alternating)
         run: |
           echo "Checking last test location..."
           if [ -f "report.md" ]; then
-            # FIXED: Extract from JSON history instead of markdown header
             LAST=$(grep -A 1000 "<!-- HISTORY" report.md | grep '"country"' | tail -1 | grep -oP '(UK|US)' || echo "US")
             echo "Last test was: $LAST"
           else
@@ -202,9 +196,9 @@ jobs:
           import subprocess
           from datetime import datetime, timezone
 
-          # Import Playwright only if needed
           TEST_METHOD = os.getenv('TEST_METHOD', 'ffprobe')
           TEST_SCOPE = os.getenv('TEST_SCOPE', 'direct_only')
+          
           if TEST_METHOD in ['browser', 'hybrid']:
               from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
 
@@ -309,19 +303,13 @@ jobs:
                   
                   return filtered
 
-              # ==================== FFPROBE METHOD ====================
               def test_ffprobe(self, url, proxy=None):
-                  """Test stream with ffprobe - using SOCKS5 proxy for better SSL/TLS handling"""
-                  
-                  # Build ffprobe command with SOCKS5 support
-                  # SOCKS5 works at TCP level and doesn't interfere with SSL/TLS
                   cmd = ['ffprobe', '-v', 'error', '-show_entries', 'format=duration', 
                          '-of', 'default=noprint_wrappers=1:nokey=1', 
                          '-timeout', '30000000', '-analyzeduration', '5000000', 
                          '-probesize', '5000000']
                   
                   if proxy:
-                      # Use ALL_PROXY for SOCKS5 support in ffmpeg/ffprobe
                       env = os.environ.copy()
                       env['ALL_PROXY'] = 'socks5://localhost:1080'
                       env['all_proxy'] = 'socks5://localhost:1080'
@@ -338,7 +326,6 @@ jobs:
                       
                       err = result.stderr.lower()
                       
-                      # Comprehensive error detection
                       if '403' in err or 'forbidden' in err:
                           return 'geoblocked', 'HTTP 403 Forbidden'
                       if '401' in err or 'unauthorized' in err:
@@ -356,7 +343,7 @@ jobs:
                       if 'connection refused' in err or 'could not connect' in err:
                           return 'connection_error', 'Connection refused'
                       if 'socks' in err or 'proxy' in err or 'tunnel' in err:
-                          return 'proxy_error', f'SOCKS5 proxy error'
+                          return 'proxy_error', 'SOCKS5 proxy error'
                       if 'timed out' in err or 'timeout' in err:
                           return 'timeout', 'Connection timeout'
                       if 'ssl' in err or 'certificate' in err or 'tls' in err:
@@ -374,159 +361,19 @@ jobs:
                   except Exception as e:
                       return 'error', str(e)[:100]
 
-              # ==================== BROWSER METHOD ====================
-              def test_browser(self, browser, url, use_proxy=False):
-                  """Test stream in headless browser with video.js"""
-                  context_options = {
-                      'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                      'viewport': {'width': 1280, 'height': 720},
-                      'ignore_https_errors': True
-                  }
-                  
-                  if use_proxy:
-                      context_options['proxy'] = {'server': 'http://localhost:8888'}
-                  
-                  try:
-                      context = browser.new_context(**context_options)
-                      page = context.new_page()
-                      
-                      # Set longer page timeout
-                      page.set_default_timeout(25000)  # 25 seconds
-                      
-                      html_content = f'''
-                      <!DOCTYPE html>
-                      <html>
-                      <head>
-                          <style>body {{ margin: 0; background: #000; }}</style>
-                      </head>
-                      <body>
-                          <video id="player" width="640" height="360" controls autoplay muted></video>
-                          <div id="status">loading</div>
-                          <script>
-                              var video = document.getElementById('player');
-                              var status = document.getElementById('status');
-                              var startTime = Date.now();
-                              
-                              // Try to load the stream
-                              video.src = "{url}";
-                              
-                              video.addEventListener('loadstart', function() {{
-                                  console.log('Load started');
-                                  status.textContent = 'loadstart';
-                              }});
-                              
-                              video.addEventListener('loadedmetadata', function() {{
-                                  console.log('Metadata loaded');
-                                  status.textContent = 'metadata_loaded';
-                              }});
-                              
-                              video.addEventListener('loadeddata', function() {{
-                                  console.log('Data loaded');
-                                  status.textContent = 'data_loaded';
-                              }});
-                              
-                              video.addEventListener('canplay', function() {{
-                                  console.log('Can play');
-                                  status.textContent = 'can_play';
-                              }});
-                              
-                              video.addEventListener('playing', function() {{
-                                  console.log('Playing');
-                                  status.textContent = 'playing';
-                              }});
-                              
-                              video.addEventListener('error', function(e) {{
-                                  console.error('Video error:', e);
-                                  var err = video.error;
-                                  if (err) {{
-                                      var code = err.code;
-                                      var msg = err.message || '';
-                                      
-                                      // Try to extract HTTP error codes from message
-                                      if (msg.includes('403') || code === 2) {{
-                                          status.textContent = 'error_403';
-                                      }} else if (msg.includes('404') || code === 4) {{
-                                          status.textContent = 'error_404';
-                                      }} else if (msg.includes('401')) {{
-                                          status.textContent = 'error_401';
-                                      }} else {{
-                                          status.textContent = 'error_' + code + '_' + msg.substring(0, 50);
-                                      }}
-                                  }} else {{
-                                      status.textContent = 'error_unknown';
-                                  }}
-                              }});
-                              
-                              // Timeout after 20 seconds if nothing happens
-                              setTimeout(function() {{
-                                  if (status.textContent === 'loading' || status.textContent === 'loadstart') {{
-                                      status.textContent = 'timeout';
-                                  }}
-                              }}, 20000);
-                          </script>
-                      </body>
-                      </html>
-                      '''
-                      
-                      page.set_content(html_content)
-                      
-                      # Wait up to 25 seconds for the stream to start or error
-                      max_checks = 50  # 25 seconds (0.5s * 50)
-                      for i in range(max_checks):
-                          time.sleep(0.5)
-                          
-                          try:
-                              status = page.evaluate('document.getElementById("status").textContent')
-                          except Exception:
-                              # Page might have crashed
-                              context.close()
-                              return 'error', 'Page evaluation failed'
-                          
-                          # Success states
-                          if status in ['playing', 'can_play', 'data_loaded', 'metadata_loaded']:
-                              context.close()
-                              return 'working', f'Stream playable ({status})'
-                          
-                          # Error states
-                          if status.startswith('error_'):
-                              context.close()
-                              
-                              if '403' in status:
-                                  return 'geoblocked', 'HTTP 403 Forbidden'
-                              elif '404' in status:
-                                  return 'failed', 'HTTP 404 Not Found'
-                              elif '401' in status:
-                                  return 'geoblocked', 'HTTP 401 Unauthorized'
-                              else:
-                                  error_detail = status.replace('error_', '')[:80]
-                                  return 'failed', f'Video error: {error_detail}'
-                          
-                          # Explicit timeout
-                          if status == 'timeout':
-                              context.close()
-                              return 'timeout', 'No response in 20s'
-                      
-                      # If we got here, we ran out of checks
-                      context.close()
-                      return 'timeout', 'Stream did not load in 25s'
-                  
-                  except PlaywrightTimeout:
-                      return 'timeout', 'Playwright timeout'
-                  except Exception as e:
-                      return 'error', str(e)[:100]
-
               def test_location(self, location_name, use_vpn=False):
                   print(f"\n{'='*60}")
                   print(f"Testing: {location_name}")
                   print(f"Method: {self.test_method.upper()}")
+                  if use_vpn:
+                      print("Proxy: SOCKS5 on localhost:1080")
                   print('='*60)
                   
-                  proxy = 'http://localhost:8888' if use_vpn else None
+                  proxy = 'socks5://localhost:1080' if use_vpn else None
                   
-                  # Verify location
                   sess = requests.Session()
                   if proxy:
-                      sess.proxies = {'http': proxy, 'https': proxy}
+                      sess.proxies = {'http': 'socks5h://localhost:1080', 'https': 'socks5h://localhost:1080'}
                   
                   print("\nVerifying connection...")
                   try:
@@ -536,16 +383,12 @@ jobs:
                       print(f"  City: {info.get('city')}")
                       print(f"  ISP: {info.get('org')}")
                   except Exception as e:
-                      print(f"  ❌ Location check failed: {e}")
-                      
-                      # FIXED: Fail for both direct and VPN if connection check fails
+                      print(f"  Connection check failed: {e}")
                       if use_vpn:
-                          print("  ⚠️  VPN connection verification failed, aborting VPN test")
+                          print("  Aborting VPN test")
                           return None
                       else:
-                          print("  ⚠️  Direct connection verification failed")
-                          print("  ⚠️  This indicates network issues on the runner")
-                          print("  ⚠️  Results will be unreliable, but continuing anyway...")
+                          print("  Continuing with direct test")
                       info = {}
                   
                   streams = self.get_filtered_streams()
@@ -557,9 +400,7 @@ jobs:
                   
                   print(f"\nTesting {len(streams)} streams...\n")
                   
-                  # Choose testing method
                   if self.test_method == 'ffprobe':
-                      # FFPROBE METHOD
                       for i, stream in enumerate(streams):
                           print(f"[{i+1}/{len(streams)}] {stream['name'][:45]}... ", end='', flush=True)
                           
@@ -570,7 +411,7 @@ jobs:
                               print("✅ OK")
                           elif result == 'geoblocked':
                               geoblocked.append(stream)
-                              print(f"🔒 GEO")
+                              print("🔒 GEO")
                           elif result == 'timeout':
                               failed.append(stream)
                               timeouts += 1
@@ -587,9 +428,9 @@ jobs:
                               failed.append(stream)
                               print(f"❌ {result.upper()}")
                           
-                          if error_msg and error_msg not in error_samples:
-                              error_samples[error_msg] = 0
                           if error_msg:
+                              if error_msg not in error_samples:
+                                  error_samples[error_msg] = 0
                               error_samples[error_msg] += 1
                           
                           time.sleep(0.2)
@@ -597,106 +438,6 @@ jobs:
                           if (i+1) % 20 == 0:
                               rate = (len(working)/(i+1)*100)
                               print(f"  Progress: {len(working)}/{i+1} ({rate:.1f}%)")
-                  
-                  elif self.test_method == 'browser':
-                      # BROWSER METHOD
-                      with sync_playwright() as p:
-                          browser = p.chromium.launch(headless=True)
-                          
-                          for i, stream in enumerate(streams):
-                              print(f"[{i+1}/{len(streams)}] {stream['name'][:40]}... ", end='', flush=True)
-                              
-                              result, error_msg = self.test_browser(browser, stream['url'], use_vpn)
-                              
-                              if result == 'working':
-                                  working.append(stream)
-                                  print("✅ OK")
-                              elif result == 'geoblocked':
-                                  geoblocked.append(stream)
-                                  print("🔒 GEO")
-                              elif result == 'timeout':
-                                  failed.append(stream)
-                                  timeouts += 1
-                                  print("⏱️  TIMEOUT")
-                              else:
-                                  failed.append(stream)
-                                  print(f"❌ {result.upper()}")
-                              
-                              if error_msg and error_msg not in error_samples:
-                                  error_samples[error_msg] = 0
-                              if error_msg:
-                                  error_samples[error_msg] += 1
-                              
-                              time.sleep(0.5)
-                              
-                              if (i+1) % 10 == 0:
-                                  rate = (len(working)/(i+1)*100)
-                                  print(f"  Progress: {len(working)}/{i+1} ({rate:.1f}%)")
-                          
-                          browser.close()
-                  
-                  elif self.test_method == 'hybrid':
-                      # HYBRID METHOD: ffprobe first, then browser verification
-                      print("Phase 1: Quick ffprobe scan...")
-                      suspicious = []
-                      
-                      for i, stream in enumerate(streams):
-                          result, error_msg = self.test_ffprobe(stream['url'], proxy)
-                          
-                          if result == 'working':
-                              working.append(stream)
-                          elif result == 'geoblocked':
-                              geoblocked.append(stream)
-                          else:
-                              suspicious.append((stream, error_msg))  # Store with error message
-                          
-                          if (i+1) % 50 == 0:
-                              print(f"  Scanned: {i+1}/{len(streams)}")
-                      
-                      print(f"\nPhase 1 complete: {len(working)} working, {len(geoblocked)} blocked, {len(suspicious)} suspicious")
-                      print(f"\nPhase 2: Browser verification of {min(len(suspicious), 50)} suspicious streams...")
-                      
-                      # Verify up to 50 suspicious streams with browser
-                      with sync_playwright() as p:
-                          browser = p.chromium.launch(headless=True)
-                          
-                          for i, (stream, ffprobe_error) in enumerate(suspicious[:50]):
-                              print(f"[{i+1}/{len(suspicious[:50])}] {stream['name'][:40]}... ", end='', flush=True)
-                              
-                              result, error_msg = self.test_browser(browser, stream['url'], use_vpn)
-                              
-                              if result == 'working':
-                                  working.append(stream)
-                                  print("✅ OK (browser)")
-                              elif result == 'geoblocked':
-                                  geoblocked.append(stream)
-                                  print("🔒 GEO (browser)")
-                              else:
-                                  failed.append(stream)
-                                  print(f"❌ {result.upper()}")
-                                  if error_msg:
-                                      if error_msg not in error_samples:
-                                          error_samples[error_msg] = 0
-                                      error_samples[error_msg] += 1
-                          
-                          browser.close()
-                      
-                      # FIXED: Handle remaining suspicious streams properly
-                      if len(suspicious) > 50:
-                          skipped_count = len(suspicious) - 50
-                          print(f"\n⚠️  {skipped_count} streams skipped browser verification (sample limit)")
-                          
-                          skip_msg = 'Skipped browser verification (sample limit)'
-                          error_samples[skip_msg] = skipped_count
-                          
-                          # Add skipped streams to failed with proper tracking
-                          for stream, ffprobe_error in suspicious[50:]:
-                              failed.append(stream)
-                              # Also track the original ffprobe error
-                              if ffprobe_error:
-                                  if ffprobe_error not in error_samples:
-                                      error_samples[ffprobe_error] = 0
-                                  error_samples[ffprobe_error] += 1
                   
                   total = len(streams)
                   success_rate = (len(working)/total*100) if total > 0 else 0
@@ -707,7 +448,7 @@ jobs:
                   print(f"  Failed: {len(failed)}")
                   
                   if error_samples:
-                      print(f"\n  Top Errors:")
+                      print("\n  Top Errors:")
                       for err_type, count in sorted(error_samples.items(), key=lambda x: x[1], reverse=True)[:5]:
                           print(f"    - {err_type[:60]}: {count}x")
                   
@@ -727,16 +468,11 @@ jobs:
                   duration = (time.time() - self.start_time) / 60
                   now = datetime.now(timezone.utc)
                   
-                  # Add current test to history
                   entry = {
                       'date': now.strftime('%Y-%m-%d %H:%M UTC'),
                       'country': COUNTRY,
                       'method': self.test_method,
                       'scope': self.test_scope,
-                      'ip': CONNECTED_IP,
-                      'city': CONNECTED_CITY,
-                      'isp': CONNECTED_ORG,
-                      'config': f"S:{SAMPLE_SIZE if SAMPLE_SIZE > 0 else 'All'},V:{CHECK_VODS},P:{CHECK_PPV},F:{CHECK_FAST}",
                       'duration_min': round(duration, 1),
                       'results': {}
                   }
@@ -755,14 +491,11 @@ jobs:
                   if len(self.history['tests']) > 100:
                       self.history['tests'] = self.history['tests'][-100:]
                   
-                  report = "# VPN Stream Test Report\n\n"
-                  report += f"**Last tested:** {COUNTRY}\n"
+                  report = "# Stream Test Report\n\n"
                   report += f"**Test method:** {self.test_method}\n"
                   report += f"**Test scope:** {self.test_scope}\n"
                   report += f"**Last update:** {now.strftime('%Y-%m-%d %H:%M UTC')}\n"
-                  report += f"**Test duration:** {duration:.1f} minutes\n"
-                  report += f"**Sample size:** {SAMPLE_SIZE if SAMPLE_SIZE > 0 else 'All streams'}\n"
-                  report += f"**Configuration:** VODs={'Yes' if CHECK_VODS else 'No'}, PPV={'Yes' if CHECK_PPV else 'No'}, FAST={'Yes' if CHECK_FAST else 'No'}\n\n"
+                  report += f"**Test duration:** {duration:.1f} minutes\n\n"
                   
                   report += "## Latest Test Results\n\n"
                   report += "| Location | Working | Geo-blocked | Failed | Total | Success Rate |\n"
@@ -778,15 +511,6 @@ jobs:
                   
                   report += "\n"
                   
-                  # VPN connection details only if VPN was tested
-                  if 'vpn' in self.results:
-                      report += "## VPN Connection Details\n\n"
-                      report += f"- **Country:** {CONNECTED_COUNTRY}\n"
-                      report += f"- **City:** {CONNECTED_CITY}\n"
-                      report += f"- **IP:** {CONNECTED_IP}\n"
-                      report += f"- **ISP:** {CONNECTED_ORG}\n\n"
-                  
-                  # Error analysis for the tested connection
                   test_type = 'vpn' if 'vpn' in self.results else 'direct'
                   if test_type in self.results and self.results[test_type].get('error_samples'):
                       report += "## Error Analysis\n\n"
@@ -795,81 +519,32 @@ jobs:
                           report += f"- **{err}**: {count} occurrences\n"
                       report += "\n"
                   
-                  if 'direct' in self.results and 'vpn' in self.results:
-                      vpn_improvement = self.results['vpn']['rate'] - self.results['direct']['rate']
-                      report += f"**VPN Impact:** {vpn_improvement:+.1f}% vs direct connection\n\n"
-                  
-                  # Working streams
-                  if test_type in self.results and self.results[test_type]['working']:
-                      title = f"Working Streams via {COUNTRY} VPN" if test_type == 'vpn' else "Working Streams (Direct)"
-                      report += f"## {title} ({len(self.results[test_type]['working'])} total)\n\n"
-                      
-                      by_group = {}
-                      for stream in self.results[test_type]['working']:
-                          group = stream.get('group', 'Unknown')
-                          if group not in by_group:
-                              by_group[group] = []
-                          by_group[group].append(stream['name'])
-                      
-                      for group in sorted(by_group.keys())[:10]:
-                          streams = by_group[group]
-                          report += f"**{group}** ({len(streams)})\n"
-                          for name in streams[:5]:
-                              report += f"- {name}\n"
-                          if len(streams) > 5:
-                              report += f"- ... and {len(streams)-5} more\n"
-                          report += "\n"
-                  
-                  next_country = "US" if COUNTRY == "UK" else "UK"
-                  report += "## Next Test\n\n"
-                  if self.test_scope == 'direct_and_vpn':
-                      report += f"Next automatic test will use **{next_country} VPN**\n\n"
-                  else:
-                      report += f"Testing in direct-only mode. Next VPN test would use **{next_country}**\n\n"
-                  
                   report += "---\n"
-                  report += f"*Report generated at {now.strftime('%Y-%m-%d %H:%M UTC')}*\n"
-                  report += f"*Test method: {self.test_method} | Scope: {self.test_scope}*\n\n"
+                  report += f"*Generated at {now.strftime('%Y-%m-%d %H:%M UTC')}*\n\n"
                   
-                  # Save history as JSON in HTML comment
                   report += "<!-- HISTORY\n"
                   report += json.dumps(self.history, indent=2)
                   report += "\n-->\n"
-                  
-                  return reportd US ProtonVPN*\n\n"
-                  
-                  # CRITICAL FIX: Save history as JSON in HTML comment
-                  report += f"<!-- HISTORY\n{json.dumps(self.history, indent=2)}\n-->\n"
                   
                   return report
 
               def run(self):
                   print(f"{'='*60}")
-                  print(f"Unified VPN Stream Test")
-                  print(f"Test Scope: {self.test_scope.upper()}")
-                  print(f"Testing: {COUNTRY} VPN" if self.test_scope == 'direct_and_vpn' else "Direct Connection Only")
-                  print(f"Method: {self.test_method.upper()}")
+                  print(f"Stream Test - Scope: {self.test_scope}")
+                  print(f"Method: {self.test_method}")
                   print(f"{'='*60}\n")
                   
-                  if self.test_method == 'browser':
-                      print("⚠️  Browser method is slower but more accurate")
-                  elif self.test_method == 'hybrid':
-                      print("⚠️  Hybrid: Fast ffprobe scan + browser verification")
-                  
-                  # Test direct
                   direct = self.test_location("Direct Connection", use_vpn=False)
                   if direct:
                       self.results['direct'] = direct
                   
-                  # Test VPN only if scope is direct_and_vpn
                   if self.test_scope == 'direct_and_vpn':
                       vpn = self.test_location(f"{COUNTRY} ProtonVPN", use_vpn=True)
                       if vpn:
                           self.results['vpn'] = vpn
                   else:
-                      print("\n⚠️  Skipping VPN test (direct_only mode)")
+                      print("\nSkipping VPN test (direct_only mode)")
                   
-                  # Generate report
                   print("\nGenerating report...")
                   report = self.generate_report()
                   
@@ -877,16 +552,7 @@ jobs:
                       f.write(report)
                   
                   duration = (time.time() - self.start_time) / 60
-                  print(f"\n{'='*60}")
-                  print(f"Test Complete - {duration:.1f} minutes")
-                  print(f"Method: {self.test_method}")
-                  print(f"Scope: {self.test_scope}")
-                  print('='*60)
-                  
-                  for location, data in self.results.items():
-                      loc_name = f"{COUNTRY} VPN" if location == 'vpn' else "Direct"
-                      total = len(data['working']) + len(data['geoblocked']) + len(data['failed'])
-                      print(f"{loc_name:20}: {len(data['working'])}/{total} ({data['rate']:.1f}%)")
+                  print(f"\nTest Complete - {duration:.1f} minutes")
 
           tester = UnifiedVPNTester()
           tester.run()
@@ -907,10 +573,7 @@ jobs:
           if [[ -f "report.md" ]]; then
             git add report.md
             
-            # FIXED: Use dynamic branch name instead of hardcoded 'main'
             BRANCH="${{ github.ref_name }}"
-            
-            # Fetch and attempt a fast-forward merge (safe)
             git fetch origin "$BRANCH"
             git merge "origin/$BRANCH" --ff-only || true
             

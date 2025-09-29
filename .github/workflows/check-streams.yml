@@ -831,7 +831,7 @@ jobs:
                   report += f"*Report generated at {now.strftime('%Y-%m-%d %H:%M UTC')}*\n"
                   report += f"*Test method: {self.test_method} | Scope: {self.test_scope} | Auto-alternates between UK and US ProtonVPN*\n\n"
                   
-                  # CRITICAL FIX: Save history as JSON in HTML comment
+                  # Save history as JSON in HTML comment
                   report += f"<!-- HISTORY\n{json.dumps(self.history, indent=2)}\n-->\n"
                   
                   return reportd US ProtonVPN*\n\n"

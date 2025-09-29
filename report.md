@@ -2,8 +2,8 @@
 
 **Test method:** ffprobe
 **Test scope:** direct_and_vpn
-**Last update:** 2025-09-29 18:48 UTC
-**Test duration:** 20.4 minutes
+**Last update:** 2025-09-29 19:45 UTC
+**Test duration:** 16.2 minutes
 
 ## Latest Test Results
 
@@ -14,18 +14,18 @@
 ## Error Analysis
 
 - **HTTP 403 Forbidden**: 340 occurrences
-- **Connection refused**: 62 occurrences
-- **Server error (5xx)**: 32 occurrences
+- **Connection refused**: 63 occurrences
+- **Server error (5xx)**: 30 occurrences
 - **HTTP 404 Not Found**: 9 occurrences
-- **Process timeout (60s)**: 2 occurrences
+- **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0cdovlzizljizny4xmdqumta2ojgwodavvvnb**: 2 occurrences
 - **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly9hmxhzlnzpcc8zmdawmdkilcaiawqi**: 1 occurrences
 - **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly9hmxhzlnzpcc80mdawmdazmcisicjp**: 1 occurrences
 - **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly9hmxhzlnzpcc8zmdawmdgilcaiawqi**: 1 occurrences
-- **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly9hmxhzlnzpcc80mdawmda2iiwgimlk**: 1 occurrences
-- **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0cdovlzizljizny4xmdqumta2ojgwodavvvnb**: 1 occurrences
+- **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly9jdnr2lmn2ywxszxkubmv0l2hscy9x**: 1 occurrences
+- **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly9hmxhzlnzpcc80mdawmda0myisicjp**: 1 occurrences
 
 ---
-*Generated at 2025-09-29 18:48 UTC*
+*Generated at 2025-09-29 19:45 UTC*
 
 <!-- HISTORY
 {
@@ -247,6 +247,22 @@
       "method": "ffprobe",
       "scope": "direct_and_vpn",
       "duration_min": 20.4,
+      "results": {
+        "direct": {
+          "working": 120,
+          "geoblocked": 340,
+          "failed": 112,
+          "total": 572,
+          "rate": 20.97902097902098
+        }
+      }
+    },
+    {
+      "date": "2025-09-29 19:45 UTC",
+      "country": "US",
+      "method": "ffprobe",
+      "scope": "direct_and_vpn",
+      "duration_min": 16.2,
       "results": {
         "direct": {
           "working": 120,

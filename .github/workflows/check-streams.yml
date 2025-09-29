@@ -193,13 +193,13 @@ jobs:
                       subprocess.run(['docker', 'stop', 'gluetun'], capture_output=True, timeout=30)
                       subprocess.run(['docker', 'rm', 'gluetun'], capture_output=True, timeout=10)
                       print("Old container removed")
-                      time.sleep(3)
+                      time.sleep(5)
                       
                       # Get credentials
                       vpn_user = os.environ.get('VPN_USER', '')
                       vpn_password = os.environ.get('VPN_PASSWORD', '')
                       
-                      # Start new container
+                      # Start new container with longer health check times
                       cmd = [
                           'docker', 'run', '-d',
                           '--name', 'gluetun',
@@ -211,6 +211,8 @@ jobs:
                           '-e', f'OPENVPN_USER={vpn_user}',
                           '-e', f'OPENVPN_PASSWORD={vpn_password}',
                           '-e', f'SERVER_COUNTRIES={country_name}',
+                          '-e', 'HEALTH_VPN_DURATION_INITIAL=60s',
+                          '-e', 'HEALTH_SUCCESS_WAIT_DURATION=30s',
                           '-e', 'LOG_LEVEL=info',
                           '-e', 'HTTPPROXY=on',
                           '-e', 'HTTPPROXY_LISTENING_ADDRESS=:8888',
@@ -224,16 +226,32 @@ jobs:
                           return False
                       
                       print(f"Container started, waiting for VPN connection...")
+                      print("(This can take 2-3 minutes for VPN to establish)")
                       
-                      # Wait for VPN to connect
-                      for attempt in range(20):
+                      # Wait for VPN to connect - increased attempts and better checking
+                      for attempt in range(24):  # 6 minutes total (24 × 15s)
                           time.sleep(15)
-                          print(f"  Connection check {attempt+1}/20...")
+                          
+                          # Check container logs every few attempts
+                          if attempt % 3 == 0:
+                              logs_result = subprocess.run(['docker', 'logs', '--tail', '5', 'gluetun'], 
+                                                         capture_output=True, text=True, timeout=10)
+                              logs = logs_result.stdout.lower()
+                              
+                              if 'error' in logs or 'failed' in logs:
+                                  print(f"  ⚠️ Error in logs (attempt {attempt+1}/24)")
+                                  print(f"  Last log lines: {logs_result.stdout[-200:]}")
+                              elif 'connected' in logs or 'vpn is up' in logs:
+                                  print(f"  ✅ VPN connection detected in logs (attempt {attempt+1}/24)")
+                              else:
+                                  print(f"  ⏳ Waiting for connection... (attempt {attempt+1}/24)")
+                          else:
+                              print(f"  Checking proxy... (attempt {attempt+1}/24)")
                           
                           try:
                               session = requests.Session()
                               session.proxies = {'http': 'http://localhost:8888', 'https': 'http://localhost:8888'}
-                              response = session.get('https://ipinfo.io/json', timeout=10)
+                              response = session.get('https://ipinfo.io/json', timeout=12)
                               
                               if response.status_code == 200:
                                   data = response.json()
@@ -244,17 +262,32 @@ jobs:
                                   print(f"  Connected: {current_country} - {ip}")
                                   print(f"  ISP: {org}")
                                   
-                                  if 'proton' in org.lower() or current_country == country_code.upper():
+                                  # Accept any ProtonVPN connection
+                                  if 'proton' in org.lower():
+                                      print(f"✅ ProtonVPN ready (connected to {current_country})!")
+                                      return True
+                                  elif current_country == country_code.upper():
                                       print(f"✅ {country_code.upper()} VPN ready!")
                                       return True
-                          except:
-                              pass
+                                  else:
+                                      print(f"  ⚠️ Connected but not through ProtonVPN or target country")
+                          except Exception as e:
+                              if attempt % 3 == 0:
+                                  print(f"  Proxy not ready yet: {str(e)[:50]}")
                       
-                      print(f"❌ Failed to connect to {country_code.upper()} VPN")
+                      # Final check of logs before giving up
+                      print("\n❌ Connection timeout - checking final logs:")
+                      logs_result = subprocess.run(['docker', 'logs', '--tail', '30', 'gluetun'], 
+                                                 capture_output=True, text=True, timeout=10)
+                      print(logs_result.stdout[-500:])
+                      
+                      print(f"❌ Failed to connect to {country_code.upper()} VPN after 6 minutes")
                       return False
                       
                   except Exception as e:
                       print(f"Error restarting container: {e}")
+                      import traceback
+                      traceback.print_exc()
                       return False
 
               def is_vod_url(self, url):

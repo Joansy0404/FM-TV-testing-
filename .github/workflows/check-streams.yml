@@ -353,46 +353,79 @@ jobs:
                       context = browser.new_context(**context_options)
                       page = context.new_page()
                       
+                      # Set longer page timeout
+                      page.set_default_timeout(25000)  # 25 seconds
+                      
                       html_content = f'''
                       <!DOCTYPE html>
                       <html>
                       <head>
-                          <link href="https://vjs.zencdn.net/8.6.1/video-js.css" rel="stylesheet" />
-                          <script src="https://vjs.zencdn.net/8.6.1/video.min.js"></script>
+                          <style>body {{ margin: 0; background: #000; }}</style>
                       </head>
                       <body>
-                          <video id="player" class="video-js" controls preload="auto" width="640" height="360">
-                              <source src="{url}" type="application/x-mpegURL">
-                          </video>
-                          <div id="status">Loading...</div>
+                          <video id="player" width="640" height="360" controls autoplay muted></video>
+                          <div id="status">loading</div>
                           <script>
-                              var player = videojs('player');
+                              var video = document.getElementById('player');
                               var status = document.getElementById('status');
+                              var startTime = Date.now();
                               
-                              player.ready(function() {{
-                                  setTimeout(function() {{
-                                      player.play().then(function() {{
-                                          status.textContent = 'playing';
-                                      }}).catch(function(err) {{
-                                          status.textContent = 'play_error: ' + err.message;
-                                      }});
-                                  }}, 1000);
+                              // Try to load the stream
+                              video.src = "{url}";
+                              
+                              video.addEventListener('loadstart', function() {{
+                                  console.log('Load started');
+                                  status.textContent = 'loadstart';
                               }});
                               
-                              player.on('error', function(e) {{
-                                  var error = player.error();
-                                  if (error) {{
-                                      status.textContent = 'error: ' + error.code + ' - ' + error.message;
-                                  }}
+                              video.addEventListener('loadedmetadata', function() {{
+                                  console.log('Metadata loaded');
+                                  status.textContent = 'metadata_loaded';
                               }});
                               
-                              player.on('canplay', function() {{
+                              video.addEventListener('loadeddata', function() {{
+                                  console.log('Data loaded');
+                                  status.textContent = 'data_loaded';
+                              }});
+                              
+                              video.addEventListener('canplay', function() {{
+                                  console.log('Can play');
                                   status.textContent = 'can_play';
                               }});
                               
-                              player.on('playing', function() {{
+                              video.addEventListener('playing', function() {{
+                                  console.log('Playing');
                                   status.textContent = 'playing';
                               }});
+                              
+                              video.addEventListener('error', function(e) {{
+                                  console.error('Video error:', e);
+                                  var err = video.error;
+                                  if (err) {{
+                                      var code = err.code;
+                                      var msg = err.message || '';
+                                      
+                                      // Try to extract HTTP error codes from message
+                                      if (msg.includes('403') || code === 2) {{
+                                          status.textContent = 'error_403';
+                                      }} else if (msg.includes('404') || code === 4) {{
+                                          status.textContent = 'error_404';
+                                      }} else if (msg.includes('401')) {{
+                                          status.textContent = 'error_401';
+                                      }} else {{
+                                          status.textContent = 'error_' + code + '_' + msg.substring(0, 50);
+                                      }}
+                                  }} else {{
+                                      status.textContent = 'error_unknown';
+                                  }}
+                              }});
+                              
+                              // Timeout after 20 seconds if nothing happens
+                              setTimeout(function() {{
+                                  if (status.textContent === 'loading' || status.textContent === 'loadstart') {{
+                                      status.textContent = 'timeout';
+                                  }}
+                              }}, 20000);
                           </script>
                       </body>
                       </html>
@@ -400,30 +433,48 @@ jobs:
                       
                       page.set_content(html_content)
                       
-                      for i in range(30):  # 15 seconds total
+                      # Wait up to 25 seconds for the stream to start or error
+                      max_checks = 50  # 25 seconds (0.5s * 50)
+                      for i in range(max_checks):
                           time.sleep(0.5)
-                          status = page.evaluate('document.getElementById("status").textContent')
                           
-                          if 'playing' in status or 'can_play' in status:
+                          try:
+                              status = page.evaluate('document.getElementById("status").textContent')
+                          except Exception:
+                              # Page might have crashed
                               context.close()
-                              return 'working', 'Stream playable'
+                              return 'error', 'Page evaluation failed'
                           
-                          if 'error' in status:
-                              error_msg = status.replace('error: ', '')
+                          # Success states
+                          if status in ['playing', 'can_play', 'data_loaded', 'metadata_loaded']:
+                              context.close()
+                              return 'working', f'Stream playable ({status})'
+                          
+                          # Error states
+                          if status.startswith('error_'):
                               context.close()
                               
-                              if '403' in error_msg or 'forbidden' in error_msg.lower():
+                              if '403' in status:
                                   return 'geoblocked', 'HTTP 403 Forbidden'
-                              elif '404' in error_msg:
+                              elif '404' in status:
                                   return 'failed', 'HTTP 404 Not Found'
-                              elif '401' in error_msg or 'unauthorized' in error_msg.lower():
+                              elif '401' in status:
                                   return 'geoblocked', 'HTTP 401 Unauthorized'
                               else:
-                                  return 'failed', error_msg[:100]
+                                  error_detail = status.replace('error_', '')[:80]
+                                  return 'failed', f'Video error: {error_detail}'
+                          
+                          # Explicit timeout
+                          if status == 'timeout':
+                              context.close()
+                              return 'timeout', 'No response in 20s'
                       
+                      # If we got here, we ran out of checks
                       context.close()
-                      return 'timeout', 'Stream did not load in 15s'
+                      return 'timeout', 'Stream did not load in 25s'
                   
+                  except PlaywrightTimeout:
+                      return 'timeout', 'Playwright timeout'
                   except Exception as e:
                       return 'error', str(e)[:100]
 

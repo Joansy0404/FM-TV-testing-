@@ -195,12 +195,18 @@ jobs:
                       print("Old container removed")
                       time.sleep(5)
                       
-                      # Get credentials directly from os.environ
-                      vpn_user = os.environ.get('VPN_USER', '')
-                      vpn_password = os.environ.get('VPN_PASSWORD', '')
+                      # Get credentials from temporary files
+                      try:
+                          with open('/tmp/vpn_user.txt', 'r') as f:
+                              vpn_user = f.read().strip()
+                          with open('/tmp/vpn_pass.txt', 'r') as f:
+                              vpn_password = f.read().strip()
+                      except FileNotFoundError:
+                          print("❌ VPN credential files not found")
+                          return False
                       
                       if not vpn_user or not vpn_password:
-                          print("❌ VPN credentials not available in environment")
+                          print("❌ VPN credentials are empty")
                           print(f"VPN_USER present: {bool(vpn_user)}")
                           print(f"VPN_PASSWORD present: {bool(vpn_password)}")
                           return False

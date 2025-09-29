@@ -87,7 +87,7 @@ jobs:
             -e VPN_SERVICE_PROVIDER=protonvpn \
             -e OPENVPN_USER="${{ secrets.VPN_USER }}" \
             -e OPENVPN_PASSWORD="${{ secrets.VPN_PASSWORD }}" \
-            -e SERVER_COUNTRIES=us \
+            -e SERVER_COUNTRIES="United States" \
             -e HEALTH_VPN_DURATION_INITIAL=30s \
             -e HEALTH_SUCCESS_WAIT_DURATION=15s \
             -e LOG_LEVEL=info \
@@ -164,7 +164,7 @@ jobs:
                   self.streams_sample = None
                   self.vpn_available = not SKIP_VPN
                   
-                  # ProtonVPN specific country mappings
+                  # ProtonVPN country mappings for Gluetun (uses full country names)
                   self.proton_countries = {
                       'us': 'United States',
                       'uk': 'United Kingdom', 
@@ -321,8 +321,11 @@ jobs:
                   if not self.vpn_available:
                       return False
                       
+                  # Convert country code to full name for Gluetun
+                  full_country_name = self.proton_countries.get(target_country, target_country)
+                      
                   try:
-                      print(f"Changing VPN to {target_country.upper()}...")
+                      print(f"Changing VPN to {target_country.upper()} ({full_country_name})...")
                       
                       # Stop current VPN
                       stop_response = requests.post("http://localhost:8000/v1/openvpn/stop", timeout=10)
@@ -333,9 +336,9 @@ jobs:
                       
                       time.sleep(5)
                       
-                      # Update country settings
+                      # Update country settings with full country name
                       settings_payload = {
-                          "server_countries": [target_country]
+                          "server_countries": [full_country_name]
                       }
                       
                       settings_response = requests.put(
@@ -345,7 +348,7 @@ jobs:
                       )
                       
                       if settings_response.status_code == 200:
-                          print(f"Country setting updated to {target_country}")
+                          print(f"Country setting updated to {full_country_name}")
                       else:
                           print(f"Settings update failed: {settings_response.status_code}")
                           print(f"Response: {settings_response.text}")

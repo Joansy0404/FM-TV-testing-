@@ -304,81 +304,91 @@ jobs:
                   return filtered
 
               def test_ffprobe(self, url, proxy=None):
-                  # Deep analysis for maximum accuracy
-                  # Probe more data to catch streams that take time to initialize
-                  if proxy:
-                      # VPN: very generous settings due to latency
-                      timeout_ms = '40000000'  # 40s
-                      analyze_duration = '15000000'  # 15s
-                      probe_size = '15000000'  # 15MB
-                      subprocess_timeout = 90
-                  else:
-                      # Direct: thorough but reasonable
-                      timeout_ms = '30000000'  # 30s
-                      analyze_duration = '10000000'  # 10s
-                      probe_size = '10000000'  # 10MB
-                      subprocess_timeout = 60
+                  """Test stream with retry mechanism and packet counting for accuracy"""
+                  max_retries = 3
                   
-                  cmd = ['ffprobe', '-v', 'error', 
-                         '-select_streams', 'v:0',  # Only check video stream
-                         '-show_entries', 'format=duration', 
-                         '-of', 'default=noprint_wrappers=1:nokey=1', 
-                         '-timeout', timeout_ms, 
-                         '-analyzeduration', analyze_duration, 
-                         '-probesize', probe_size]
+                  # Use packet counting instead of duration metadata
+                  # More reliable for live/chunked streams
+                  base_cmd = [
+                      'ffprobe', '-v', 'error',
+                      '-select_streams', 'v:0',  # Only video stream
+                      '-show_entries', 'stream=nb_read_packets',
+                      '-count_packets',
+                      '-of', 'default=noprint_wrappers=1:nokey=1',
+                      '-timeout', '30000000',  # 30s I/O timeout
+                      '-analyzeduration', '10000000',  # 10s
+                      '-probesize', '10000000'  # 10MB
+                  ]
                   
+                  env = os.environ.copy() if proxy else None
                   if proxy:
-                      env = os.environ.copy()
                       env['ALL_PROXY'] = 'socks5://localhost:1080'
                       env['all_proxy'] = 'socks5://localhost:1080'
-                      cmd.append(url)
-                  else:
-                      env = None
-                      cmd.append(url)
                   
-                  try:
-                      result = subprocess.run(cmd, capture_output=True, text=True, 
-                                            timeout=subprocess_timeout, env=env)
+                  for attempt in range(max_retries):
+                      cmd = base_cmd + [url]
                       
-                      if result.returncode == 0:
-                          return 'working', None
+                      try:
+                          result = subprocess.run(cmd, capture_output=True, text=True, 
+                                                timeout=60, env=env)
+                          
+                          # Success: got packet count > 0
+                          if result.returncode == 0:
+                              output = result.stdout.strip()
+                              if output.isdigit() and int(output) > 0:
+                                  return 'working', None
+                          
+                          # Retry if not last attempt
+                          if attempt < max_retries - 1:
+                              time.sleep(3)
+                              continue
+                          
+                          # Final attempt failed - parse error
+                          err = result.stderr.lower()
+                          
+                          if '403' in err or 'forbidden' in err:
+                              return 'geoblocked', 'HTTP 403 Forbidden'
+                          if '401' in err or 'unauthorized' in err:
+                              return 'geoblocked', 'HTTP 401 Unauthorized'
+                          if '451' in err:
+                              return 'geoblocked', 'HTTP 451 Legal/Geo Restriction'
+                          if '404' in err or 'not found' in err:
+                              return 'notfound', 'HTTP 404 Not Found'
+                          if '400' in err or 'bad request' in err:
+                              return 'failed', 'HTTP 400 Bad Request'
+                          if '406' in err or 'not acceptable' in err:
+                              return 'failed', 'HTTP 406 Not Acceptable'
+                          if '410' in err or 'gone' in err:
+                              return 'failed', 'HTTP 410 Gone'
+                          if 'connection refused' in err or 'could not connect' in err or 'no route to host' in err:
+                              return 'connection_error', 'Connection refused/failed'
+                          if 'socks' in err or 'proxy' in err or 'tunnel' in err:
+                              return 'proxy_error', 'SOCKS5 proxy error'
+                          if 'timed out' in err or 'timeout' in err:
+                              return 'timeout', 'Connection timeout'
+                          if 'ssl' in err or 'certificate' in err or 'tls' in err:
+                              return 'failed', 'SSL/TLS error'
+                          if 'invalid data' in err or 'invalid' in err:
+                              return 'failed', 'Invalid stream data'
+                          if 'server returned' in err and '5' in err:
+                              return 'failed', 'Server error (5xx)'
+                          
+                          first_error = err.split('\n')[0][:100] if err else 'Unknown error'
+                          return 'failed', first_error
                       
-                      err = result.stderr.lower()
+                      except subprocess.TimeoutExpired:
+                          if attempt < max_retries - 1:
+                              time.sleep(3)
+                              continue
+                          return 'timeout', 'Probe timeout (60s)'
                       
-                      if '403' in err or 'forbidden' in err:
-                          return 'geoblocked', 'HTTP 403 Forbidden'
-                      if '401' in err or 'unauthorized' in err:
-                          return 'geoblocked', 'HTTP 401 Unauthorized'
-                      if '451' in err:
-                          return 'geoblocked', 'HTTP 451 Legal/Geo Restriction'
-                      if '404' in err or 'not found' in err:
-                          return 'notfound', 'HTTP 404 Not Found'
-                      if '400' in err or 'bad request' in err:
-                          return 'failed', 'HTTP 400 Bad Request'
-                      if '406' in err or 'not acceptable' in err:
-                          return 'failed', 'HTTP 406 Not Acceptable'
-                      if '410' in err or 'gone' in err:
-                          return 'failed', 'HTTP 410 Gone'
-                      if 'connection refused' in err or 'could not connect' in err:
-                          return 'connection_error', 'Connection refused'
-                      if 'socks' in err or 'proxy' in err or 'tunnel' in err:
-                          return 'proxy_error', 'SOCKS5 proxy error'
-                      if 'timed out' in err or 'timeout' in err:
-                          return 'timeout', 'Connection timeout'
-                      if 'ssl' in err or 'certificate' in err or 'tls' in err:
-                          return 'failed', 'SSL/TLS error'
-                      if 'invalid data' in err or 'invalid' in err:
-                          return 'failed', 'Invalid stream data'
-                      if 'server returned' in err and '5' in err:
-                          return 'failed', 'Server error (5xx)'
-                      
-                      first_error = err.split('\n')[0][:100] if err else 'Unknown error'
-                      return 'failed', first_error
+                      except Exception as e:
+                          if attempt < max_retries - 1:
+                              time.sleep(3)
+                              continue
+                          return 'error', str(e)[:100]
                   
-                  except subprocess.TimeoutExpired:
-                      return 'timeout', f'Process timeout ({subprocess_timeout}s)'
-                  except Exception as e:
-                      return 'error', str(e)[:100]
+                  return 'failed', 'Max retries reached'
 
               def test_location(self, location_name, use_vpn=False):
                   print(f"\n{'='*60}")

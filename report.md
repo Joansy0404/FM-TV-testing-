@@ -1,82 +1,84 @@
-# Auto-Alternating VPN Stream Test Report
+# VPN Stream Test Report
 
 **Last tested:** UK
-**Last update:** 2025-09-29 07:40 UTC
-**Test duration:** 25.4 minutes
-**Sample size:** All streams
+**Test method:** ffprobe
+**Last update:** 2025-09-29 08:42 UTC
+**Test duration:** 12.0 minutes
+**Sample size:** 100
 **Configuration:** VODs=No, PPV=No, FAST=No
-**Total historical tests:** 3
 
 ## Latest Test Results
 
-| Location | Working | Geo-blocked | Failed | Total | Success Rate | Timeouts | Conn Errors | Proxy Errors |
-|----------|---------|-------------|--------|-------|--------------|----------|-------------|-------------|
-| Direct | 116 | 330 | 116 | 562 | **20.6%** | 0 | 63 | 0 |
-| UK VPN | 40 | 328 | 194 | 562 | **7.1%** | 0 | 0 | 0 |
+| Location | Working | Geo-blocked | Failed | Total | Success Rate |
+|----------|---------|-------------|--------|-------|--------------|
+| Direct | 73 | 2 | 25 | 100 | **73.0%** |
+| UK VPN | 25 | 0 | 75 | 100 | **25.0%** |
 
 ## VPN Connection Details
 
 - **Country:** GB
 - **City:** London
-- **IP:** 146.70.179.109
-- **ISP:** AS9009 M247 Europe SRL
+- **IP:** 149.50.209.148
+- **ISP:** AS212238 Datacamp Limited
 
-## Historical Performance
+## Error Analysis
 
-**UK VPN** (3 tests)
-- Average: 2.4%
-- Latest: 7.1%
-- Range: 0.0% - 7.1%
+- **SSL/TLS error**: 39 occurrences
+- **Unknown error**: 29 occurrences
+- **HTTP 404 Not Found**: 3 occurrences
+- **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0cdovlzg0lje3lju1lje4ntoxnda3mi8ilcai**: 1 occurrences
+- **Connection timeout**: 1 occurrences
+- **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly9obhmubxnrewnkbi5vbmxpbmuvdhyv**: 1 occurrences
+- **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0cdovlze4ns45os4xmzyunta6otk4ms9zdhjl**: 1 occurrences
 
-**Latest VPN Impact:** -13.5% vs direct connection
+**VPN Impact:** -48.0% vs direct connection
 
-## Recent Test History
+## Working Streams via VPN (25 total)
 
-| Date | Country | VPN Success | Direct Success | Impact | Duration |
-|------|---------|-------------|----------------|--------|----------|
-| 2025-09-29 06:24 UTC | UK | 0.0% | 18.5% | -18.5% | 18.8min |
-| 2025-09-29 07:01 UTC | UK | 0.0% | 20.3% | -20.3% | 17.4min |
-| 2025-09-29 07:40 UTC | UK | 7.1% | 20.6% | -13.5% | 25.4min |
+**AE** (1)
+- MBC ACTION
 
-## Working Streams Sample (40 total)
+**AR** (2)
+- 5TV CORRIENTES
+- CADENA 103
 
-**UK** (12)
-- 5 USA
-- BBC ALBA
-- BBC PARLIAMENT
-- DMAX
+**AUS** (1)
+- FOX SPORTS 501
+
+**IE** (2)
+- PREMIER SPORTS 1
+- RTÈ ONE
+
+**NZ** (1)
+- SKY SPORT 9
+
+**UK** (6)
+- SKY CINEMA SCI-FI HORROR
+- NATIONAL GEOGRAPHIC
 - E4
-- ... and 7 more
+- TOGETHER TV
+- SKY WITNESS
+- ... and 1 more
 
-**USA** (28)
-- ABC
+**USA** (10)
+- CINEMAX HITS
 - AMC (EAST)
-- BIG TEN NETWORK
-- BOOMERANG
-- BUZZR
-- ... and 23 more
+- LIFETIME MOVIE NETWORK (EAST)
+- IFC
+- MSG
+- ... and 5 more
 
-## Geo-blocked Streams (328)
-
-- QUEST+1 (UK)
-- QVC (UK)
-- QVC BEAUTY (UK)
-- QVC EXTRA (UK)
-- QVC STYLE (UK)
-- RACING TV (UK)
-- REALLY (UK)
-- S4C (UK)
-- SKY ARTS (UK)
-- SKY ATLANTIC (UK)
-- ... and 318 more
+**ZA** (2)
+- SUPERSPORT GRANDSTAND
+- SUPERSPORT VARIETY 1
 
 ## Next Test
 
 Next automatic test will use **US VPN**
 
 ---
-*Report generated at 2025-09-29 07:40 UTC*
-*Auto-alternates between UK and US ProtonVPN using ffprobe validation*
+*Report generated at 2025-09-29 08:42 UTC*
+*Test method: ffprobe | Auto-alternates between UK and US ProtonVPN*
 
 <!-- HISTORY
 {
@@ -163,6 +165,32 @@ Next automatic test will use **US VPN**
           "timeouts": 0,
           "connection_errors": 0,
           "proxy_errors": 0
+        }
+      }
+    },
+    {
+      "date": "2025-09-29 08:42 UTC",
+      "country": "UK",
+      "method": "ffprobe",
+      "ip": "149.50.209.148",
+      "city": "London",
+      "isp": "AS212238 Datacamp Limited",
+      "config": "S:100,V:False,P:False,F:False",
+      "duration_min": 12.0,
+      "results": {
+        "direct": {
+          "working": 73,
+          "geoblocked": 2,
+          "failed": 25,
+          "total": 100,
+          "rate": 73.0
+        },
+        "vpn": {
+          "working": 25,
+          "geoblocked": 0,
+          "failed": 75,
+          "total": 100,
+          "rate": 25.0
         }
       }
     }

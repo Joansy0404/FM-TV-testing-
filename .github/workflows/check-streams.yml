@@ -19,18 +19,18 @@ on:
         default: false
         type: boolean
       check_fast:
-        description: 'Check FAST channels (Free Ad-Supported TV)'
+        description: 'Check FAST channels'
         required: false
         default: false
         type: boolean
   schedule:
-    - cron: '15 1,7,13,19 * * *'  # Every 6 hours
+    - cron: '15 1,7,13,19 * * *'
 
 permissions:
   contents: write
 
 jobs:
-  vpn-stream-test:
+  vpn-test:
     runs-on: ubuntu-latest
     timeout-minutes: 90
 
@@ -51,31 +51,26 @@ jobs:
           sudo apt-get install -y ffmpeg
           ffprobe -version
 
-      - name: Determine which country to test
+      - name: Determine VPN country
         run: |
           if [ -f "report.md" ]; then
-            LAST_COUNTRY=$(grep -oP "Last tested: \K(UK|US)" report.md | head -1 || echo "US")
+            LAST=$(grep -oP "Last tested: \K(UK|US)" report.md | head -1 || echo "US")
           else
-            LAST_COUNTRY="US"
+            LAST="US"
           fi
           
-          if [ "$LAST_COUNTRY" = "UK" ]; then
-            COUNTRY_CODE="us"
-            COUNTRY_NAME="United States"
+          if [ "$LAST" = "UK" ]; then
+            echo "COUNTRY_CODE=us" >> $GITHUB_ENV
+            echo "COUNTRY_NAME=United States" >> $GITHUB_ENV
           else
-            COUNTRY_CODE="uk"
-            COUNTRY_NAME="United Kingdom"
+            echo "COUNTRY_CODE=uk" >> $GITHUB_ENV
+            echo "COUNTRY_NAME=United Kingdom" >> $GITHUB_ENV
           fi
-          
-          echo "COUNTRY_CODE=$COUNTRY_CODE" >> $GITHUB_ENV
-          echo "COUNTRY_NAME=$COUNTRY_NAME" >> $GITHUB_ENV
-          echo "Testing $COUNTRY_NAME (premium servers)"
+          echo "Testing $COUNTRY_NAME"
 
       - name: Start VPN
         run: |
-          echo "Starting ${{ env.COUNTRY_NAME }} VPN..."
           docker network create vpn-network || true
-          
           docker run -d \
             --name gluetun \
             --cap-add=NET_ADMIN \
@@ -93,14 +88,13 @@ jobs:
             -e HTTPPROXY_LISTENING_ADDRESS=:8888 \
             qmcgaw/gluetun:latest
           
-          echo "Waiting for VPN..."
           for i in {1..24}; do
             sleep 15
             if curl -x localhost:8888 -s --connect-timeout 10 https://ipinfo.io/json > /tmp/vpn.json 2>/dev/null; then
-              COUNTRY=$(cat /tmp/vpn.json | jq -r '.country' 2>/dev/null || echo "Unknown")
+              C=$(cat /tmp/vpn.json | jq -r '.country' 2>/dev/null || echo "Unknown")
               IP=$(cat /tmp/vpn.json | jq -r '.ip' 2>/dev/null || echo "Unknown")
-              echo "Attempt $i: $COUNTRY - $IP"
-              if [[ "$COUNTRY" != "null" && "$COUNTRY" != "Unknown" ]]; then
+              echo "Attempt $i: $C - $IP"
+              if [[ "$C" != "null" && "$C" != "Unknown" ]]; then
                 echo "VPN_READY=true" >> $GITHUB_ENV
                 echo "CONNECTED_IP=$IP" >> $GITHUB_ENV
                 break
@@ -130,23 +124,21 @@ jobs:
           COUNTRY = os.getenv('COUNTRY_CODE', 'uk').upper()
           CONNECTED_IP = os.getenv('CONNECTED_IP', 'Unknown')
 
-          class VPNStreamTester:
+          class StreamTester:
               def __init__(self):
-                  self.start_time = time.time()
+                  self.start = time.time()
                   self.results = {}
                   self.history = self.load_history()
 
               def load_history(self):
-                  history = {'tests': []}
+                  h = {'tests': []}
                   try:
                       if os.path.exists('report.md'):
                           with open('report.md', 'r') as f:
-                              content = f.read()
-                              match = re.search(r'<!-- HISTORY\n(.*?)\n-->', content, re.DOTALL)
-                              if match:
-                                  history = json.loads(match.group(1))
+                              m = re.search(r'<!-- HIST\n(.*?)\n-->', f.read(), re.DOTALL)
+                              if m: h = json.loads(m.group(1))
                   except: pass
-                  return history
+                  return h
 
               def parse_m3u(self, path):
                   streams = []
@@ -155,94 +147,127 @@ jobs:
                           lines = f.readlines()
                       for i in range(len(lines)):
                           if lines[i].startswith('#EXTINF'):
-                              group = re.search(r'group-title="([^"]*)"', lines[i])
-                              name = lines[i].split(',')[-1].strip() or f"Stream {len(streams)+1}"
+                              g = re.search(r'group-title="([^"]*)"', lines[i])
+                              n = lines[i].split(',')[-1].strip() or f"Stream {len(streams)+1}"
                               if i+1 < len(lines):
-                                  url = lines[i+1].strip()
-                                  if url and 'http' in url:
-                                      streams.append({
-                                          'name': name,
-                                          'url': url,
-                                          'group': group.group(1) if group else "Unknown"
-                                      })
+                                  u = lines[i+1].strip()
+                                  if u and 'http' in u:
+                                      streams.append({'name': n, 'url': u, 'group': g.group(1) if g else "Unknown"})
                   except Exception as e:
                       print(f"Parse error: {e}")
                   return streams
 
-              def classify_stream(self, s):
+              def classify(self, s):
                   if s['url'].endswith('#.mkv'): return 'VOD'
                   g, n = s['group'].lower(), s['name'].lower()
-                  if 'ppv' in g or 'events' in g or 'boxing' in n or 'ufc' in n: return 'PPV'
+                  if any(x in g for x in ['ppv', 'events']) or any(x in n for x in ['boxing', 'ufc', 'wwe']): return 'PPV'
                   if 'fast' in g: return 'FAST'
                   return 'Channel'
 
               def should_skip(self, s):
-                  t = self.classify_stream(s)
-                  if t == 'VOD' and not CHECK_VODS: return True
-                  if t == 'PPV' and not CHECK_PPV: return True
-                  if t == 'FAST' and not CHECK_FAST: return True
-                  return False
+                  t = self.classify(s)
+                  return (t == 'VOD' and not CHECK_VODS) or (t == 'PPV' and not CHECK_PPV) or (t == 'FAST' and not CHECK_FAST)
 
-              def test_stream_ffprobe(self, url, proxy=None):
-                  cmd = ['ffprobe', '-v', 'error']
-                  if proxy: cmd.extend(['-http_proxy', proxy])
-                  cmd.extend(['-show_entries', 'format=duration', '-of', 'default=noprint_wrappers=1:nokey=1', '-timeout', '8000000', url])
-                  try:
-                      result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-                      return result.returncode == 0
-                  except: return False
-
-              def test_location(self, name, use_vpn=False):
-                  print(f"\n{'='*50}\n{name}\n{'='*50}")
-                  proxy = 'http://localhost:8888' if use_vpn else None
+              def get_sample(self):
+                  all_s = self.parse_m3u('channel playlist.m3u')
+                  print(f"Total streams: {len(all_s)}")
                   
-                  session = requests.Session()
-                  if proxy: session.proxies = {'http': proxy, 'https': proxy}
+                  filt = [s for s in all_s if not self.should_skip(s)]
+                  skipped = {'VOD': 0, 'PPV': 0, 'FAST': 0}
+                  for s in all_s:
+                      if self.should_skip(s):
+                          skipped[self.classify(s)] += 1
                   
-                  try:
-                      info = session.get('https://ipinfo.io/json', timeout=10).json()
-                      print(f"Testing from: {info.get('country')} - {info.get('ip')}")
-                  except Exception as e:
-                      print(f"Location check failed: {e}")
-                      if use_vpn: return None
+                  print(f"After filtering: {len(filt)} streams")
+                  if skipped['VOD'] > 0: print(f"  Skipped {skipped['VOD']} VODs")
+                  if skipped['PPV'] > 0: print(f"  Skipped {skipped['PPV']} PPV")
+                  if skipped['FAST'] > 0: print(f"  Skipped {skipped['FAST']} FAST")
                   
-                  all_streams = self.parse_m3u('channel playlist.m3u')
-                  print(f"Found {len(all_streams)} total streams")
-                  
-                  filtered = [s for s in all_streams if not self.should_skip(s)]
-                  print(f"After filtering: {len(filtered)} streams to test")
-                  
-                  if SAMPLE_SIZE > 0 and len(filtered) > SAMPLE_SIZE:
+                  if SAMPLE_SIZE > 0 and len(filt) > SAMPLE_SIZE:
                       random.seed(42)
-                      filtered = random.sample(filtered, SAMPLE_SIZE)
+                      filt = random.sample(filt, SAMPLE_SIZE)
                       print(f"Sampled: {SAMPLE_SIZE} streams")
                   
-                  working, failed = [], []
-                  for i, s in enumerate(filtered):
-                      print(f"[{i+1}/{len(filtered)}] {s['name'][:40]}...", end=' ')
-                      if self.test_stream_ffprobe(s['url'], proxy):
+                  return filt
+
+              def test_ffprobe(self, url, proxy=None):
+                  cmd = ['ffprobe', '-v', 'error', '-show_entries', 'format=duration', 
+                         '-of', 'default=noprint_wrappers=1:nokey=1', '-timeout', '8000000', url]
+                  if proxy: cmd[2:2] = ['-http_proxy', proxy]
+                  try:
+                      r = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+                      if r.returncode == 0: return 'working'
+                      err = r.stderr.lower()
+                      if '403' in err or 'forbidden' in err: return 'geoblocked'
+                      if '404' in err: return 'notfound'
+                      return 'failed'
+                  except subprocess.TimeoutExpired: return 'timeout'
+                  except: return 'error'
+
+              def test_location(self, name, vpn=False):
+                  print(f"\n{'='*50}\n{name}\n{'='*50}")
+                  proxy = 'http://localhost:8888' if vpn else None
+                  
+                  sess = requests.Session()
+                  if proxy: sess.proxies = {'http': proxy, 'https': proxy}
+                  
+                  try:
+                      info = sess.get('https://ipinfo.io/json', timeout=10).json()
+                      print(f"Location: {info.get('country')} - {info.get('ip')}")
+                  except Exception as e:
+                      print(f"Location check failed: {e}")
+                      if vpn: return None
+                      info = {}
+                  
+                  streams = self.get_sample()
+                  working, geoblocked, failed = [], [], []
+                  
+                  for i, s in enumerate(streams):
+                      print(f"[{i+1}/{len(streams)}] {s['name'][:40]}...", end=' ')
+                      
+                      result = self.test_ffprobe(s['url'], proxy)
+                      
+                      if result == 'working':
                           working.append(s['name'])
-                          print("✅")
+                          print("OK")
+                      elif result == 'geoblocked':
+                          geoblocked.append(s['name'])
+                          print("GEO")
                       else:
                           failed.append(s['name'])
-                          print("❌")
-                      time.sleep(0.2)
+                          print(f"FAIL({result})")
+                      
+                      time.sleep(0.25)
+                      
+                      if i > 0 and i % 10 == 0:
+                          delay = random.uniform(1.5, 2.5)
+                          print(f"  Pause {delay:.1f}s...")
+                          time.sleep(delay)
+                      
                       if (i+1) % 20 == 0:
                           print(f"  Progress: {len(working)}/{i+1} ({len(working)/(i+1)*100:.1f}%)")
                   
-                  rate = (len(working)/len(filtered)*100) if filtered else 0
-                  print(f"\n{name}: {len(working)}/{len(filtered)} ({rate:.1f}%)")
-                  return {'working': working, 'failed': failed, 'rate': rate}
+                  rate = (len(working)/len(streams)*100) if streams else 0
+                  print(f"\n{name}: {len(working)}/{len(streams)} ({rate:.1f}%)")
+                  return {'working': working, 'geoblocked': geoblocked, 'failed': failed, 'rate': rate, 'info': info}
 
               def generate_report(self):
                   now = datetime.now(timezone.utc)
+                  dur = (time.time() - self.start) / 60
+                  
                   entry = {
                       'date': now.strftime('%Y-%m-%d %H:%M UTC'),
                       'country': COUNTRY,
                       'ip': CONNECTED_IP,
-                      'config': f"VODs:{CHECK_VODS},PPV:{CHECK_PPV},FAST:{CHECK_FAST}",
-                      'results': {k: {'rate': v['rate'], 'working': len(v['working']), 'total': len(v['working'])+len(v['failed'])} for k,v in self.results.items()}
+                      'config': f"S:{SAMPLE_SIZE},V:{CHECK_VODS},P:{CHECK_PPV},F:{CHECK_FAST}",
+                      'duration': f"{dur:.1f}min",
+                      'results': {}
                   }
+                  
+                  for k, v in self.results.items():
+                      total = len(v['working']) + len(v['geoblocked']) + len(v['failed'])
+                      entry['results'][k] = {'rate': v['rate'], 'working': len(v['working']), 'total': total}
+                  
                   self.history['tests'].append(entry)
                   if len(self.history['tests']) > 50:
                       self.history['tests'] = self.history['tests'][-50:]
@@ -250,65 +275,100 @@ jobs:
                   r = f"# VPN Stream Test - Historical Tracking\n\n"
                   r += f"**Last tested:** {COUNTRY}\n"
                   r += f"**Last update:** {now.strftime('%Y-%m-%d %H:%M UTC')}\n"
-                  r += f"**Config:** VODs: {'✅' if CHECK_VODS else '❌'}, PPV: {'✅' if CHECK_PPV else '❌'}, FAST: {'✅' if CHECK_FAST else '❌'}\n"
-                  r += f"**Total tests:** {len(self.history['tests'])}\n\n"
+                  r += f"**Duration:** {dur:.1f} minutes\n"
+                  r += f"**Config:** Sample={SAMPLE_SIZE}, VODs={'Y' if CHECK_VODS else 'N'}, PPV={'Y' if CHECK_PPV else 'N'}, FAST={'Y' if CHECK_FAST else 'N'}\n"
+                  r += f"**Total historical tests:** {len(self.history['tests'])}\n\n"
                   
-                  r += "## Latest Results\n\n| Location | Working | Total | Success Rate |\n|----------|---------|-------|-------------|\n"
+                  r += "## Latest Test Results\n\n"
+                  r += "| Location | Working | Geo-blocked | Failed | Total | Success Rate |\n"
+                  r += "|----------|---------|-------------|--------|-------|-------------|\n"
+                  
                   for k, v in self.results.items():
-                      name = "Direct" if k == 'direct' else f"{COUNTRY} VPN (Premium)"
-                      total = len(v['working']) + len(v['failed'])
-                      r += f"| {name} | {len(v['working'])} | {total} | **{v['rate']:.1f}%** |\n"
+                      loc = "Direct" if k == 'direct' else f"{COUNTRY} VPN (Premium)"
+                      w, g, f = len(v['working']), len(v['geoblocked']), len(v['failed'])
+                      t = w + g + f
+                      r += f"| {loc} | {w} | {g} | {f} | {t} | **{v['rate']:.1f}%** |\n"
                   
                   r += "\n## Historical Analysis\n\n"
+                  
                   uk = [t for t in self.history['tests'] if t['country'] == 'UK']
                   us = [t for t in self.history['tests'] if t['country'] == 'US']
                   
                   if uk:
-                      avg = sum(t['results'].get('vpn', {}).get('rate', 0) for t in uk) / len(uk)
-                      r += f"**UK VPN Average** ({len(uk)} tests): {avg:.1f}%\n"
+                      uk_avg = sum(t['results'].get('vpn', {}).get('rate', 0) for t in uk) / len(uk)
+                      uk_last = uk[-1]['results'].get('vpn', {}).get('rate', 0)
+                      r += f"**UK VPN**\n"
+                      r += f"- Tests: {len(uk)}\n"
+                      r += f"- Average: {uk_avg:.1f}%\n"
+                      r += f"- Latest: {uk_last:.1f}%\n\n"
+                  
                   if us:
-                      avg = sum(t['results'].get('vpn', {}).get('rate', 0) for t in us) / len(us)
-                      r += f"**US VPN Average** ({len(us)} tests): {avg:.1f}%\n"
+                      us_avg = sum(t['results'].get('vpn', {}).get('rate', 0) for t in us) / len(us)
+                      us_last = us[-1]['results'].get('vpn', {}).get('rate', 0)
+                      r += f"**US VPN**\n"
+                      r += f"- Tests: {len(us)}\n"
+                      r += f"- Average: {us_avg:.1f}%\n"
+                      r += f"- Latest: {us_last:.1f}%\n\n"
                   
                   if uk and us:
-                      uk_avg = sum(t['results'].get('vpn', {}).get('rate', 0) for t in uk) / len(uk)
-                      us_avg = sum(t['results'].get('vpn', {}).get('rate', 0) for t in us) / len(us)
-                      r += f"\n**Recommendation:** "
-                      r += f"UK VPN performs better (+{uk_avg-us_avg:.1f}%)\n" if uk_avg > us_avg else f"US VPN performs better (+{us_avg-uk_avg:.1f}%)\n"
+                      r += f"**Recommendation:** "
+                      if uk_avg > us_avg:
+                          r += f"UK VPN performs better (avg +{uk_avg-us_avg:.1f}%)\n"
+                      elif us_avg > uk_avg:
+                          r += f"US VPN performs better (avg +{us_avg-uk_avg:.1f}%)\n"
+                      else:
+                          r += f"UK and US VPN perform equally\n"
+                      r += "\n"
                   
-                  r += "\n## Recent History\n\n| Date | Country | Config | Success Rate |\n|------|---------|--------|-------------|\n"
-                  for t in self.history['tests'][-10:]:
-                      rate = t['results'].get('vpn', {}).get('rate', 0)
-                      r += f"| {t['date']} | {t['country']} | {t.get('config', 'N/A')} | {rate:.1f}% |\n"
+                  if 'direct' in self.results and 'vpn' in self.results:
+                      imp = self.results['vpn']['rate'] - self.results['direct']['rate']
+                      r += f"**Latest VPN Impact:** {imp:+.1f}% vs direct connection\n\n"
                   
-                  r += f"\n<!-- HISTORY\n{json.dumps(self.history, indent=2)}\n-->\n"
+                  r += "## Recent Test History\n\n"
+                  r += "| Date | Country | Config | Duration | Success Rate | Improvement |\n"
+                  r += "|------|---------|--------|----------|--------------|-------------|\n"
+                  
+                  for t in self.history['tests'][-15:]:
+                      vpn_rate = t['results'].get('vpn', {}).get('rate', 0)
+                      direct_rate = t['results'].get('direct', {}).get('rate', 0)
+                      imp = f"+{vpn_rate-direct_rate:.1f}%" if direct_rate > 0 else "N/A"
+                      r += f"| {t['date']} | {t['country']} | {t.get('config', 'N/A')} | {t.get('duration', 'N/A')} | {vpn_rate:.1f}% | {imp} |\n"
+                  
+                  if 'vpn' in self.results and self.results['vpn']['geoblocked']:
+                      r += f"\n## Geo-blocked Streams ({len(self.results['vpn']['geoblocked'])})\n\n"
+                      for s in self.results['vpn']['geoblocked'][:10]:
+                          r += f"- {s}\n"
+                      if len(self.results['vpn']['geoblocked']) > 10:
+                          r += f"- ... and {len(self.results['vpn']['geoblocked'])-10} more\n"
+                  
+                  r += f"\n<!-- HIST\n{json.dumps(self.history, indent=2)}\n-->\n"
                   return r
 
               def run(self):
-                  print(f"Starting: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}")
-                  print(f"Config: SAMPLE_SIZE={SAMPLE_SIZE}, VODs={CHECK_VODS}, PPV={CHECK_PPV}, FAST={CHECK_FAST}")
+                  print(f"Start: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}")
+                  print(f"Config: SIZE={SAMPLE_SIZE}, VODS={CHECK_VODS}, PPV={CHECK_PPV}, FAST={CHECK_FAST}")
                   
-                  direct = self.test_location("Direct Connection", use_vpn=False)
-                  if direct: self.results['direct'] = direct
+                  d = self.test_location("Direct", vpn=False)
+                  if d: self.results['direct'] = d
                   
                   if VPN_READY:
-                      vpn = self.test_location(f"{COUNTRY} VPN (Premium)", use_vpn=True)
-                      if vpn: self.results['vpn'] = vpn
+                      v = self.test_location(f"{COUNTRY} VPN (Premium)", vpn=True)
+                      if v: self.results['vpn'] = v
                   else:
-                      print("\nVPN not ready - skipping")
+                      print("\nVPN not ready")
                   
-                  report = self.generate_report()
+                  rep = self.generate_report()
                   with open('report.md', 'w') as f:
-                      f.write(report)
+                      f.write(rep)
                   
-                  dur = (time.time() - self.start_time) / 60
-                  print(f"\n{'='*50}\nComplete - Duration: {dur:.1f} min\n{'='*50}")
+                  dur = (time.time() - self.start) / 60
+                  print(f"\n{'='*50}\nComplete - {dur:.1f} min\n{'='*50}")
                   for k, v in self.results.items():
-                      name = "Direct" if k == 'direct' else f"{COUNTRY} VPN"
-                      total = len(v['working']) + len(v['failed'])
-                      print(f"{name:20}: {len(v['working'])}/{total} ({v['rate']:.1f}%)")
+                      n = "Direct" if k == 'direct' else f"{COUNTRY} VPN"
+                      t = len(v['working']) + len(v['geoblocked']) + len(v['failed'])
+                      print(f"{n:20}: {len(v['working'])}/{t} ({v['rate']:.1f}%)")
 
-          VPNStreamTester().run()
+          StreamTester().run()
           ENDPY
 
       - name: Cleanup
@@ -318,7 +378,7 @@ jobs:
           docker rm gluetun || true
           docker network rm vpn-network || true
 
-      - name: Commit results
+      - name: Commit
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "github-actions[bot]"
@@ -328,7 +388,7 @@ jobs:
             git pull origin main --rebase || true
             if ! git diff --staged --quiet; then
               RATE=$(grep -oE "\*\*[0-9.]+%" report.md | grep -oE "[0-9.]+" | head -1 || echo "0")
-              git commit -m "${{ env.COUNTRY_CODE }} VPN: ${RATE}% (premium) - $(date -u '+%m/%d %H:%M')"
+              git commit -m "${{ env.COUNTRY_CODE }} VPN: ${RATE}% - $(date -u '+%m/%d %H:%M')"
               git push origin main
             fi
           fi

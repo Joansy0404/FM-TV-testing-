@@ -2,82 +2,95 @@
 
 **Last tested:** UK
 **Test method:** ffprobe
-**Last update:** 2025-09-29 08:42 UTC
-**Test duration:** 12.0 minutes
-**Sample size:** 100
+**Last update:** 2025-09-29 09:16 UTC
+**Test duration:** 28.5 minutes
+**Sample size:** 200
 **Configuration:** VODs=No, PPV=No, FAST=No
 
 ## Latest Test Results
 
 | Location | Working | Geo-blocked | Failed | Total | Success Rate |
 |----------|---------|-------------|--------|-------|--------------|
-| Direct | 73 | 2 | 25 | 100 | **73.0%** |
-| UK VPN | 25 | 0 | 75 | 100 | **25.0%** |
+| Direct | 151 | 5 | 44 | 200 | **75.5%** |
+| UK VPN | 50 | 1 | 149 | 200 | **25.0%** |
 
 ## VPN Connection Details
 
 - **Country:** GB
 - **City:** London
-- **IP:** 149.50.209.148
+- **IP:** 149.40.63.139
 - **ISP:** AS212238 Datacamp Limited
 
 ## Error Analysis
 
-- **SSL/TLS error**: 39 occurrences
-- **Unknown error**: 29 occurrences
-- **HTTP 404 Not Found**: 3 occurrences
-- **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0cdovlzg0lje3lju1lje4ntoxnda3mi8ilcai**: 1 occurrences
-- **Connection timeout**: 1 occurrences
-- **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly9obhmubxnrewnkbi5vbmxpbmuvdhyv**: 1 occurrences
-- **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0cdovlze4ns45os4xmzyunta6otk4ms9zdhjl**: 1 occurrences
+- **SSL/TLS error**: 81 occurrences
+- **Unknown error**: 55 occurrences
+- **HTTP 404 Not Found**: 4 occurrences
+- **Invalid stream data**: 3 occurrences
+- **Server error (5xx)**: 2 occurrences
+- **HTTP 400 Bad Request**: 2 occurrences
+- **Proxy error**: 1 occurrences
+- **HTTP 401 Unauthorized**: 1 occurrences
+- **HTTP 406 Not Acceptable**: 1 occurrences
 
-**VPN Impact:** -48.0% vs direct connection
+**VPN Impact:** -50.5% vs direct connection
 
-## Working Streams via VPN (25 total)
+## Working Streams via VPN (50 total)
 
 **AE** (1)
 - MBC ACTION
 
-**AR** (2)
+**AR** (4)
 - 5TV CORRIENTES
 - CADENA 103
+- CANAL 13 LA RIOJA
+- 13MAX TELEVISIÓN
 
-**AUS** (1)
+**AUS** (2)
 - FOX SPORTS 501
+- FOX SPORTS 505
 
-**IE** (2)
+**CA** (1)
+- Fubo sports 1
+
+**HK** (1)
+- NOW SPORTS 1
+
+**IE** (3)
 - PREMIER SPORTS 1
 - RTÈ ONE
+- VIRGIN MEDIA FOUR
 
-**NZ** (1)
+**NZ** (3)
 - SKY SPORT 9
+- SKY SPORT 1
+- SKY SPORT 3
 
-**UK** (6)
+**UK** (17)
 - SKY CINEMA SCI-FI HORROR
 - NATIONAL GEOGRAPHIC
 - E4
 - TOGETHER TV
 - SKY WITNESS
-- ... and 1 more
+- ... and 12 more
 
-**USA** (10)
+**UK INT** (1)
+- ALBUK TV
+
+**USA** (15)
 - CINEMAX HITS
 - AMC (EAST)
 - LIFETIME MOVIE NETWORK (EAST)
 - IFC
 - MSG
-- ... and 5 more
-
-**ZA** (2)
-- SUPERSPORT GRANDSTAND
-- SUPERSPORT VARIETY 1
+- ... and 10 more
 
 ## Next Test
 
 Next automatic test will use **US VPN**
 
 ---
-*Report generated at 2025-09-29 08:42 UTC*
+*Report generated at 2025-09-29 09:16 UTC*
 *Test method: ffprobe | Auto-alternates between UK and US ProtonVPN*
 
 <!-- HISTORY
@@ -190,6 +203,32 @@ Next automatic test will use **US VPN**
           "geoblocked": 0,
           "failed": 75,
           "total": 100,
+          "rate": 25.0
+        }
+      }
+    },
+    {
+      "date": "2025-09-29 09:16 UTC",
+      "country": "UK",
+      "method": "ffprobe",
+      "ip": "149.40.63.139",
+      "city": "London",
+      "isp": "AS212238 Datacamp Limited",
+      "config": "S:200,V:False,P:False,F:False",
+      "duration_min": 28.5,
+      "results": {
+        "direct": {
+          "working": 151,
+          "geoblocked": 5,
+          "failed": 44,
+          "total": 200,
+          "rate": 75.5
+        },
+        "vpn": {
+          "working": 50,
+          "geoblocked": 1,
+          "failed": 149,
+          "total": 200,
           "rate": 25.0
         }
       }

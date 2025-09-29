@@ -1,104 +1,31 @@
-# VPN Stream Test Report
+# Stream Test Report
 
-**Last tested:** UK
 **Test method:** ffprobe
-**Last update:** 2025-09-29 10:03 UTC
-**Test duration:** 30.8 minutes
-**Sample size:** 200
-**Configuration:** VODs=No, PPV=No, FAST=No
+**Test scope:** direct_only
+**Last update:** 2025-09-29 11:12 UTC
+**Test duration:** 14.8 minutes
 
 ## Latest Test Results
 
 | Location | Working | Geo-blocked | Failed | Total | Success Rate |
 |----------|---------|-------------|--------|-------|--------------|
-| Direct | 145 | 4 | 51 | 200 | **72.5%** |
-| UK VPN | 149 | 4 | 47 | 200 | **74.5%** |
-
-## VPN Connection Details
-
-- **Country:** GB
-- **City:** London
-- **IP:** 146.70.179.100
-- **ISP:** AS9009 M247 Europe SRL
+| Direct | 113 | 332 | 117 | 562 | **20.1%** |
 
 ## Error Analysis
 
-- **Connection refused**: 33 occurrences
-- **HTTP 404 Not Found**: 5 occurrences
-- **HTTP 403 Forbidden**: 4 occurrences
-- **Server error (5xx)**: 3 occurrences
-- **Invalid stream data**: 2 occurrences
-- **HTTP 406 Not Acceptable**: 1 occurrences
-- **[tcp @ 0x555cfec7df40] failed to resolve hostname hls.mskycdn.online: no address associated with hos**: 1 occurrences
-- **HTTP 400 Bad Request**: 1 occurrences
-- **[http @ 0x55c688d96f40] stream ends prematurely at 0, should be 18446744073709551615**: 1 occurrences
-
-**VPN Impact:** +2.0% vs direct connection
-
-## Working Streams via VPN (149 total)
-
-**AE** (18)
-- MBC ACTION
-- MAJID
-- SKY NEWS ARABIA
-- MBC PERSIA
-- WANASAH
-- ... and 13 more
-
-**AF** (5)
-- DUNYA NAW TV
-- BAHAR TV
-- RTA EDUCATION
-- Chekad TV
-- KAYHAN TV
-
-**AM** (3)
-- ARMENIA 1
-- ARMENIA 2
-- FIRST CHANNEL NEWS
-
-**AO** (2)
-- MUZANGALA TV
-- KK TV ANGOLA
-
-**AR** (8)
-- 5TV CORRIENTES
-- ARGENTINÍSIMA SATELITAL
-- CADENA 103
-- CANAL 11 DE LA COSTA
-- CANAL 13 LA RIOJA
-- ... and 3 more
-
-**AUS** (11)
-- ABC TV SYDNEY
-- ABC TV MELBOURNE
-- ABC TV DARWIN
-- ABC TV PLUS
-- FOX SPORTS 501
-- ... and 6 more
-
-**CA** (2)
-- CTV 2
-- Fubo sports 1
-
-**HK** (1)
-- NOW SPORTS 1
-
-**IE** (3)
-- PREMIER SPORTS 1
-- RTÈ ONE
-- VIRGIN MEDIA FOUR
-
-**JP** (1)
-- DISNEY CHANNEL
-
-## Next Test
-
-Next automatic test will use **US VPN**
+- **HTTP 403 Forbidden**: 332 occurrences
+- **Connection refused**: 60 occurrences
+- **Server error (5xx)**: 31 occurrences
+- **HTTP 404 Not Found**: 9 occurrences
+- **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly9jdnr2lmn2ywxszxkubmv0l2hscy9l**: 8 occurrences
+- **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0cdovlzizljizny4xmdqumta2ojgwodavvvnb**: 3 occurrences
+- **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly9hmxhzlnzpcc8zmdawmdkilcaiawqi**: 1 occurrences
+- **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly9jdnr2lmn2ywxszxkubmv0l2hscy9x**: 1 occurrences
+- **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly9hmxhzlnzpcc80mdawmda0myisicjp**: 1 occurrences
+- **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly9hmxhzlnzpcc80mdawmda0miisicjp**: 1 occurrences
 
 ---
-*Report generated at 2025-09-29 10:03 UTC*
-*Test method: ffprobe | Auto-alternates between UK and US ProtonVPN*
+*Generated at 2025-09-29 11:12 UTC*
 
 <!-- HISTORY
 {
@@ -263,6 +190,22 @@ Next automatic test will use **US VPN**
           "failed": 47,
           "total": 200,
           "rate": 74.5
+        }
+      }
+    },
+    {
+      "date": "2025-09-29 11:12 UTC",
+      "country": "US",
+      "method": "ffprobe",
+      "scope": "direct_only",
+      "duration_min": 14.8,
+      "results": {
+        "direct": {
+          "working": 113,
+          "geoblocked": 332,
+          "failed": 117,
+          "total": 562,
+          "rate": 20.106761565836297
         }
       }
     }

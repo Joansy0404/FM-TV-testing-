@@ -195,31 +195,37 @@ jobs:
                       print("Old container removed")
                       time.sleep(5)
                       
-                      # Get credentials
+                      # Get credentials directly from os.environ
                       vpn_user = os.environ.get('VPN_USER', '')
                       vpn_password = os.environ.get('VPN_PASSWORD', '')
                       
-                      # Start new container with longer health check times
-                      cmd = [
-                          'docker', 'run', '-d',
-                          '--name', 'gluetun',
-                          '--cap-add=NET_ADMIN',
-                          '--device', '/dev/net/tun',
-                          '--network', 'vpn-network',
-                          '-p', '8888:8888',
-                          '-e', 'VPN_SERVICE_PROVIDER=protonvpn',
-                          '-e', f'OPENVPN_USER={vpn_user}',
-                          '-e', f'OPENVPN_PASSWORD={vpn_password}',
-                          '-e', f'SERVER_COUNTRIES={country_name}',
-                          '-e', 'HEALTH_VPN_DURATION_INITIAL=60s',
-                          '-e', 'HEALTH_SUCCESS_WAIT_DURATION=30s',
-                          '-e', 'LOG_LEVEL=info',
-                          '-e', 'HTTPPROXY=on',
-                          '-e', 'HTTPPROXY_LISTENING_ADDRESS=:8888',
-                          'qmcgaw/gluetun:latest'
-                      ]
+                      if not vpn_user or not vpn_password:
+                          print("❌ VPN credentials not available in environment")
+                          print(f"VPN_USER present: {bool(vpn_user)}")
+                          print(f"VPN_PASSWORD present: {bool(vpn_password)}")
+                          return False
                       
-                      result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+                      print(f"VPN credentials found (user: {vpn_user[:4]}...)")
+                      
+                      # Build docker command with credentials embedded
+                      docker_cmd = f'''docker run -d \
+                        --name gluetun \
+                        --cap-add=NET_ADMIN \
+                        --device /dev/net/tun \
+                        --network vpn-network \
+                        -p 8888:8888 \
+                        -e VPN_SERVICE_PROVIDER=protonvpn \
+                        -e OPENVPN_USER="{vpn_user}" \
+                        -e OPENVPN_PASSWORD="{vpn_password}" \
+                        -e SERVER_COUNTRIES="{country_name}" \
+                        -e HEALTH_VPN_DURATION_INITIAL=60s \
+                        -e HEALTH_SUCCESS_WAIT_DURATION=30s \
+                        -e LOG_LEVEL=info \
+                        -e HTTPPROXY=on \
+                        -e HTTPPROXY_LISTENING_ADDRESS=:8888 \
+                        qmcgaw/gluetun:latest'''
+                      
+                      result = subprocess.run(docker_cmd, shell=True, capture_output=True, text=True, timeout=30)
                       
                       if result.returncode != 0:
                           print(f"Failed to start container: {result.stderr}")

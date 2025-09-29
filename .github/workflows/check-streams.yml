@@ -6,12 +6,12 @@ on:
       countries:
         description: 'Countries to test (us,uk,ca,de,nl,fr,ch,se,jp,au)'
         required: false
-        default: 'uk'
+        default: 'uk,us'
         type: string
       sample_size:
-        description: 'Sample size per country (0=all, 30=recommended for rate limiting)'
+        description: 'Sample size per country (0=all, 100=recommended)'
         required: false
-        default: '30'
+        default: '100'
         type: string
       check_vods:
         description: 'Check VOD files (URLs ending with #.mkv)'
@@ -152,8 +152,8 @@ jobs:
           import subprocess
           from datetime import datetime, timezone
 
-          COUNTRIES = [c.strip().lower() for c in os.getenv('COUNTRIES', 'uk').split(',')]
-          SAMPLE_SIZE = int(os.getenv('SAMPLE_SIZE', '30'))
+          COUNTRIES = [c.strip().lower() for c in os.getenv('COUNTRIES', 'uk,us').split(',')]
+          SAMPLE_SIZE = int(os.getenv('SAMPLE_SIZE', '100'))
           CHECK_VODS = os.getenv('CHECK_VODS', 'false').lower() == 'true'
           CHECK_PPV = os.getenv('CHECK_PPV', 'false').lower() == 'true'
           CHECK_FAST = os.getenv('CHECK_FAST', 'false').lower() == 'true'
@@ -166,6 +166,96 @@ jobs:
                   self.all_results = {}
                   self.streams_sample = None
                   self.vpn_available = not SKIP_VPN
+                  
+                  # ProtonVPN country mappings
+                  self.proton_countries = {
+                      'us': 'United States',
+                      'uk': 'United Kingdom', 
+                      'ca': 'Canada',
+                      'de': 'Germany',
+                      'nl': 'Netherlands',
+                      'fr': 'France',
+                      'ch': 'Switzerland',
+                      'se': 'Sweden',
+                      'jp': 'Japan',
+                      'au': 'Australia'
+                  }
+
+              def restart_vpn_container(self, country_code):
+                  """Restart Gluetun container with new country"""
+                  import subprocess
+                  
+                  country_name = self.proton_countries.get(country_code, country_code)
+                  print(f"\nRestarting container for {country_code.upper()} ({country_name})...")
+                  
+                  try:
+                      # Stop and remove existing container
+                      subprocess.run(['docker', 'stop', 'gluetun'], capture_output=True, timeout=30)
+                      subprocess.run(['docker', 'rm', 'gluetun'], capture_output=True, timeout=10)
+                      print("Old container removed")
+                      time.sleep(3)
+                      
+                      # Get credentials
+                      vpn_user = os.environ.get('VPN_USER', '')
+                      vpn_password = os.environ.get('VPN_PASSWORD', '')
+                      
+                      # Start new container
+                      cmd = [
+                          'docker', 'run', '-d',
+                          '--name', 'gluetun',
+                          '--cap-add=NET_ADMIN',
+                          '--device', '/dev/net/tun',
+                          '--network', 'vpn-network',
+                          '-p', '8888:8888',
+                          '-e', 'VPN_SERVICE_PROVIDER=protonvpn',
+                          '-e', f'OPENVPN_USER={vpn_user}',
+                          '-e', f'OPENVPN_PASSWORD={vpn_password}',
+                          '-e', f'SERVER_COUNTRIES={country_name}',
+                          '-e', 'LOG_LEVEL=info',
+                          '-e', 'HTTPPROXY=on',
+                          '-e', 'HTTPPROXY_LISTENING_ADDRESS=:8888',
+                          'qmcgaw/gluetun:latest'
+                      ]
+                      
+                      result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+                      
+                      if result.returncode != 0:
+                          print(f"Failed to start container: {result.stderr}")
+                          return False
+                      
+                      print(f"Container started, waiting for VPN connection...")
+                      
+                      # Wait for VPN to connect
+                      for attempt in range(20):
+                          time.sleep(15)
+                          print(f"  Connection check {attempt+1}/20...")
+                          
+                          try:
+                              session = requests.Session()
+                              session.proxies = {'http': 'http://localhost:8888', 'https': 'http://localhost:8888'}
+                              response = session.get('https://ipinfo.io/json', timeout=10)
+                              
+                              if response.status_code == 200:
+                                  data = response.json()
+                                  current_country = data.get('country', '').upper()
+                                  ip = data.get('ip', 'Unknown')
+                                  org = data.get('org', 'Unknown')
+                                  
+                                  print(f"  Connected: {current_country} - {ip}")
+                                  print(f"  ISP: {org}")
+                                  
+                                  if 'proton' in org.lower() or current_country == country_code.upper():
+                                      print(f"✅ {country_code.upper()} VPN ready!")
+                                      return True
+                          except:
+                              pass
+                      
+                      print(f"❌ Failed to connect to {country_code.upper()} VPN")
+                      return False
+                      
+                  except Exception as e:
+                      print(f"Error restarting container: {e}")
+                      return False
 
               def is_vod_url(self, url):
                   """VOD detection - URLs ending with #.mkv"""
@@ -546,8 +636,8 @@ jobs:
                           timeout = 12 if (use_proxy and self.vpn_available) else 8
                           
                           # Add random delay to avoid rate limiting
-                          if i > 0 and i % 5 == 0:  # Every 5 requests
-                              delay = random.uniform(2, 4)
+                          if i > 0 and i % 10 == 0:  # Every 10 requests instead of 5
+                              delay = random.uniform(1.5, 2.5)  # Reduced from 2-4 seconds
                               print(f"\n    Rate limit pause: {delay:.1f}s...")
                               time.sleep(delay)
                           
@@ -563,7 +653,7 @@ jobs:
                               results['working'].append(stream_result)
                               working_count += 1
                               print(f"✅ ({response.status_code})")
-                          elif response.status_code == 403:
+                          elif response.status_code in [403, 451]:  # 403 Forbidden, 451 Unavailable For Legal Reasons
                               results['geoblocked'].append(stream_result)
                               print("🔒 Geo-blocked")
                           elif response.status_code == 429:
@@ -612,9 +702,9 @@ jobs:
                           print(f"❌ {str(e)[:20]}")
                       
                       # Progressive delay to avoid overwhelming servers
-                      base_delay = 0.2 if working_count > 10 else 0.1
-                      if i > 20:
-                          base_delay += random.uniform(0.1, 0.3)
+                      base_delay = 0.15 if working_count > 10 else 0.1
+                      if i > 30:
+                          base_delay += random.uniform(0.05, 0.15)
                       time.sleep(base_delay)
                       
                       # Progress update every 10 streams
@@ -650,58 +740,147 @@ jobs:
                   
               def run_multi_country_test(self):
                   """Run tests across multiple countries"""
-                  print("Starting ProtonVPN Multi-Country Analysis")
-                  
-                  if not self.vpn_available:
-                      print("VPN not available - testing direct connection only")
-                  else:
-                      print(f"Countries to test: {', '.join([c.upper() for c in COUNTRIES])}")
-                  
-                  print(f"Sample size: {len(self.get_streams_sample())} streams per location")
+                  print("Starting Multi-Country VPN Stream Test")
+                  print(f"Countries to test: {', '.join([c.upper() for c in COUNTRIES])}")
+                  print(f"Sample size: {len(self.get_streams_sample())} streams per location\n")
                   
                   # Test direct connection first if requested
                   if INCLUDE_DIRECT:
-                      print("\n" + "="*60)
+                      print("="*60)
                       print("TESTING DIRECT CONNECTION (NO VPN)")
                       print("="*60)
-                      direct_results = self.test_streams_with_location("Direct Connection", use_proxy=False)
+                      direct_results = self.test_streams_with_location("Direct", use_proxy=False)
                       self.all_results['direct'] = direct_results
                   
-                  # Test VPN connection if available (no country switching)
-                  if self.vpn_available:
-                      print(f"\n" + "="*60)
-                      print(f"TESTING VPN CONNECTION")
-                      print("="*60)
-                      
-                      # Test current VPN connection without changing countries
-                      try:
-                          session = requests.Session()
-                          session.proxies = {
-                              'http': 'http://localhost:8888',
-                              'https': 'http://localhost:8888'
-                          }
+                  # Test each VPN country if available
+                  if self.vpn_available and COUNTRIES:
+                      for i, country in enumerate(COUNTRIES):
+                          if country not in self.proton_countries:
+                              print(f"\n❌ {country.upper()} not supported")
+                              continue
                           
-                          # Get current location
-                          ip_response = session.get('https://ipinfo.io/json', timeout=15)
-                          location_info = ip_response.json()
-                          current_country = location_info.get('country', 'Unknown')
-                          current_ip = location_info.get('ip', 'Unknown')
-                          current_org = location_info.get('org', 'Unknown')
+                          print("\n" + "="*60)
+                          print(f"TESTING {country.upper()} VPN ({i+1}/{len(COUNTRIES)})")
+                          print("="*60)
                           
-                          print(f"VPN connected to: {current_country} - {current_ip}")
-                          print(f"ISP: {current_org}")
-                          
-                          # Test streams with current VPN connection
-                          vpn_results = self.test_streams_with_location(f"VPN ({current_country})", use_proxy=True)
-                          self.all_results['vpn'] = vpn_results
-                          
-                      except Exception as e:
-                          print(f"Could not test VPN connection: {e}")
-                          print("VPN proxy may not be available")
+                          # Restart container with new country
+                          if self.restart_vpn_container(country):
+                              # Test streams
+                              vpn_results = self.test_streams_with_location(f"{country.upper()} VPN", use_proxy=True)
+                              self.all_results[country] = vpn_results
+                              
+                              # Brief pause before next country
+                              if i < len(COUNTRIES) - 1:
+                                  print("\nBrief pause before next country...")
+                                  time.sleep(5)
+                          else:
+                              print(f"❌ Failed to connect to {country.upper()} VPN, skipping")
                   else:
-                      print("\nSkipping VPN testing - VPN not available")
+                      print("\n❌ VPN not available or no countries specified")
 
               def generate_comprehensive_report(self):
+                  """Generate detailed multi-country comparison report"""
+                  duration = time.time() - self.start_time
+                  
+                  report = f"# Multi-Country VPN Stream Analysis\n\n"
+                  report += f"**Generated:** {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}  \n"
+                  report += f"**Duration:** {duration/60:.1f} minutes  \n"
+                  report += f"**Sample Size:** {len(self.get_streams_sample())} streams  \n\n"
+                  
+                  # Results Summary Table
+                  report += "## Results Summary\n\n"
+                  report += "| Location | Working | Failed | Success Rate |\n"
+                  report += "|----------|---------|--------|-----|\n"
+                  
+                  summary_data = []
+                  
+                  for location_key, results in self.all_results.items():
+                      working = len(results['working'])
+                      failed = len(results['failed']) + len(results['geoblocked'])
+                      total = working + failed
+                      success_rate = (working / total * 100) if total > 0 else 0
+                      
+                      location_display = location_key.upper() if location_key != 'direct' else 'Direct (No VPN)'
+                      
+                      report += f"| **{location_display}** | {working} | {failed} | **{success_rate:.1f}%** |\n"
+                      
+                      summary_data.append({
+                          'key': location_key,
+                          'name': location_display,
+                          'working': working,
+                          'failed': failed,
+                          'success_rate': success_rate
+                      })
+                  
+                  report += "\n"
+                  
+                  # Find best performing location
+                  if summary_data:
+                      best = max(summary_data, key=lambda x: x['success_rate'])
+                      report += f"## 🏆 Recommendation\n\n"
+                      report += f"**Best VPN Location: {best['name']}**  \n"
+                      report += f"- Success Rate: **{best['success_rate']:.1f}%**  \n"
+                      report += f"- Working Streams: **{best['working']}**  \n\n"
+                      
+                      # Compare to other locations
+                      if len(summary_data) > 1:
+                          report += f"### Comparison with Other Locations\n\n"
+                          for loc in sorted(summary_data, key=lambda x: x['success_rate'], reverse=True)[1:]:
+                              diff = best['success_rate'] - loc['success_rate']
+                              if diff > 0:
+                                  report += f"- **{loc['name']}**: {loc['success_rate']:.1f}% ({diff:.1f}% less than best)  \n"
+                              elif diff == 0:
+                                  report += f"- **{loc['name']}**: {loc['success_rate']:.1f}% (same as best)  \n"
+                          report += "\n"
+                  
+                  # Detailed stream comparison
+                  if len(self.all_results) >= 2:
+                      report += "## Detailed Stream Comparison\n\n"
+                      
+                      # Get all working streams per location
+                      location_streams = {}
+                      for loc_key, results in self.all_results.items():
+                          location_streams[loc_key] = set(s['name'] for s in results['working'])
+                      
+                      # Find unique streams per location
+                      for loc_key in self.all_results.keys():
+                          if loc_key == 'direct':
+                              continue
+                          
+                          loc_name = loc_key.upper()
+                          loc_streams = location_streams.get(loc_key, set())
+                          
+                          # Find streams unique to this location vs all others
+                          other_streams = set()
+                          for other_key, other_set in location_streams.items():
+                              if other_key != loc_key:
+                                  other_streams.update(other_set)
+                          
+                          unique_to_this = loc_streams - other_streams
+                          
+                          if unique_to_this:
+                              report += f"### Streams Only Working with {loc_name} VPN ({len(unique_to_this)})\n"
+                              for stream in sorted(list(unique_to_this))[:15]:
+                                  report += f"- {stream}  \n"
+                              if len(unique_to_this) > 15:
+                                  report += f"- ... and {len(unique_to_this) - 15} more  \n"
+                              report += "\n"
+                      
+                      # Universal streams
+                      if location_streams:
+                          universal = set.intersection(*location_streams.values())
+                          if universal:
+                              report += f"### Universal Streams (work everywhere) ({len(universal)})\n"
+                              for stream in sorted(list(universal))[:10]:
+                                  report += f"- {stream}  \n"
+                              if len(universal) > 10:
+                                  report += f"- ... and {len(universal) - 10} more  \n"
+                              report += "\n"
+                  
+                  report += f"---\n"
+                  report += f"*Analysis completed in {duration/60:.1f} minutes*\n"
+                  
+                  return report
                   """Generate detailed multi-country comparison report"""
                   duration = time.time() - self.start_time
                   
@@ -721,6 +900,39 @@ jobs:
                   
                   if not self.vpn_available:
                       report += f"**Note:** VPN testing was skipped due to missing credentials  \n"
+                  
+                  report += "\n"
+                  
+                  # Compare Direct vs VPN if both exist
+                  if 'direct' in self.all_results and 'vpn' in self.all_results:
+                      report += "## Direct vs VPN Comparison\n\n"
+                      
+                      direct_working = set(s['name'] for s in self.all_results['direct']['working'])
+                      vpn_working = set(s['name'] for s in self.all_results['vpn']['working'])
+                      
+                      only_vpn = vpn_working - direct_working
+                      only_direct = direct_working - vpn_working
+                      both = direct_working & vpn_working
+                      
+                      report += f"**Streams working in both**: {len(both)}  \n"
+                      report += f"**Only work with VPN**: {len(only_vpn)}  \n"
+                      report += f"**Only work direct**: {len(only_direct)}  \n\n"
+                      
+                      if only_vpn:
+                          report += f"### Streams Only Accessible via VPN ({len(only_vpn)})\n"
+                          for stream in list(only_vpn)[:10]:
+                              report += f"- {stream}  \n"
+                          if len(only_vpn) > 10:
+                              report += f"- ... and {len(only_vpn) - 10} more  \n"
+                          report += "\n"
+                      
+                      if only_direct:
+                          report += f"### Streams Only Accessible Direct ({len(only_direct)})\n"
+                          for stream in list(only_direct)[:10]:
+                              report += f"- {stream}  \n"
+                          if len(only_direct) > 10:
+                              report += f"- ... and {len(only_direct) - 10} more  \n"
+                          report += "\n"
                   
                   report += "\n"
                   

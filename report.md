@@ -1,31 +1,31 @@
 # Stream Test Report
 
 **Test method:** ffprobe
-**Test scope:** direct_only
-**Last update:** 2025-09-29 18:25 UTC
-**Test duration:** 15.3 minutes
+**Test scope:** direct_and_vpn
+**Last update:** 2025-09-29 18:48 UTC
+**Test duration:** 20.4 minutes
 
 ## Latest Test Results
 
 | Location | Working | Geo-blocked | Failed | Total | Success Rate |
 |----------|---------|-------------|--------|-------|--------------|
-| Direct | 116 | 339 | 117 | 572 | **20.3%** |
+| Direct | 120 | 340 | 112 | 572 | **21.0%** |
 
 ## Error Analysis
 
-- **HTTP 403 Forbidden**: 339 occurrences
-- **Connection refused**: 61 occurrences
-- **Server error (5xx)**: 37 occurrences
+- **HTTP 403 Forbidden**: 340 occurrences
+- **Connection refused**: 62 occurrences
+- **Server error (5xx)**: 32 occurrences
 - **HTTP 404 Not Found**: 9 occurrences
-- **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0cdovlzizljizny4xmdqumta2ojgwodavvvnb**: 2 occurrences
-- **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly9hmxhzlnzpcc8zmdawmzqilcaiawqi**: 1 occurrences
+- **Process timeout (60s)**: 2 occurrences
+- **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly9hmxhzlnzpcc8zmdawmdkilcaiawqi**: 1 occurrences
 - **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly9hmxhzlnzpcc80mdawmdazmcisicjp**: 1 occurrences
 - **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly9hmxhzlnzpcc8zmdawmdgilcaiawqi**: 1 occurrences
-- **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly9jdnr2lmn2ywxszxkubmv0l2hscy9x**: 1 occurrences
-- **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly9hmxhzlnzpcc80mdawmda0myisicjp**: 1 occurrences
+- **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly9hmxhzlnzpcc80mdawmda2iiwgimlk**: 1 occurrences
+- **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0cdovlzizljizny4xmdqumta2ojgwodavvvnb**: 1 occurrences
 
 ---
-*Generated at 2025-09-29 18:25 UTC*
+*Generated at 2025-09-29 18:48 UTC*
 
 <!-- HISTORY
 {
@@ -238,6 +238,22 @@
           "failed": 117,
           "total": 572,
           "rate": 20.27972027972028
+        }
+      }
+    },
+    {
+      "date": "2025-09-29 18:48 UTC",
+      "country": "UK",
+      "method": "ffprobe",
+      "scope": "direct_and_vpn",
+      "duration_min": 20.4,
+      "results": {
+        "direct": {
+          "working": 120,
+          "geoblocked": 340,
+          "failed": 112,
+          "total": 572,
+          "rate": 20.97902097902098
         }
       }
     }

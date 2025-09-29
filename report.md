@@ -2,8 +2,8 @@
 
 **Last tested:** UK
 **Test method:** ffprobe
-**Last update:** 2025-09-29 09:16 UTC
-**Test duration:** 28.5 minutes
+**Last update:** 2025-09-29 10:03 UTC
+**Test duration:** 30.8 minutes
 **Sample size:** 200
 **Configuration:** VODs=No, PPV=No, FAST=No
 
@@ -11,46 +11,74 @@
 
 | Location | Working | Geo-blocked | Failed | Total | Success Rate |
 |----------|---------|-------------|--------|-------|--------------|
-| Direct | 151 | 5 | 44 | 200 | **75.5%** |
-| UK VPN | 50 | 1 | 149 | 200 | **25.0%** |
+| Direct | 145 | 4 | 51 | 200 | **72.5%** |
+| UK VPN | 149 | 4 | 47 | 200 | **74.5%** |
 
 ## VPN Connection Details
 
 - **Country:** GB
 - **City:** London
-- **IP:** 149.40.63.139
-- **ISP:** AS212238 Datacamp Limited
+- **IP:** 146.70.179.100
+- **ISP:** AS9009 M247 Europe SRL
 
 ## Error Analysis
 
-- **SSL/TLS error**: 81 occurrences
-- **Unknown error**: 55 occurrences
-- **HTTP 404 Not Found**: 4 occurrences
-- **Invalid stream data**: 3 occurrences
-- **Server error (5xx)**: 2 occurrences
-- **HTTP 400 Bad Request**: 2 occurrences
-- **Proxy error**: 1 occurrences
-- **HTTP 401 Unauthorized**: 1 occurrences
+- **Connection refused**: 33 occurrences
+- **HTTP 404 Not Found**: 5 occurrences
+- **HTTP 403 Forbidden**: 4 occurrences
+- **Server error (5xx)**: 3 occurrences
+- **Invalid stream data**: 2 occurrences
 - **HTTP 406 Not Acceptable**: 1 occurrences
+- **[tcp @ 0x555cfec7df40] failed to resolve hostname hls.mskycdn.online: no address associated with hos**: 1 occurrences
+- **HTTP 400 Bad Request**: 1 occurrences
+- **[http @ 0x55c688d96f40] stream ends prematurely at 0, should be 18446744073709551615**: 1 occurrences
 
-**VPN Impact:** -50.5% vs direct connection
+**VPN Impact:** +2.0% vs direct connection
 
-## Working Streams via VPN (50 total)
+## Working Streams via VPN (149 total)
 
-**AE** (1)
+**AE** (18)
 - MBC ACTION
+- MAJID
+- SKY NEWS ARABIA
+- MBC PERSIA
+- WANASAH
+- ... and 13 more
 
-**AR** (4)
+**AF** (5)
+- DUNYA NAW TV
+- BAHAR TV
+- RTA EDUCATION
+- Chekad TV
+- KAYHAN TV
+
+**AM** (3)
+- ARMENIA 1
+- ARMENIA 2
+- FIRST CHANNEL NEWS
+
+**AO** (2)
+- MUZANGALA TV
+- KK TV ANGOLA
+
+**AR** (8)
 - 5TV CORRIENTES
+- ARGENTINÍSIMA SATELITAL
 - CADENA 103
+- CANAL 11 DE LA COSTA
 - CANAL 13 LA RIOJA
-- 13MAX TELEVISIÓN
+- ... and 3 more
 
-**AUS** (2)
+**AUS** (11)
+- ABC TV SYDNEY
+- ABC TV MELBOURNE
+- ABC TV DARWIN
+- ABC TV PLUS
 - FOX SPORTS 501
-- FOX SPORTS 505
+- ... and 6 more
 
-**CA** (1)
+**CA** (2)
+- CTV 2
 - Fubo sports 1
 
 **HK** (1)
@@ -61,36 +89,15 @@
 - RTÈ ONE
 - VIRGIN MEDIA FOUR
 
-**NZ** (3)
-- SKY SPORT 9
-- SKY SPORT 1
-- SKY SPORT 3
-
-**UK** (17)
-- SKY CINEMA SCI-FI HORROR
-- NATIONAL GEOGRAPHIC
-- E4
-- TOGETHER TV
-- SKY WITNESS
-- ... and 12 more
-
-**UK INT** (1)
-- ALBUK TV
-
-**USA** (15)
-- CINEMAX HITS
-- AMC (EAST)
-- LIFETIME MOVIE NETWORK (EAST)
-- IFC
-- MSG
-- ... and 10 more
+**JP** (1)
+- DISNEY CHANNEL
 
 ## Next Test
 
 Next automatic test will use **US VPN**
 
 ---
-*Report generated at 2025-09-29 09:16 UTC*
+*Report generated at 2025-09-29 10:03 UTC*
 *Test method: ffprobe | Auto-alternates between UK and US ProtonVPN*
 
 <!-- HISTORY
@@ -230,6 +237,32 @@ Next automatic test will use **US VPN**
           "failed": 149,
           "total": 200,
           "rate": 25.0
+        }
+      }
+    },
+    {
+      "date": "2025-09-29 10:03 UTC",
+      "country": "UK",
+      "method": "ffprobe",
+      "ip": "146.70.179.100",
+      "city": "London",
+      "isp": "AS9009 M247 Europe SRL",
+      "config": "S:200,V:False,P:False,F:False",
+      "duration_min": 30.8,
+      "results": {
+        "direct": {
+          "working": 145,
+          "geoblocked": 4,
+          "failed": 51,
+          "total": 200,
+          "rate": 72.5
+        },
+        "vpn": {
+          "working": 149,
+          "geoblocked": 4,
+          "failed": 47,
+          "total": 200,
+          "rate": 74.5
         }
       }
     }

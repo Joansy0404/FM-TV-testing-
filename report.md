@@ -2,31 +2,31 @@
 
 **Test method:** ffprobe
 **Test scope:** direct_and_vpn
-**Last update:** 2025-09-29 20:26 UTC
-**Test duration:** 33.5 minutes
+**Last update:** 2025-09-29 23:11 UTC
+**Test duration:** 149.9 minutes
 
 ## Latest Test Results
 
 | Location | Working | Geo-blocked | Failed | Total | Success Rate |
 |----------|---------|-------------|--------|-------|--------------|
-| Direct | 121 | 341 | 111 | 573 | **21.1%** |
-| UK VPN | 42 | 340 | 191 | 573 | **7.3%** |
+| Direct | 117 | 371 | 114 | 602 | **19.4%** |
+| US VPN | 131 | 3 | 468 | 602 | **21.8%** |
 
 ## Error Analysis
 
-- **HTTP 403 Forbidden**: 340 occurrences
-- **SSL/TLS error**: 100 occurrences
-- **Unknown error**: 43 occurrences
-- **Server error (5xx)**: 33 occurrences
-- **HTTP 404 Not Found**: 8 occurrences
-- **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0cdovlzizljizny4xmdqumta2ojgwodavvvnb**: 3 occurrences
-- **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly9hmxhzlnzpcc8zmdawmdkilcaiawqi**: 1 occurrences
-- **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly9hmxhzlnzpcc80mdawmda2mcisicjp**: 1 occurrences
-- **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly9hmxhzlnzpcc8zmdawmzeilcaiawqi**: 1 occurrences
-- **Invalid stream data**: 1 occurrences
+- **SSL/TLS error**: 207 occurrences
+- **Unknown error**: 152 occurrences
+- **Server error (5xx)**: 38 occurrences
+- **Process timeout (120s)**: 37 occurrences
+- **HTTP 404 Not Found**: 22 occurrences
+- **HTTP 400 Bad Request**: 5 occurrences
+- **Invalid stream data**: 4 occurrences
+- **HTTP 401 Unauthorized**: 2 occurrences
+- **HTTP 451 Legal/Geo Restriction**: 1 occurrences
+- **Connection timeout**: 1 occurrences
 
 ---
-*Generated at 2025-09-29 20:26 UTC*
+*Generated at 2025-09-29 23:11 UTC*
 
 <!-- HISTORY
 {
@@ -294,6 +294,29 @@
           "failed": 191,
           "total": 573,
           "rate": 7.329842931937172
+        }
+      }
+    },
+    {
+      "date": "2025-09-29 23:11 UTC",
+      "country": "US",
+      "method": "ffprobe",
+      "scope": "direct_and_vpn",
+      "duration_min": 149.9,
+      "results": {
+        "direct": {
+          "working": 117,
+          "geoblocked": 371,
+          "failed": 114,
+          "total": 602,
+          "rate": 19.435215946843854
+        },
+        "vpn": {
+          "working": 131,
+          "geoblocked": 3,
+          "failed": 468,
+          "total": 602,
+          "rate": 21.760797342192692
         }
       }
     }

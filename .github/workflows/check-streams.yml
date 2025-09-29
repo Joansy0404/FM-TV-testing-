@@ -304,10 +304,28 @@ jobs:
                   return filtered
 
               def test_ffprobe(self, url, proxy=None):
-                  cmd = ['ffprobe', '-v', 'error', '-show_entries', 'format=duration', 
+                  # Deep analysis for maximum accuracy
+                  # Probe more data to catch streams that take time to initialize
+                  if proxy:
+                      # VPN: very generous settings due to latency
+                      timeout_ms = '40000000'  # 40s
+                      analyze_duration = '15000000'  # 15s
+                      probe_size = '15000000'  # 15MB
+                      subprocess_timeout = 90
+                  else:
+                      # Direct: thorough but reasonable
+                      timeout_ms = '30000000'  # 30s
+                      analyze_duration = '10000000'  # 10s
+                      probe_size = '10000000'  # 10MB
+                      subprocess_timeout = 60
+                  
+                  cmd = ['ffprobe', '-v', 'error', 
+                         '-select_streams', 'v:0',  # Only check video stream
+                         '-show_entries', 'format=duration', 
                          '-of', 'default=noprint_wrappers=1:nokey=1', 
-                         '-timeout', '30000000', '-analyzeduration', '5000000', 
-                         '-probesize', '5000000']
+                         '-timeout', timeout_ms, 
+                         '-analyzeduration', analyze_duration, 
+                         '-probesize', probe_size]
                   
                   if proxy:
                       env = os.environ.copy()
@@ -319,7 +337,8 @@ jobs:
                       cmd.append(url)
                   
                   try:
-                      result = subprocess.run(cmd, capture_output=True, text=True, timeout=45, env=env)
+                      result = subprocess.run(cmd, capture_output=True, text=True, 
+                                            timeout=subprocess_timeout, env=env)
                       
                       if result.returncode == 0:
                           return 'working', None
@@ -357,7 +376,7 @@ jobs:
                       return 'failed', first_error
                   
                   except subprocess.TimeoutExpired:
-                      return 'timeout', 'Process timeout (45s)'
+                      return 'timeout', f'Process timeout ({subprocess_timeout}s)'
                   except Exception as e:
                       return 'error', str(e)[:100]
 

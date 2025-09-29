@@ -259,16 +259,40 @@ jobs:
                   
                   return filtered
 
+              def test_proxy_connectivity(self):
+                  """Test if the proxy is actually working before stream tests"""
+                  print("\n=== Testing Proxy Connectivity ===")
+                  
+                  test_cmd = ['curl', '-x', 'http://localhost:8888', '-s', 
+                              '--connect-timeout', '10', 'https://ipinfo.io/json']
+                  try:
+                      result = subprocess.run(test_cmd, capture_output=True, text=True, timeout=15)
+                      if result.returncode == 0:
+                          print("✅ Proxy responds to curl")
+                          info = json.loads(result.stdout)
+                          print(f"   IP: {info.get('ip')}")
+                          print(f"   Country: {info.get('country')}")
+                          return True
+                      else:
+                          print("❌ Proxy doesn't work with curl")
+                          print(f"   stderr: {result.stderr}")
+                          return False
+                  except Exception as e:
+                      print(f"❌ Proxy test failed: {e}")
+                      return False
+
               def test_ffprobe(self, url, proxy=None):
-                  """Test stream with ffprobe"""
+                  """Test stream with ffprobe - INCREASED TIMEOUT"""
+                  # Increase ffprobe's internal timeout to 20 seconds (20000000 microseconds)
                   cmd = ['ffprobe', '-v', 'error', '-show_entries', 'format=duration', 
-                         '-of', 'default=noprint_wrappers=1:nokey=1', '-timeout', '10000000', url]
+                         '-of', 'default=noprint_wrappers=1:nokey=1', '-timeout', '20000000', url]
                   
                   if proxy:
                       cmd[2:2] = ['-http_proxy', proxy]
                   
                   try:
-                      result = subprocess.run(cmd, capture_output=True, text=True, timeout=12)
+                      # Increased subprocess timeout to 30 seconds for VPN latency
+                      result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
                       
                       if result.returncode == 0:
                           return 'working'
@@ -278,12 +302,15 @@ jobs:
                           return 'geoblocked'
                       if '404' in err:
                           return 'notfound'
+                      if 'connection refused' in err or 'could not connect' in err:
+                          return 'connection_error'
                       
                       return 'failed'
                   
                   except subprocess.TimeoutExpired:
                       return 'timeout'
                   except Exception as e:
+                      print(f"    Exception: {str(e)[:100]}")
                       return 'error'
 
               def test_location(self, location_name, use_vpn=False):
@@ -297,6 +324,10 @@ jobs:
                   sess = requests.Session()
                   if proxy:
                       sess.proxies = {'http': proxy, 'https': proxy}
+                      
+                      # Test proxy connectivity before proceeding
+                      if not self.test_proxy_connectivity():
+                          print("⚠️  Proxy connectivity test failed, but continuing anyway...")
                   
                   print("\nVerifying connection...")
                   try:
@@ -313,6 +344,8 @@ jobs:
                   
                   streams = self.get_filtered_streams()
                   working, geoblocked, failed = [], [], []
+                  connection_errors = 0
+                  timeouts = 0
                   
                   print(f"\nTesting {len(streams)} streams with ffprobe...\n")
                   
@@ -327,6 +360,14 @@ jobs:
                       elif result == 'geoblocked':
                           geoblocked.append(stream)
                           print("🔒 GEO")
+                      elif result == 'timeout':
+                          failed.append(stream)
+                          timeouts += 1
+                          print("⏱️  TIMEOUT")
+                      elif result == 'connection_error':
+                          failed.append(stream)
+                          connection_errors += 1
+                          print("🔌 CONN_ERR")
                       else:
                           failed.append(stream)
                           print(f"❌ {result.upper()}")
@@ -335,7 +376,7 @@ jobs:
                       
                       if (i+1) % 20 == 0:
                           rate = (len(working)/(i+1)*100)
-                          print(f"  Progress: {len(working)}/{i+1} ({rate:.1f}%)")
+                          print(f"  Progress: {len(working)}/{i+1} ({rate:.1f}%) | Timeouts: {timeouts} | Conn Errors: {connection_errors}")
                           time.sleep(random.uniform(1.5, 2.5))
                   
                   total = len(streams)
@@ -345,13 +386,17 @@ jobs:
                   print(f"  Working: {len(working)}/{total} ({success_rate:.1f}%)")
                   print(f"  Geo-blocked: {len(geoblocked)}")
                   print(f"  Failed: {len(failed)}")
+                  print(f"  Timeouts: {timeouts}")
+                  print(f"  Connection Errors: {connection_errors}")
                   
                   return {
                       'working': working,
                       'geoblocked': geoblocked,
                       'failed': failed,
                       'rate': success_rate,
-                      'location_info': info
+                      'location_info': info,
+                      'timeouts': timeouts,
+                      'connection_errors': connection_errors
                   }
 
               def generate_report(self):
@@ -377,7 +422,9 @@ jobs:
                           'geoblocked': len(data['geoblocked']),
                           'failed': len(data['failed']),
                           'total': total,
-                          'rate': data['rate']
+                          'rate': data['rate'],
+                          'timeouts': data.get('timeouts', 0),
+                          'connection_errors': data.get('connection_errors', 0)
                       }
                   
                   self.history['tests'].append(entry)
@@ -395,8 +442,8 @@ jobs:
                   
                   # Latest results
                   report += "## Latest Test Results\n\n"
-                  report += "| Location | Working | Geo-blocked | Failed | Total | Success Rate |\n"
-                  report += "|----------|---------|-------------|--------|-------|-------------|\n"
+                  report += "| Location | Working | Geo-blocked | Failed | Total | Success Rate | Timeouts | Conn Errors |\n"
+                  report += "|----------|---------|-------------|--------|-------|--------------|----------|-------------|\n"
                   
                   for location, data in self.results.items():
                       loc_name = f"{COUNTRY} VPN" if location == 'vpn' else "Direct"
@@ -404,7 +451,9 @@ jobs:
                       g = len(data['geoblocked'])
                       f = len(data['failed'])
                       total = w + g + f
-                      report += f"| {loc_name} | {w} | {g} | {f} | {total} | **{data['rate']:.1f}%** |\n"
+                      timeouts = data.get('timeouts', 0)
+                      conn_errs = data.get('connection_errors', 0)
+                      report += f"| {loc_name} | {w} | {g} | {f} | {total} | **{data['rate']:.1f}%** | {timeouts} | {conn_errs} |\n"
                   
                   report += "\n"
                   
@@ -526,6 +575,7 @@ jobs:
                   print(f"Auto-Alternating VPN Stream Test")
                   print(f"Testing: {COUNTRY} VPN")
                   print(f"Method: ffprobe through VPN proxy")
+                  print(f"Timeout: 30s per stream (increased for VPN latency)")
                   print(f"{'='*60}\n")
                   
                   # Test direct
@@ -573,7 +623,10 @@ jobs:
           
           if [[ -f "report.md" ]]; then
             git add report.md
-            git pull origin main --rebase || true
+            
+            # Fetch and attempt a fast-forward merge (safe)
+            git fetch origin main
+            git merge origin/main --ff-only || true
             
             if ! git diff --staged --quiet; then
               RATE=$(grep -oE "\*\*[0-9.]+%" report.md | grep -oE "[0-9.]+" | head -1 || echo "0")

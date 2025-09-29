@@ -282,28 +282,45 @@ jobs:
                       return False
 
               def test_ffprobe(self, url, proxy=None):
-                  """Test stream with ffprobe - INCREASED TIMEOUT"""
-                  # Increase ffprobe's internal timeout to 20 seconds (20000000 microseconds)
-                  cmd = ['ffprobe', '-v', 'error', '-show_entries', 'format=duration', 
-                         '-of', 'default=noprint_wrappers=1:nokey=1', '-timeout', '20000000', url]
-                  
+                  """Test stream with ffprobe - FIXED PROXY USAGE"""
+                  # Build command with proper proxy handling
                   if proxy:
-                      cmd[2:2] = ['-http_proxy', proxy]
+                      # Use environment variable approach - more reliable for ffprobe
+                      env = os.environ.copy()
+                      env['http_proxy'] = proxy
+                      env['https_proxy'] = proxy
+                      env['HTTP_PROXY'] = proxy
+                      env['HTTPS_PROXY'] = proxy
+                      
+                      cmd = ['ffprobe', '-v', 'error', '-show_entries', 'format=duration', 
+                             '-of', 'default=noprint_wrappers=1:nokey=1', '-timeout', '20000000', url]
+                  else:
+                      env = None
+                      cmd = ['ffprobe', '-v', 'error', '-show_entries', 'format=duration', 
+                             '-of', 'default=noprint_wrappers=1:nokey=1', '-timeout', '20000000', url]
                   
                   try:
                       # Increased subprocess timeout to 30 seconds for VPN latency
-                      result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+                      result = subprocess.run(cmd, capture_output=True, text=True, timeout=30, env=env)
                       
                       if result.returncode == 0:
                           return 'working'
                       
                       err = result.stderr.lower()
+                      
+                      # Debug: Print first error for analysis
+                      if proxy and len(err) > 0:
+                          # Only print for first few failures to avoid spam
+                          pass
+                      
                       if '403' in err or 'forbidden' in err:
                           return 'geoblocked'
                       if '404' in err:
                           return 'notfound'
                       if 'connection refused' in err or 'could not connect' in err:
                           return 'connection_error'
+                      if 'proxy' in err or 'tunnel' in err:
+                          return 'proxy_error'
                       
                       return 'failed'
                   
@@ -327,7 +344,8 @@ jobs:
                       
                       # Test proxy connectivity before proceeding
                       if not self.test_proxy_connectivity():
-                          print("⚠️  Proxy connectivity test failed, but continuing anyway...")
+                          print("⚠️  Proxy connectivity test failed!")
+                          print("⚠️  Continuing anyway, but VPN might not be working...")
                   
                   print("\nVerifying connection...")
                   try:
@@ -342,10 +360,48 @@ jobs:
                           return None
                       info = {}
                   
+                  # DEBUG: Test ffprobe with proxy on a known working stream
+                  if use_vpn:
+                      print("\n=== DEBUG: Testing ffprobe proxy functionality ===")
+                      test_url = "http://ipinfo.io/json"  # Simple HTTP endpoint
+                      print(f"Testing ffprobe with proxy on: {test_url}")
+                      
+                      # Test 1: Direct ffprobe command with env vars
+                      import subprocess
+                      env = os.environ.copy()
+                      env['http_proxy'] = proxy
+                      env['https_proxy'] = proxy
+                      
+                      test_cmd = ['curl', '-x', proxy, '-s', '--connect-timeout', '5', test_url]
+                      try:
+                          result = subprocess.run(test_cmd, capture_output=True, text=True, timeout=10)
+                          print(f"  curl via proxy: {'✅ OK' if result.returncode == 0 else '❌ FAILED'}")
+                          if result.returncode != 0:
+                              print(f"    Error: {result.stderr[:200]}")
+                      except Exception as e:
+                          print(f"  curl test failed: {e}")
+                      
+                      # Test 2: Try ffprobe with a simple HTTP URL
+                      print("\n  Testing ffprobe with environment proxy...")
+                      ffprobe_test = ['ffprobe', '-v', 'error', '-timeout', '5000000', 
+                                     'http://ipinfo.io/json']
+                      try:
+                          result = subprocess.run(ffprobe_test, capture_output=True, text=True, 
+                                                timeout=10, env=env)
+                          print(f"  ffprobe via env proxy: {'✅ Connected' if 'http' in result.stderr.lower() or result.returncode == 1 else '❌ No connection'}")
+                          print(f"    Return code: {result.returncode}")
+                          if result.stderr:
+                              print(f"    First error line: {result.stderr.split(chr(10))[0][:150]}")
+                      except Exception as e:
+                          print(f"  ffprobe test failed: {e}")
+                      
+                      print("="*60)
+                  
                   streams = self.get_filtered_streams()
                   working, geoblocked, failed = [], [], []
                   connection_errors = 0
                   timeouts = 0
+                  proxy_errors = 0
                   
                   print(f"\nTesting {len(streams)} streams with ffprobe...\n")
                   
@@ -368,6 +424,13 @@ jobs:
                           failed.append(stream)
                           connection_errors += 1
                           print("🔌 CONN_ERR")
+                      elif result == 'proxy_error':
+                          failed.append(stream)
+                          proxy_errors += 1
+                          print("🔧 PROXY_ERR")
+                          # Print debug info for first proxy error
+                          if proxy_errors == 1:
+                              print(f"\n    [DEBUG] First proxy error detected - checking ffprobe output...")
                       else:
                           failed.append(stream)
                           print(f"❌ {result.upper()}")
@@ -376,7 +439,7 @@ jobs:
                       
                       if (i+1) % 20 == 0:
                           rate = (len(working)/(i+1)*100)
-                          print(f"  Progress: {len(working)}/{i+1} ({rate:.1f}%) | Timeouts: {timeouts} | Conn Errors: {connection_errors}")
+                          print(f"  Progress: {len(working)}/{i+1} ({rate:.1f}%) | Timeouts: {timeouts} | Conn: {connection_errors} | Proxy: {proxy_errors}")
                           time.sleep(random.uniform(1.5, 2.5))
                   
                   total = len(streams)
@@ -388,6 +451,7 @@ jobs:
                   print(f"  Failed: {len(failed)}")
                   print(f"  Timeouts: {timeouts}")
                   print(f"  Connection Errors: {connection_errors}")
+                  print(f"  Proxy Errors: {proxy_errors}")
                   
                   return {
                       'working': working,
@@ -396,7 +460,8 @@ jobs:
                       'rate': success_rate,
                       'location_info': info,
                       'timeouts': timeouts,
-                      'connection_errors': connection_errors
+                      'connection_errors': connection_errors,
+                      'proxy_errors': proxy_errors
                   }
 
               def generate_report(self):
@@ -424,7 +489,8 @@ jobs:
                           'total': total,
                           'rate': data['rate'],
                           'timeouts': data.get('timeouts', 0),
-                          'connection_errors': data.get('connection_errors', 0)
+                          'connection_errors': data.get('connection_errors', 0),
+                          'proxy_errors': data.get('proxy_errors', 0)
                       }
                   
                   self.history['tests'].append(entry)
@@ -442,8 +508,8 @@ jobs:
                   
                   # Latest results
                   report += "## Latest Test Results\n\n"
-                  report += "| Location | Working | Geo-blocked | Failed | Total | Success Rate | Timeouts | Conn Errors |\n"
-                  report += "|----------|---------|-------------|--------|-------|--------------|----------|-------------|\n"
+                  report += "| Location | Working | Geo-blocked | Failed | Total | Success Rate | Timeouts | Conn Errors | Proxy Errors |\n"
+                  report += "|----------|---------|-------------|--------|-------|--------------|----------|-------------|-------------|\n"
                   
                   for location, data in self.results.items():
                       loc_name = f"{COUNTRY} VPN" if location == 'vpn' else "Direct"
@@ -453,7 +519,8 @@ jobs:
                       total = w + g + f
                       timeouts = data.get('timeouts', 0)
                       conn_errs = data.get('connection_errors', 0)
-                      report += f"| {loc_name} | {w} | {g} | {f} | {total} | **{data['rate']:.1f}%** | {timeouts} | {conn_errs} |\n"
+                      proxy_errs = data.get('proxy_errors', 0)
+                      report += f"| {loc_name} | {w} | {g} | {f} | {total} | **{data['rate']:.1f}%** | {timeouts} | {conn_errs} | {proxy_errs} |\n"
                   
                   report += "\n"
                   
@@ -574,7 +641,7 @@ jobs:
                   print(f"{'='*60}")
                   print(f"Auto-Alternating VPN Stream Test")
                   print(f"Testing: {COUNTRY} VPN")
-                  print(f"Method: ffprobe through VPN proxy")
+                  print(f"Method: ffprobe through VPN proxy (env variables)")
                   print(f"Timeout: 30s per stream (increased for VPN latency)")
                   print(f"{'='*60}\n")
                   

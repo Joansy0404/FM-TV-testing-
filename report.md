@@ -1,34 +1,34 @@
 # Auto-Alternating VPN Stream Test Report
 
 **Last tested:** UK
-**Last update:** 2025-09-29 07:01 UTC
-**Test duration:** 17.4 minutes
+**Last update:** 2025-09-29 07:40 UTC
+**Test duration:** 25.4 minutes
 **Sample size:** All streams
 **Configuration:** VODs=No, PPV=No, FAST=No
-**Total historical tests:** 2
+**Total historical tests:** 3
 
 ## Latest Test Results
 
-| Location | Working | Geo-blocked | Failed | Total | Success Rate | Timeouts | Conn Errors |
-|----------|---------|-------------|--------|-------|--------------|----------|-------------|
-| Direct | 114 | 330 | 118 | 562 | **20.3%** | 0 | 61 |
-| UK VPN | 0 | 0 | 562 | 562 | **0.0%** | 0 | 0 |
+| Location | Working | Geo-blocked | Failed | Total | Success Rate | Timeouts | Conn Errors | Proxy Errors |
+|----------|---------|-------------|--------|-------|--------------|----------|-------------|-------------|
+| Direct | 116 | 330 | 116 | 562 | **20.6%** | 0 | 63 | 0 |
+| UK VPN | 40 | 328 | 194 | 562 | **7.1%** | 0 | 0 | 0 |
 
 ## VPN Connection Details
 
 - **Country:** GB
 - **City:** London
-- **IP:** 154.47.24.199
-- **ISP:** AS212238 Datacamp Limited
+- **IP:** 146.70.179.109
+- **ISP:** AS9009 M247 Europe SRL
 
 ## Historical Performance
 
-**UK VPN** (2 tests)
-- Average: 0.0%
-- Latest: 0.0%
-- Range: 0.0% - 0.0%
+**UK VPN** (3 tests)
+- Average: 2.4%
+- Latest: 7.1%
+- Range: 0.0% - 7.1%
 
-**Latest VPN Impact:** -20.3% vs direct connection
+**Latest VPN Impact:** -13.5% vs direct connection
 
 ## Recent Test History
 
@@ -36,13 +36,46 @@
 |------|---------|-------------|----------------|--------|----------|
 | 2025-09-29 06:24 UTC | UK | 0.0% | 18.5% | -18.5% | 18.8min |
 | 2025-09-29 07:01 UTC | UK | 0.0% | 20.3% | -20.3% | 17.4min |
+| 2025-09-29 07:40 UTC | UK | 7.1% | 20.6% | -13.5% | 25.4min |
+
+## Working Streams Sample (40 total)
+
+**UK** (12)
+- 5 USA
+- BBC ALBA
+- BBC PARLIAMENT
+- DMAX
+- E4
+- ... and 7 more
+
+**USA** (28)
+- ABC
+- AMC (EAST)
+- BIG TEN NETWORK
+- BOOMERANG
+- BUZZR
+- ... and 23 more
+
+## Geo-blocked Streams (328)
+
+- QUEST+1 (UK)
+- QVC (UK)
+- QVC BEAUTY (UK)
+- QVC EXTRA (UK)
+- QVC STYLE (UK)
+- RACING TV (UK)
+- REALLY (UK)
+- S4C (UK)
+- SKY ARTS (UK)
+- SKY ATLANTIC (UK)
+- ... and 318 more
 
 ## Next Test
 
 Next automatic test will use **US VPN**
 
 ---
-*Report generated at 2025-09-29 07:01 UTC*
+*Report generated at 2025-09-29 07:40 UTC*
 *Auto-alternates between UK and US ProtonVPN using ffprobe validation*
 
 <!-- HISTORY
@@ -99,6 +132,37 @@ Next automatic test will use **US VPN**
           "rate": 0.0,
           "timeouts": 0,
           "connection_errors": 0
+        }
+      }
+    },
+    {
+      "date": "2025-09-29 07:40 UTC",
+      "country": "UK",
+      "ip": "146.70.179.109",
+      "city": "London",
+      "isp": "AS9009 M247 Europe SRL",
+      "config": "S:All,V:False,P:False,F:False",
+      "duration_min": 25.4,
+      "results": {
+        "direct": {
+          "working": 116,
+          "geoblocked": 330,
+          "failed": 116,
+          "total": 562,
+          "rate": 20.640569395017792,
+          "timeouts": 0,
+          "connection_errors": 63,
+          "proxy_errors": 0
+        },
+        "vpn": {
+          "working": 40,
+          "geoblocked": 328,
+          "failed": 194,
+          "total": 562,
+          "rate": 7.11743772241993,
+          "timeouts": 0,
+          "connection_errors": 0,
+          "proxy_errors": 0
         }
       }
     }

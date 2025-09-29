@@ -55,7 +55,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install requests
+          pip install requests pysocks
           
           # Install method-specific dependencies
           METHOD="${{ github.event.inputs.test_method || 'ffprobe' }}"
@@ -70,8 +70,12 @@ jobs:
           if [ "$METHOD" = "ffprobe" ] || [ "$METHOD" = "hybrid" ]; then
             echo "Installing ffmpeg for ffprobe testing..."
             sudo apt-get update
-            sudo apt-get install -y ffmpeg
+            sudo apt-get install -y ffmpeg dante-client
             ffprobe -version
+            
+            # Verify SOCKS proxy support
+            echo "Checking SOCKS proxy support..."
+            which socksify || echo "Warning: socksify not found"
           fi
 
       - name: Determine next VPN country (auto-alternating)
@@ -106,7 +110,7 @@ jobs:
             --device /dev/net/tun \
             --network vpn-network \
             -p 8888:8888 \
-            -p 8000:8000 \
+            -p 1080:1080 \
             -e VPN_SERVICE_PROVIDER=protonvpn \
             -e OPENVPN_USER="${{ secrets.VPN_USER }}" \
             -e OPENVPN_PASSWORD="${{ secrets.VPN_PASSWORD }}" \
@@ -115,6 +119,8 @@ jobs:
             -e LOG_LEVEL=info \
             -e HTTPPROXY=on \
             -e HTTPPROXY_LISTENING_ADDRESS=:8888 \
+            -e SHADOWSOCKS=on \
+            -e SHADOWSOCKS_LISTENING_ADDRESS=:1080 \
             qmcgaw/gluetun:latest
           
           echo "Waiting for initial connection..."
@@ -291,29 +297,26 @@ jobs:
 
               # ==================== FFPROBE METHOD ====================
               def test_ffprobe(self, url, proxy=None):
-                  """Test stream with ffprobe - prioritizing accuracy over speed"""
+                  """Test stream with ffprobe - using SOCKS5 proxy for better SSL/TLS handling"""
+                  
+                  # Build ffprobe command with SOCKS5 support
+                  # SOCKS5 works at TCP level and doesn't interfere with SSL/TLS
+                  cmd = ['ffprobe', '-v', 'error', '-show_entries', 'format=duration', 
+                         '-of', 'default=noprint_wrappers=1:nokey=1', 
+                         '-timeout', '30000000', '-analyzeduration', '5000000', 
+                         '-probesize', '5000000']
+                  
                   if proxy:
+                      # Use ALL_PROXY for SOCKS5 support in ffmpeg/ffprobe
                       env = os.environ.copy()
-                      env['http_proxy'] = proxy
-                      env['https_proxy'] = proxy
-                      
-                      # Reliable ffprobe command:
-                      # -timeout: 30s (generous timeout for VPN latency and slow servers)
-                      # -analyzeduration: 5s (analyze enough data to be confident stream works)
-                      # -probesize: 5MB (read enough data to verify stream quality)
-                      cmd = ['ffprobe', '-v', 'error', '-show_entries', 'format=duration', 
-                             '-of', 'default=noprint_wrappers=1:nokey=1', 
-                             '-timeout', '30000000', '-analyzeduration', '5000000', 
-                             '-probesize', '5000000', url]
+                      env['ALL_PROXY'] = 'socks5://localhost:1080'
+                      env['all_proxy'] = 'socks5://localhost:1080'
+                      cmd.append(url)
                   else:
                       env = None
-                      cmd = ['ffprobe', '-v', 'error', '-show_entries', 'format=duration', 
-                             '-of', 'default=noprint_wrappers=1:nokey=1', 
-                             '-timeout', '30000000', '-analyzeduration', '5000000', 
-                             '-probesize', '5000000', url]
+                      cmd.append(url)
                   
                   try:
-                      # Longer subprocess timeout to accommodate thorough analysis
                       result = subprocess.run(cmd, capture_output=True, text=True, timeout=45, env=env)
                       
                       if result.returncode == 0:
@@ -321,12 +324,12 @@ jobs:
                       
                       err = result.stderr.lower()
                       
-                      # Comprehensive error detection - prioritize geo-blocking first
+                      # Comprehensive error detection
                       if '403' in err or 'forbidden' in err:
                           return 'geoblocked', 'HTTP 403 Forbidden'
                       if '401' in err or 'unauthorized' in err:
                           return 'geoblocked', 'HTTP 401 Unauthorized'
-                      if '451' in err:  # HTTP 451 Unavailable For Legal Reasons
+                      if '451' in err:
                           return 'geoblocked', 'HTTP 451 Legal/Geo Restriction'
                       if '404' in err or 'not found' in err:
                           return 'notfound', 'HTTP 404 Not Found'
@@ -338,8 +341,8 @@ jobs:
                           return 'failed', 'HTTP 410 Gone'
                       if 'connection refused' in err or 'could not connect' in err:
                           return 'connection_error', 'Connection refused'
-                      if 'proxy' in err or 'tunnel' in err:
-                          return 'proxy_error', 'Proxy error'
+                      if 'socks' in err or 'proxy' in err or 'tunnel' in err:
+                          return 'proxy_error', f'SOCKS5 proxy error'
                       if 'timed out' in err or 'timeout' in err:
                           return 'timeout', 'Connection timeout'
                       if 'ssl' in err or 'certificate' in err or 'tls' in err:

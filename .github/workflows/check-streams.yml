@@ -1,4 +1,4 @@
-name: VPN Stream Test (Unified - ffprobe/Browser Toggle)
+name: VPN Stream Test (HTTP Proxy)
 
 on:
   workflow_dispatch:
@@ -63,7 +63,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install requests pysocks
+          pip install requests
           
           METHOD="${{ github.event.inputs.test_method || 'ffprobe' }}"
           
@@ -112,9 +112,7 @@ jobs:
             --name gluetun \
             --cap-add=NET_ADMIN \
             --device /dev/net/tun \
-            --network vpn-network \
             -p 8888:8888 \
-            -p 1080:1080 \
             -e VPN_SERVICE_PROVIDER=protonvpn \
             -e OPENVPN_USER="${{ secrets.VPN_USER }}" \
             -e OPENVPN_PASSWORD="${{ secrets.VPN_PASSWORD }}" \
@@ -123,12 +121,10 @@ jobs:
             -e LOG_LEVEL=info \
             -e HTTPPROXY=on \
             -e HTTPPROXY_LISTENING_ADDRESS=:8888 \
-            -e SHADOWSOCKS=on \
-            -e SHADOWSOCKS_LISTENING_ADDRESS=:1080 \
             qmcgaw/gluetun:latest
           
-          echo "Waiting for initial connection..."
-          sleep 30
+          echo "Waiting for VPN initialization..."
+          sleep 20
 
       - name: Verify VPN Connection
         if: github.event.inputs.test_scope == 'direct_and_vpn' || github.event_name == 'schedule'
@@ -137,11 +133,16 @@ jobs:
           
           VPN_SUCCESS=false
           
-          for i in {1..20}; do
-            echo "Verification attempt $i/20..."
+          for i in {1..30}; do
+            echo "Verification attempt $i/30..."
             sleep 10
             
-            if curl -x localhost:8888 -s --connect-timeout 10 https://ipinfo.io/json > /tmp/vpn.json 2>/dev/null; then
+            if ! docker ps | grep -q gluetun; then
+              echo "  ❌ Gluetun container not running!"
+              continue
+            fi
+            
+            if curl -x http://localhost:8888 -s --connect-timeout 15 --max-time 20 https://ipinfo.io/json > /tmp/vpn.json 2>/dev/null; then
               COUNTRY=$(jq -r '.country' /tmp/vpn.json 2>/dev/null || echo "Unknown")
               IP=$(jq -r '.ip' /tmp/vpn.json 2>/dev/null || echo "Unknown")
               ORG=$(jq -r '.org' /tmp/vpn.json 2>/dev/null || echo "Unknown")
@@ -153,7 +154,7 @@ jobs:
               echo "  ISP: $ORG"
               
               if [[ "$COUNTRY" != "null" && "$COUNTRY" != "Unknown" && "$IP" != "Unknown" ]]; then
-                echo "✅ VPN connection successful!"
+                echo "✅ HTTP proxy working successfully!"
                 echo "VPN_READY=true" >> $GITHUB_ENV
                 echo "CONNECTED_IP=$IP" >> $GITHUB_ENV
                 echo "CONNECTED_ORG=$ORG" >> $GITHUB_ENV
@@ -167,8 +168,11 @@ jobs:
           done
           
           if [[ "$VPN_SUCCESS" != "true" ]]; then
-            echo "❌ VPN connection failed"
-            docker logs gluetun --tail 50
+            echo "❌ VPN connection failed after 30 attempts"
+            echo "=== Gluetun Logs (last 100 lines) ==="
+            docker logs gluetun --tail 100
+            echo "=== Container Status ==="
+            docker ps -a | grep gluetun
             exit 1
           fi
 
@@ -303,23 +307,34 @@ jobs:
                   
                   return filtered
 
-              def test_ffprobe(self, url, proxy=None):
-                  cmd = ['ffprobe', '-v', 'error', '-show_entries', 'format=duration', 
-                         '-of', 'default=noprint_wrappers=1:nokey=1', 
-                         '-timeout', '30000000', '-analyzeduration', '5000000', 
-                         '-probesize', '5000000']
-                  
-                  if proxy:
-                      env = os.environ.copy()
-                      env['ALL_PROXY'] = 'socks5://localhost:1080'
-                      env['all_proxy'] = 'socks5://localhost:1080'
-                      cmd.append(url)
+              def test_ffprobe(self, url, use_proxy=False):
+                  if use_proxy:
+                      timeout_ms = '45000000'
+                      analyze_duration = '15000000'
+                      probe_size = '15000000'
+                      subprocess_timeout = 120
                   else:
-                      env = None
-                      cmd.append(url)
+                      timeout_ms = '30000000'
+                      analyze_duration = '10000000'
+                      probe_size = '10000000'
+                      subprocess_timeout = 60
+                  
+                  cmd = ['ffprobe', '-v', 'error', 
+                         '-select_streams', 'v:0',
+                         '-show_entries', 'format=duration', 
+                         '-of', 'default=noprint_wrappers=1:nokey=1', 
+                         '-timeout', timeout_ms, 
+                         '-analyzeduration', analyze_duration, 
+                         '-probesize', probe_size]
+                  
+                  if use_proxy:
+                      cmd.extend(['-http_proxy', 'http://localhost:8888'])
+                  
+                  cmd.append(url)
                   
                   try:
-                      result = subprocess.run(cmd, capture_output=True, text=True, timeout=45, env=env)
+                      result = subprocess.run(cmd, capture_output=True, text=True, 
+                                            timeout=subprocess_timeout)
                       
                       if result.returncode == 0:
                           return 'working', None
@@ -342,8 +357,8 @@ jobs:
                           return 'failed', 'HTTP 410 Gone'
                       if 'connection refused' in err or 'could not connect' in err:
                           return 'connection_error', 'Connection refused'
-                      if 'socks' in err or 'proxy' in err or 'tunnel' in err:
-                          return 'proxy_error', 'SOCKS5 proxy error'
+                      if 'proxy' in err and 'connect' in err:
+                          return 'proxy_error', 'HTTP proxy error'
                       if 'timed out' in err or 'timeout' in err:
                           return 'timeout', 'Connection timeout'
                       if 'ssl' in err or 'certificate' in err or 'tls' in err:
@@ -357,7 +372,7 @@ jobs:
                       return 'failed', first_error
                   
                   except subprocess.TimeoutExpired:
-                      return 'timeout', 'Process timeout (45s)'
+                      return 'timeout', f'Process timeout ({subprocess_timeout}s)'
                   except Exception as e:
                       return 'error', str(e)[:100]
 
@@ -366,18 +381,19 @@ jobs:
                   print(f"Testing: {location_name}")
                   print(f"Method: {self.test_method.upper()}")
                   if use_vpn:
-                      print("Proxy: SOCKS5 on localhost:1080")
+                      print("Proxy: HTTP on localhost:8888")
                   print('='*60)
                   
-                  proxy = 'socks5://localhost:1080' if use_vpn else None
-                  
-                  sess = requests.Session()
-                  if proxy:
-                      sess.proxies = {'http': 'socks5h://localhost:1080', 'https': 'socks5h://localhost:1080'}
-                  
                   print("\nVerifying connection...")
+                  sess = requests.Session()
+                  if use_vpn:
+                      sess.proxies = {
+                          'http': 'http://localhost:8888',
+                          'https': 'http://localhost:8888'
+                      }
+                  
                   try:
-                      info = sess.get('https://ipinfo.io/json', timeout=10).json()
+                      info = sess.get('https://ipinfo.io/json', timeout=15).json()
                       print(f"  IP: {info.get('ip')}")
                       print(f"  Country: {info.get('country')}")
                       print(f"  City: {info.get('city')}")
@@ -385,10 +401,10 @@ jobs:
                   except Exception as e:
                       print(f"  Connection check failed: {e}")
                       if use_vpn:
-                          print("  Aborting VPN test")
+                          print("  ❌ Cannot proceed with VPN test")
                           return None
                       else:
-                          print("  Continuing with direct test")
+                          print("  ⚠️  Continuing with direct test")
                       info = {}
                   
                   streams = self.get_filtered_streams()
@@ -404,7 +420,7 @@ jobs:
                       for i, stream in enumerate(streams):
                           print(f"[{i+1}/{len(streams)}] {stream['name'][:45]}... ", end='', flush=True)
                           
-                          result, error_msg = self.test_ffprobe(stream['url'], proxy)
+                          result, error_msg = self.test_ffprobe(stream['url'], use_vpn)
                           
                           if result == 'working':
                               working.append(stream)
@@ -433,7 +449,7 @@ jobs:
                                   error_samples[error_msg] = 0
                               error_samples[error_msg] += 1
                           
-                          time.sleep(0.2)
+                          time.sleep(0.3)
                           
                           if (i+1) % 20 == 0:
                               rate = (len(working)/(i+1)*100)
@@ -542,6 +558,8 @@ jobs:
                       vpn = self.test_location(f"{COUNTRY} ProtonVPN", use_vpn=True)
                       if vpn:
                           self.results['vpn'] = vpn
+                      else:
+                          print("\n⚠️  VPN test failed - check logs above")
                   else:
                       print("\nSkipping VPN test (direct_only mode)")
                   

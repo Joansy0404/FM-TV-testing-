@@ -1,7 +1,7 @@
 # ProtonVPN Multi-Country Stream Analysis
 
-**Generated:** 2025-09-29 00:35 UTC  
-**Duration:** 5.4 minutes  
+**Generated:** 2025-09-29 01:06 UTC  
+**Duration:** 5.5 minutes  
 **VPN Provider:** ProtonVPN  
 **Countries Tested:** None (VPN unavailable)  
 **Configuration:** VODs: ❌, PPV: ❌, FAST: ❌  
@@ -16,5 +16,5 @@
 **🏆 Best Performing Location:** Direct (76.7% success rate)  
 
 ---
-*Analysis completed in 5.4 minutes*  
+*Analysis completed in 5.5 minutes*  
 *Tested 1 locations with 30 streams each*

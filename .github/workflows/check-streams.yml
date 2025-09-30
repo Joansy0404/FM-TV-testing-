@@ -64,7 +64,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install requests
+          pip install requests pysocks
           
           METHOD="${{ github.event.inputs.test_method || 'ffprobe' }}"
           
@@ -152,7 +152,7 @@ jobs:
               fi
             fi
             
-            if curl -x socks5://localhost:1080 -s --connect-timeout 15 --max-time 20 https://ipinfo.io/json > /tmp/vpn.json 2>/dev/null; then
+            if curl --socks5-hostname localhost:1080 -s --connect-timeout 15 --max-time 20 https://ipinfo.io/json > /tmp/vpn.json 2>/dev/null; then
               COUNTRY=$(jq -r '.country' /tmp/vpn.json 2>/dev/null || echo "Unknown")
               IP=$(jq -r '.ip' /tmp/vpn.json 2>/dev/null || echo "Unknown")
               ORG=$(jq -r '.org' /tmp/vpn.json 2>/dev/null || echo "Unknown")

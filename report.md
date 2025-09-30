@@ -1,85 +1,118 @@
 # Stream Test Report
 
-**Last update:** 2025-09-30 16:40 UTC
+**Last update:** 2025-09-30 16:59 UTC
 **Test method:** ffprobe
 **Test scope:** direct_only
 **Test location:** Direct Connection
+
+## Configuration Details
+
+- **Sample size:** 50
+- **VODs enabled:** false
+- **PPV enabled:** false
+- **FAST enabled:** false
+- **FFprobe timeout:** 45s
+- **Probe size:** 3MB
+- **Analyze duration:** 3s
 
 ## Latest Test Results
 
 | Location | Working | Geo-blocked | Failed | Total | Success Rate |
 |----------|---------|-------------|--------|-------|--------------|
-| Direct | 0 | 0 | 50 | 50 | **0.0%** |
+| Direct | 29 | 1 | 20 | 50 | **58.0%** |
 
 ## Error Analysis
 
-**Total failed streams:** 50
+**Total failed streams:** 20
 
 ### Error Categories
 
+- **Timeouts:** 1 (4.8%)
+- **Authentication/Permission:** 1 (4.8%)
+- **Connection Errors:** 7 (33.3%)
 
 ### Top 10 Error Messages
 
-1. **failed to set value 'ext' for option 'sync': option not found** - 50 occurrences (100.0%)
+1. **Connection refused** - 7 occurrences (33.3%)
+2. **FFprobe timeout (15s)** - 1 occurrences (4.8%)
+3. **HTTP 403 Forbidden** - 1 occurrences (4.8%)
+4. **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0cdovlzg0lje3lju1** - 1 occurrences (4.8%)
+5. **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly9zdgfybwvu** - 1 occurrences (4.8%)
+6. **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly9mbdcubw92** - 1 occurrences (4.8%)
+7. **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly90di5iywxr** - 1 occurrences (4.8%)
+8. **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly9mbdcubw92** - 1 occurrences (4.8%)
+9. **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly9zywjjb25l** - 1 occurrences (4.8%)
+10. **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0cdovlze3oc4zmy4y** - 1 occurrences (4.8%)
 
 ## Failed Streams Details
 
 Streams that failed testing (for investigation):
 
-- **NBA TV** (Group: USA)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9kYnJiNDlwam95bWc0LmNsb3VkZnJv...`
 - **CBS SPORTS NETWORK** (Group: USA)
   - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9DQlNf...`
-- **TNT SPORTS 4** (Group: UK)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9hMXhzLnZpcC8yMDAwMDI0IiwgImlk...`
-- **SKY CINEMA SCI-FI HORROR** (Group: UK)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cDovLzE0OS4yMDIuNzQuMTM2OjgwODAvNDA3...`
-- **NOW 90'S & 00'S** (Group: UK)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9qbXAyLnVrL3N0dnAtR0IzMDAwMzNI...`
 - **SHOWTIME NEXT** (Group: USA)
   - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9TSE9X...`
 - **MGM+ MARQUEE** (Group: USA)
   - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9FUElY...`
 - **BOKTV** (Group: ZA)
   - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9saXZlc3RyZWFtMi5ib2tyYWRpby5j...`
-- **KQFXFOX** (Group: USA)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9jdnR2LmN2YWxsZXkubmV0L2hscy9L...`
-- **BEIN SPORTS 3** (Group: FR)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cDovLzE0NS4yMzkuNS4xNzc6ODAvNTU5L2lu...`
-- **ABC KIDS** (Group: AUS)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9jLm1qaC5uei9hYmMta2lkcy5tM3U4...`
 - **CMT** (Group: USA)
   - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9DTVQv...`
-- **CINEMAX HITS** (Group: USA)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cDovLzIzLjIzNy4xMDQuMTA2OjgwODAvVVNB...`
-- **KYOUFOX** (Group: USA)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9jdnR2LmN2YWxsZXkubmV0L2hscy9L...`
-- **NATIONAL GEOGRAPHIC** (Group: UK)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cDovL2ltZWRpYXR2NjY2LnN0b3JlOjc3Nzcv...`
-- **QVC STYLE** (Group: UK)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9xdmN1ay1saXZlLmFrYW1haXplZC5u...`
-- **SKY SPORT 9** (Group: NZ)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cDovL2ltZWRpYXR2NjY2LnN0b3JlOjc3Nzcv...`
-- **CHEDDAR NEWS** (Group: USA)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9jaGVkZGFyLXVzLnNhbXN1bmcud3Vy...`
-- **YADAH TV** (Group: ZW)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly92aWV3bWVkaWE3MjE5LmJvenp0di5j...`
-- **E4** (Group: UK)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cDovL2ltZWRpYXR2NjY2LnN0b3JlOjc3Nzcv...`
+- **TRAVEL CHANNEL** (Group: USA)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9UcmF2...`
+- **TENNIS CHANNEL** (Group: USA)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9URU5O...`
+- **DISCOVERY FAMILY** (Group: USA)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9ESVND...`
+- **SONY CHANNEL** (Group: BR)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cDovLzg0LjE3LjU1LjE4NToxNDA3Mi8iLCAi...`
+- **YEMEN SHABAB CHANNEL** (Group: YE)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9zdGFybWVuYWpvLmNvbS9obHMveWVt...`
+- **OVATION** (Group: USA)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9PdmF0...`
+- **NEWS 24** (Group: AL)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly90di5iYWxrYW53ZWIuY29tL25ld3My...`
+- **HGTV** (Group: USA)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9IR1RW...`
+- **SABC NEWS** (Group: ZA)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9zYWJjb25ldGFudy5jZG4ubWFuZ29t...`
+- **BOOMERANG** (Group: UK)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cDovLzE3OC4zMy4yMzkuNTQ6ODA4MC83MTIv...`
+- **PEACE TV URDU** (Group: AE)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9kemt5dmxmeWdlLmVyYnZyLmNvbS9Q...`
+- **TV5 MONDE** (Group: FR)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cDovLzE3OC4zMy4yMzkuNTQ6ODA4MC8yMjUv...`
+- **CNBC UK** (Group: UK)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly92aWFtb3Rpb25oc2kubmV0cGx1cy5j...`
+- **GRIT TV** (Group: USA)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9HUklU...`
+- **DISCOVERY SCIENCE** (Group: USA)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9EaXNj...`
 
-*...and 30 more failed streams*
+## Geo-blocked Streams (Sample)
+
+Total geo-blocked: 1
+
+- ALARABIYA (Group: AE)
 
 ## Testing Methodology
 
-**Layer 1 Validation (FFprobe):**
-- Optimized for rapid availability checks in CI/CD
-- Flags: `-fflags nobuffer -probesize 32K -analyzeduration 0`
-- Timeout: 15 seconds per stream
-- Validates: Stream accessibility and basic format detection
+**FFprobe Configuration:**
+- Timeout: 45 seconds, Probe: 3MB, Analyze: 3s (Direct optimized)
+- Validates: Stream accessibility and codec detection
+- Trade-off: Balanced between speed and compatibility
+
+### Historical Performance
+
+Recent test results for comparison:
+
+- 2025-09-30 16:08 UTC | browser | Direct | 7/50 (14.0%)
+- 2025-09-30 16:40 UTC | ffprobe | Direct | 0/50 (0.0%)
+- 2025-09-30 16:59 UTC | ffprobe | Direct | 29/50 (58.0%)
 
 
 ---
-*Generated at 2025-09-30 16:40 UTC*
+*Generated at 2025-09-30 16:59 UTC*
 
 <!-- HISTORY
 {
@@ -174,6 +207,18 @@ Streams that failed testing (for investigation):
         "geoblocked": 0,
         "failed": 50,
         "rate": 0.0
+      }
+    },
+    {
+      "date": "2025-09-30 16:59 UTC",
+      "country": "US",
+      "method": "ffprobe",
+      "scope": "direct_only",
+      "direct": {
+        "working": 29,
+        "geoblocked": 1,
+        "failed": 20,
+        "rate": 57.99999999999999
       }
     }
   ]

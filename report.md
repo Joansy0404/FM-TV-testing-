@@ -1,6 +1,6 @@
 # Stream Test Report
 
-**Last update:** 2025-09-30 15:39 UTC
+**Last update:** 2025-09-30 15:46 UTC
 **Test method:** browser
 **Test scope:** vpn_only
 **Test location:** Direct Connection
@@ -12,7 +12,7 @@
 
 
 ---
-*Generated at 2025-09-30 15:39 UTC*
+*Generated at 2025-09-30 15:46 UTC*
 
 <!-- HISTORY
 {
@@ -64,6 +64,12 @@
     {
       "date": "2025-09-30 15:39 UTC",
       "country": "US",
+      "method": "browser",
+      "scope": "vpn_only"
+    },
+    {
+      "date": "2025-09-30 15:46 UTC",
+      "country": "UK",
       "method": "browser",
       "scope": "vpn_only"
     }

@@ -1,37 +1,37 @@
 # Stream Test Report
 
-**Last update:** 2025-09-30 08:04 UTC
+**Last update:** 2025-09-30 09:28 UTC
 **Test location:** UK VPN
 
 ## Latest Test Results
 
 | Location | Working | Geo-blocked | Failed | Total | Success Rate |
 |----------|---------|-------------|--------|-------|--------------|
-| UK VPN | 135 | 376 | 98 | 609 | **22.2%** |
+| UK VPN | 138 | 378 | 93 | 609 | **22.7%** |
 
 ## Error Analysis
 
-**Total failed streams:** 98
+**Total failed streams:** 93
 
 ### Error Categories
 
 - **Timeouts:** 2 (0.4%)
-- **Authentication/Permission:** 376 (79.3%)
-- **Not Found (404):** 11 (2.3%)
-- **SSL/Certificate Errors:** 77 (16.2%)
+- **Authentication/Permission:** 378 (80.3%)
+- **Not Found (404):** 10 (2.1%)
+- **SSL/Certificate Errors:** 76 (16.1%)
 
 ### Top 10 Error Messages
 
-1. **HTTP 403 Forbidden** - 376 occurrences (79.3%)
-2. **HTTP 404 Not Found** - 11 occurrences (2.3%)
+1. **HTTP 403 Forbidden** - 378 occurrences (80.3%)
+2. **HTTP 404 Not Found** - 10 occurrences (2.1%)
 3. **Process timeout (60s)** - 2 occurrences (0.4%)
-4. **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly90dxjuzxjs** - 2 occurrences (0.4%)
-5. **[tls @ 0x55d77c42d6c0] error in the pull function.** - 1 occurrences (0.2%)
-6. **[tls @ 0x55c67d2826c0] error in the pull function.** - 1 occurrences (0.2%)
-7. **[tls @ 0x5562e8c836c0] error in the pull function.** - 1 occurrences (0.2%)
-8. **[tls @ 0x5558dc88f6c0] error in the pull function.** - 1 occurrences (0.2%)
-9. **[tls @ 0x55e97f5d16c0] error in the pull function.** - 1 occurrences (0.2%)
-10. **[tls @ 0x55d1ee4a86c0] error in the pull function.** - 1 occurrences (0.2%)
+4. **[tls @ 0x55911fcf9b40] error in the pull function.** - 1 occurrences (0.2%)
+5. **[tls @ 0x556d8aa43b80] error in the pull function.** - 1 occurrences (0.2%)
+6. **[tls @ 0x55ee8abf2b80] error in the pull function.** - 1 occurrences (0.2%)
+7. **[tls @ 0x558b1da2bb40] error in the pull function.** - 1 occurrences (0.2%)
+8. **[tls @ 0x562347124b40] error in the pull function.** - 1 occurrences (0.2%)
+9. **[tls @ 0x556ff6a33b40] error in the pull function.** - 1 occurrences (0.2%)
+10. **[tls @ 0x556d53b12b40] error in the pull function.** - 1 occurrences (0.2%)
 
 ## Failed Streams Details
 
@@ -71,19 +71,21 @@ Streams that failed testing (for investigation):
   - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9DTkJD...`
 - **COMET** (Group: USA)
   - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9DT01F...`
-- **COURT TV** (Group: USA)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9zMmhvc3Q1LmxvY2Fsbm93LmFwaS5j...`
 - **COZI TV** (Group: USA)
   - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9DT1pJ...`
 - **C•SPAN** (Group: USA)
   - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9DLVNQ...`
+- **DISCOVERY FAMILY** (Group: USA)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9ESVND...`
 
-*...and 78 more failed streams*
+*...and 73 more failed streams*
 
 ## Geo-blocked Streams (Sample)
 
-Total geo-blocked: 376
+Total geo-blocked: 378
 
+- CNN (Group: USA)
+- HLN (Group: USA)
 - QUEST RED (Group: UK)
 - QUEST+1 (Group: UK)
 - QVC (Group: UK)
@@ -92,10 +94,8 @@ Total geo-blocked: 376
 - QVC STYLE (Group: UK)
 - RACING TV (Group: UK)
 - REALLY (Group: UK)
-- S4C (Group: UK)
-- SKY ARTS (Group: UK)
 
-*...and 366 more*
+*...and 368 more*
 
 ## Recommendations
 
@@ -105,4 +105,4 @@ Total geo-blocked: 376
 - Consider testing from alternative VPN locations
 
 ---
-*Generated at 2025-09-30 08:04 UTC*
+*Generated at 2025-09-30 09:28 UTC*

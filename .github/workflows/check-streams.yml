@@ -120,9 +120,9 @@ jobs:
             -e SERVER_CITIES="${{ env.SERVER_CITIES }}" \
             -e FREE_ONLY=off \
             -e LOG_LEVEL=info \
+            -e FIREWALL=off \
             -e SOCKS5=on \
             -e SOCKS5_LISTENING_ADDRESS=:1080 \
-            -e FIREWALL=off \
             qmcgaw/gluetun:latest
           
           echo "Container started, waiting for initialization..."

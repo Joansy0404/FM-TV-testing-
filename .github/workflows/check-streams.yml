@@ -21,6 +21,15 @@ on:
           - direct_only
           - vpn_only
           - direct_and_vpn
+      vpn_country:
+        description: 'VPN Country (auto = alternate from last test)'
+        required: false
+        default: 'auto'
+        type: choice
+        options:
+          - auto
+          - us
+          - uk
       sample_size:
         description: 'Sample size (0=all streams)'
         required: false
@@ -66,27 +75,41 @@ jobs:
           python -m pip install --upgrade pip
           pip install requests pysocks
 
-      - name: Determine next VPN country (auto-alternating)
+      - name: Determine VPN country
         run: |
-          echo "Checking last test location..."
-          if [ -f "report.md" ]; then
-            LAST=$(grep -A 1000 "<!-- HISTORY" report.md | grep '"country"' | tail -1 | grep -oP '(UK|US)' || echo "US")
-            echo "Last test was: $LAST"
-          else
-            LAST="US"
-            echo "No previous report, defaulting to US as last"
-          fi
+          VPN_CHOICE="${{ github.event.inputs.vpn_country || 'auto' }}"
           
-          if [ "$LAST" = "UK" ]; then
+          if [ "$VPN_CHOICE" = "auto" ]; then
+            echo "Auto-detecting last test location..."
+            if [ -f "report.md" ]; then
+              LAST=$(grep -A 1000 "<!-- HISTORY" report.md | grep '"country"' | tail -1 | grep -oP '(UK|US)' || echo "US")
+              echo "Last test was: $LAST"
+            else
+              LAST="US"
+              echo "No previous report, defaulting to US as last"
+            fi
+            
+            if [ "$LAST" = "UK" ]; then
+              echo "COUNTRY_CODE=us" >> $GITHUB_ENV
+              echo "SERVER_CITIES=Los Angeles" >> $GITHUB_ENV
+              echo "COUNTRY_NAME=United States" >> $GITHUB_ENV
+              echo "✅ Next test: US Los Angeles (alternating from UK)"
+            else
+              echo "COUNTRY_CODE=uk" >> $GITHUB_ENV
+              echo "SERVER_CITIES=London" >> $GITHUB_ENV
+              echo "COUNTRY_NAME=United Kingdom" >> $GITHUB_ENV
+              echo "✅ Next test: UK London (alternating from US)"
+            fi
+          elif [ "$VPN_CHOICE" = "us" ]; then
             echo "COUNTRY_CODE=us" >> $GITHUB_ENV
             echo "SERVER_CITIES=Los Angeles" >> $GITHUB_ENV
             echo "COUNTRY_NAME=United States" >> $GITHUB_ENV
-            echo "✅ Next test: US Los Angeles (alternating from UK)"
-          else
+            echo "✅ Manual selection: US Los Angeles"
+          elif [ "$VPN_CHOICE" = "uk" ]; then
             echo "COUNTRY_CODE=uk" >> $GITHUB_ENV
             echo "SERVER_CITIES=London" >> $GITHUB_ENV
             echo "COUNTRY_NAME=United Kingdom" >> $GITHUB_ENV
-            echo "✅ Next test: UK London (alternating from US)"
+            echo "✅ Manual selection: UK London"
           fi
 
       - name: Start ProtonVPN via Gluetun
@@ -425,6 +448,19 @@ jobs:
           # Load results
           direct_results = None
           vpn_results = None
+          history = {'tests': []}
+          
+          # Load existing history if available
+          try:
+              if os.path.exists('report.md'):
+                  with open('report.md', 'r', encoding='utf-8') as f:
+                      content = f.read()
+                      import re
+                      match = re.search(r'<!-- HISTORY\n(.*?)\n-->', content, re.DOTALL)
+                      if match:
+                          history = json.loads(match.group(1))
+          except Exception as e:
+              print(f"Could not load history: {e}")
           
           try:
               with open('./test_results.json', 'r') as f:
@@ -436,6 +472,33 @@ jobs:
 
           now = datetime.now(timezone.utc)
           country = os.getenv('COUNTRY_CODE', 'UK').upper()
+          
+          # Add current test to history
+          test_entry = {
+              'date': now.strftime('%Y-%m-%d %H:%M UTC'),
+              'country': country,
+              'scope': os.getenv('TEST_SCOPE', 'unknown')
+          }
+          
+          if vpn_results:
+              test_entry['vpn'] = {
+                  'working': len(vpn_results['working']),
+                  'geoblocked': len(vpn_results['geoblocked']),
+                  'failed': len(vpn_results['failed']),
+                  'rate': vpn_results['rate']
+              }
+          
+          if direct_results:
+              test_entry['direct'] = {
+                  'working': len(direct_results['working']),
+                  'geoblocked': len(direct_results['geoblocked']),
+                  'failed': len(direct_results['failed']),
+                  'rate': direct_results['rate']
+              }
+          
+          history['tests'].append(test_entry)
+          if len(history['tests']) > 50:
+              history['tests'] = history['tests'][-50:]
           
           report = "# Stream Test Report\n\n"
           report += f"**Last update:** {now.strftime('%Y-%m-%d %H:%M UTC')}\n"
@@ -551,7 +614,12 @@ jobs:
                   report += "- Consider testing from alternative VPN locations\n"
           
           report += "\n---\n"
-          report += f"*Generated at {now.strftime('%Y-%m-%d %H:%M UTC')}*\n"
+          report += f"*Generated at {now.strftime('%Y-%m-%d %H:%M UTC')}*\n\n"
+          
+          # Add history block for alternation tracking
+          report += "<!-- HISTORY\n"
+          report += json.dumps(history, indent=2)
+          report += "\n-->\n"
           
           with open('report.md', 'w') as f:
               f.write(report)

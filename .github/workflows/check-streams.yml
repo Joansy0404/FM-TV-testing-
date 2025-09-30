@@ -120,7 +120,7 @@ jobs:
             -e SERVER_CITIES="${{ env.SERVER_CITIES }}" \
             -e FREE_ONLY=off \
             -e LOG_LEVEL=info \
-            -e FIREWALL=off \
+            -e FIREWALL_OUTBOUND_SUBNETS=172.17.0.0/16 \
             -e SOCKS5=on \
             -e SOCKS5_LISTENING_ADDRESS=:1080 \
             qmcgaw/gluetun:latest

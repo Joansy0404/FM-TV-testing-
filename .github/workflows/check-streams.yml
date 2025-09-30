@@ -287,7 +287,14 @@ jobs:
                       first_error = err.split('\n')[0][:100] if err else 'Unknown error'
                       return 'failed', first_error
                   
-                  except subprocess.TimeoutExpired:
+                  except subprocess.TimeoutExpired as e:
+                      # Force kill the process if it's still running
+                      try:
+                          if e.process and e.process.poll() is None:
+                              e.process.kill()
+                              e.process.wait(timeout=5)
+                      except:
+                          pass
                       return 'timeout', f'Process timeout ({subprocess_timeout}s)'
                   except Exception as e:
                       return 'error', str(e)[:100]

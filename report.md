@@ -2,30 +2,30 @@
 
 **Test method:** ffprobe
 **Test scope:** vpn_only
-**Last update:** 2025-09-29 23:39 UTC
-**Test duration:** 15.4 minutes
+**Last update:** 2025-09-30 00:05 UTC
+**Test duration:** 13.3 minutes
 
 ## Latest Test Results
 
 | Location | Working | Geo-blocked | Failed | Total | Success Rate |
 |----------|---------|-------------|--------|-------|--------------|
-| UK VPN | 41 | 370 | 191 | 602 | **6.8%** |
+| US VPN | 45 | 369 | 188 | 602 | **7.5%** |
 
 ## Error Analysis
 
-- **HTTP 403 Forbidden**: 370 occurrences
-- **SSL/TLS error**: 106 occurrences
-- **Unknown error**: 36 occurrences
-- **Server error (5xx)**: 35 occurrences
+- **HTTP 403 Forbidden**: 369 occurrences
+- **SSL/TLS error**: 98 occurrences
+- **Unknown error**: 42 occurrences
+- **Server error (5xx)**: 34 occurrences
 - **HTTP 404 Not Found**: 8 occurrences
 - **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0cdovlzizljizny4xmdqumta2ojgwodavvvnb**: 2 occurrences
+- **HTTP 400 Bad Request**: 1 occurrences
 - **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly9hmxhzlnzpcc8zmdawmdkilcaiawqi**: 1 occurrences
 - **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly9hmxhzlnzpcc80mdawmda2mcisicjp**: 1 occurrences
 - **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly9hmxhzlnzpcc8zmdawmzeilcaiawqi**: 1 occurrences
-- **Invalid stream data**: 1 occurrences
 
 ---
-*Generated at 2025-09-29 23:39 UTC*
+*Generated at 2025-09-30 00:05 UTC*
 
 <!-- HISTORY
 {
@@ -332,6 +332,22 @@
           "failed": 191,
           "total": 602,
           "rate": 6.810631229235881
+        }
+      }
+    },
+    {
+      "date": "2025-09-30 00:05 UTC",
+      "country": "US",
+      "method": "ffprobe",
+      "scope": "vpn_only",
+      "duration_min": 13.3,
+      "results": {
+        "vpn": {
+          "working": 45,
+          "geoblocked": 369,
+          "failed": 188,
+          "total": 602,
+          "rate": 7.475083056478406
         }
       }
     }

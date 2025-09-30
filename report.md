@@ -1,13 +1,13 @@
 # Stream Test Report
 
-**Last update:** 2025-09-30 22:01 UTC
+**Last update:** 2025-09-30 22:03 UTC
 **Test method:** ffprobe
 **Test scope:** vpn_only
 **Test location:** Direct Connection
 
 ## Development Status & Key Findings
 
-**Report Generated:** 2025-09-30 22:01 UTC
+**Report Generated:** 2025-09-30 22:03 UTC
 **Workflow Version:** 2.0 (Optimized FFprobe)
 
 ### Current Performance:
@@ -128,7 +128,6 @@ Based on historical testing:
 
 | Date & Time | Method | Location | Working | Geo-blocked | Failed | Total | Rate | Configuration Notes |
 |-------------|--------|----------|---------|-------------|--------|-------|------|---------------------|
-| 2025-09-30 16:08 UTC | browser | Direct | 7 | 0 | 43 | 50 | 14.0% | HLS.js codec errors (48%) |
 | 2025-09-30 16:40 UTC | ffprobe | Direct | 0 | 0 | 50 | 50 | 0.0% | Too aggressive settings |
 | 2025-09-30 16:59 UTC | ffprobe | Direct | 29 | 1 | 20 | 50 | 58.0% | Balanced config working |
 | 2025-09-30 18:01 UTC | ffprobe | UK VPN | 53 | 3 | 19 | 75 | 70.7% | Balanced config working |
@@ -144,7 +143,7 @@ Based on historical testing:
 
 
 ---
-*Generated at 2025-09-30 22:01 UTC*
+*Generated at 2025-09-30 22:03 UTC*
 
 <!-- HISTORY
 {
@@ -310,6 +309,12 @@ Based on historical testing:
     {
       "date": "2025-09-30 22:01 UTC",
       "country": "US",
+      "method": "ffprobe",
+      "scope": "vpn_only"
+    },
+    {
+      "date": "2025-09-30 22:03 UTC",
+      "country": "UK",
       "method": "ffprobe",
       "scope": "vpn_only"
     }

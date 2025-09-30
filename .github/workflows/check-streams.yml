@@ -246,10 +246,17 @@ jobs:
                   return filtered
 
               def test_ffprobe(self, url):
-                  timeout_ms = '30000000'
-                  analyze_duration = '10000000'
-                  probe_size = '10000000'
-                  subprocess_timeout = 60
+                  # More lenient timeouts for VPN environments
+                  if USE_VPN:
+                      timeout_ms = '90000000'  # 90s connection timeout
+                      analyze_duration = '15000000'  # 15s analyze
+                      probe_size = '20000000'  # 20MB
+                      subprocess_timeout = 120  # 120s max
+                  else:
+                      timeout_ms = '30000000'
+                      analyze_duration = '10000000'
+                      probe_size = '10000000'
+                      subprocess_timeout = 60
                   
                   cmd = ['ffprobe', '-v', 'error', 
                          '-select_streams', 'v:0',
@@ -316,7 +323,7 @@ jobs:
                               error_samples[error_msg] = 0
                           error_samples[error_msg] += 1
                       
-                      time.sleep(0.3)
+                      time.sleep(0.8)
                       
                       if (i+1) % 20 == 0:
                           rate = (len(working)/(i+1)*100)
@@ -414,8 +421,13 @@ jobs:
               pass
 
           now = datetime.now(timezone.utc)
+          country = os.getenv('COUNTRY_CODE', 'UK').upper()
+          
           report = "# Stream Test Report\n\n"
-          report += f"**Last update:** {now.strftime('%Y-%m-%d %H:%M UTC')}\n\n"
+          report += f"**Last update:** {now.strftime('%Y-%m-%d %H:%M UTC')}\n"
+          report += f"**Test location:** {country} VPN\n\n"
+          
+          # Summary table
           report += "## Latest Test Results\n\n"
           report += "| Location | Working | Geo-blocked | Failed | Total | Success Rate |\n"
           report += "|----------|---------|-------------|--------|-------|--------------|\n"
@@ -434,13 +446,103 @@ jobs:
               f = len(vpn_results['failed'])
               total = w + g + f
               rate = vpn_results['rate']
-              country = os.getenv('COUNTRY_CODE', 'UK').upper()
               report += f"| {country} VPN | {w} | {g} | {f} | {total} | **{rate:.1f}%** |\n"
+          
+          report += "\n"
+          
+          # Detailed error analysis
+          results_to_analyze = vpn_results or direct_results
+          if results_to_analyze and results_to_analyze.get('error_samples'):
+              report += "## Error Analysis\n\n"
+              
+              errors = results_to_analyze['error_samples']
+              total_errors = sum(errors.values())
+              
+              report += f"**Total failed streams:** {len(results_to_analyze['failed'])}\n\n"
+              
+              # Group errors by type
+              timeouts = sum(count for err, count in errors.items() if 'timeout' in err.lower())
+              geo_errors = sum(count for err, count in errors.items() if any(x in err.lower() for x in ['403', '401', '451', 'forbidden', 'unauthorized']))
+              not_found = sum(count for err, count in errors.items() if '404' in err.lower())
+              connection = sum(count for err, count in errors.items() if 'connection' in err.lower() or 'refused' in err.lower())
+              ssl_errors = sum(count for err, count in errors.items() if any(x in err.lower() for x in ['ssl', 'tls', 'certificate']))
+              
+              report += "### Error Categories\n\n"
+              if timeouts > 0:
+                  report += f"- **Timeouts:** {timeouts} ({timeouts/total_errors*100:.1f}%)\n"
+              if geo_errors > 0:
+                  report += f"- **Authentication/Permission:** {geo_errors} ({geo_errors/total_errors*100:.1f}%)\n"
+              if not_found > 0:
+                  report += f"- **Not Found (404):** {not_found} ({not_found/total_errors*100:.1f}%)\n"
+              if connection > 0:
+                  report += f"- **Connection Errors:** {connection} ({connection/total_errors*100:.1f}%)\n"
+              if ssl_errors > 0:
+                  report += f"- **SSL/Certificate Errors:** {ssl_errors} ({ssl_errors/total_errors*100:.1f}%)\n"
+              
+              report += "\n### Top 10 Error Messages\n\n"
+              sorted_errors = sorted(errors.items(), key=lambda x: x[1], reverse=True)[:10]
+              for i, (err_msg, count) in enumerate(sorted_errors, 1):
+                  pct = count/total_errors*100
+                  report += f"{i}. **{err_msg[:80]}** - {count} occurrences ({pct:.1f}%)\n"
+              
+              report += "\n"
+          
+          # Failed stream details
+          if results_to_analyze and results_to_analyze.get('failed'):
+              report += "## Failed Streams Details\n\n"
+              report += "Streams that failed testing (for investigation):\n\n"
+              
+              failed_streams = results_to_analyze['failed'][:20]  # First 20 only
+              for stream in failed_streams:
+                  report += f"- **{stream['name']}** (Group: {stream['group']})\n"
+                  report += f"  - URL: `{stream['url'][:100]}...`\n"
+              
+              if len(results_to_analyze['failed']) > 20:
+                  report += f"\n*...and {len(results_to_analyze['failed']) - 20} more failed streams*\n"
+              
+              report += "\n"
+          
+          # Geo-blocked stream sample
+          if results_to_analyze and results_to_analyze.get('geoblocked'):
+              report += "## Geo-blocked Streams (Sample)\n\n"
+              report += f"Total geo-blocked: {len(results_to_analyze['geoblocked'])}\n\n"
+              
+              geo_streams = results_to_analyze['geoblocked'][:10]
+              for stream in geo_streams:
+                  report += f"- {stream['name']} (Group: {stream['group']})\n"
+              
+              if len(results_to_analyze['geoblocked']) > 10:
+                  report += f"\n*...and {len(results_to_analyze['geoblocked']) - 10} more*\n"
+              
+              report += "\n"
+          
+          # Recommendations
+          if vpn_results:
+              success_rate = vpn_results['rate']
+              failed_count = len(vpn_results['failed'])
+              
+              report += "## Recommendations\n\n"
+              
+              if success_rate < 25:
+                  report += "⚠️ **Low success rate detected**\n\n"
+                  if timeouts > failed_count * 0.5:
+                      report += "- High timeout rate suggests network latency issues or aggressive ffprobe timeouts\n"
+                      report += "- Consider increasing timeout values in workflow configuration\n"
+                  if connection > 0:
+                      report += "- Connection errors present - may indicate server-side rate limiting\n"
+                      report += "- Consider increasing delay between stream tests\n"
+              
+              if len(vpn_results['geoblocked']) > len(vpn_results['working']):
+                  report += "- Many streams are geo-blocked from this location\n"
+                  report += "- Consider testing from alternative VPN locations\n"
+          
+          report += "\n---\n"
+          report += f"*Generated at {now.strftime('%Y-%m-%d %H:%M UTC')}*\n"
           
           with open('report.md', 'w') as f:
               f.write(report)
           
-          print("Report generated successfully")
+          print("Enhanced report generated successfully")
           ENDPYTHON
 
       - name: Cleanup

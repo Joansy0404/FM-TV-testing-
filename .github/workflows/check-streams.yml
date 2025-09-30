@@ -115,15 +115,15 @@ jobs:
             --name gluetun \
             --cap-add=NET_ADMIN \
             --device /dev/net/tun \
-            -p 8888:8888 \
+            -p 1080:1080 \
             -e VPN_SERVICE_PROVIDER=protonvpn \
             -e OPENVPN_USER="${{ secrets.VPN_USER }}" \
             -e OPENVPN_PASSWORD="${{ secrets.VPN_PASSWORD }}" \
             -e SERVER_CITIES="${{ env.SERVER_CITIES }}" \
             -e FREE_ONLY=off \
             -e LOG_LEVEL=info \
-            -e HTTPPROXY=on \
-            -e HTTPPROXY_LISTENING_ADDRESS=:8888 \
+            -e SOCKS5=on \
+            -e SOCKS5_LISTENING_ADDRESS=:1080 \
             qmcgaw/gluetun:latest
           
           echo "Waiting for VPN initialization..."
@@ -145,7 +145,7 @@ jobs:
               continue
             fi
             
-            if curl -x http://localhost:8888 -s --connect-timeout 15 --max-time 20 https://ipinfo.io/json > /tmp/vpn.json 2>/dev/null; then
+            if curl -x socks5://localhost:1080 -s --connect-timeout 15 --max-time 20 https://ipinfo.io/json > /tmp/vpn.json 2>/dev/null; then
               COUNTRY=$(jq -r '.country' /tmp/vpn.json 2>/dev/null || echo "Unknown")
               IP=$(jq -r '.ip' /tmp/vpn.json 2>/dev/null || echo "Unknown")
               ORG=$(jq -r '.org' /tmp/vpn.json 2>/dev/null || echo "Unknown")
@@ -157,7 +157,7 @@ jobs:
               echo "  ISP: $ORG"
               
               if [[ "$COUNTRY" != "null" && "$COUNTRY" != "Unknown" && "$IP" != "Unknown" ]]; then
-                echo "✅ HTTP proxy working successfully!"
+                echo "✅ SOCKS5 proxy working successfully!"
                 echo "VPN_READY=true" >> $GITHUB_ENV
                 echo "CONNECTED_IP=$IP" >> $GITHUB_ENV
                 echo "CONNECTED_ORG=$ORG" >> $GITHUB_ENV
@@ -331,14 +331,12 @@ jobs:
                          '-analyzeduration', analyze_duration, 
                          '-probesize', probe_size]
                   
-                  # Set up environment with SSL verification disabled
+                  # Set up environment (needed for subprocess)
                   env = os.environ.copy()
                   
                   if use_proxy:
-                      cmd.extend(['-http_proxy', 'http://localhost:8888'])
-                      cmd.extend(['-tls_verify', '0'])
-                      # Critical: Disable SSL verification at library level
-                      env['SSL_NO_VERIFY'] = '1'
+                      # SOCKS5 proxy - raw tunneling bypasses SSL certificate issues
+                      cmd.extend(['-proxy', 'socks5://localhost:1080'])
                   
                   cmd.append(url)
                   
@@ -391,15 +389,15 @@ jobs:
                   print(f"Testing: {location_name}")
                   print(f"Method: {self.test_method.upper()}")
                   if use_vpn:
-                      print("Proxy: HTTP on localhost:8888 (SSL verify disabled)")
+                      print("Proxy: SOCKS5 on localhost:1080")
                   print('='*60)
                   
                   print("\nVerifying connection...")
                   sess = requests.Session()
                   if use_vpn:
                       sess.proxies = {
-                          'http': 'http://localhost:8888',
-                          'https': 'http://localhost:8888'
+                          'http': 'socks5://localhost:1080',
+                          'https': 'socks5://localhost:1080'
                       }
                   
                   try:

@@ -128,6 +128,12 @@ jobs:
           echo "Container started, waiting for initialization..."
           sleep 10
 
+      - name: Debug Docker Environment
+        if: github.event.inputs.test_scope == 'vpn_only' || github.event.inputs.test_scope == 'direct_and_vpn' || github.event_name == 'schedule'
+        run: |
+          echo "=== Container Environment Variables ==="
+          docker inspect gluetun | grep -A 30 '"Env"'
+
       - name: Install Diagnostic Tools
         if: github.event.inputs.test_scope != 'direct_only' || github.event_name == 'schedule'
         run: |

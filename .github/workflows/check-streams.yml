@@ -347,7 +347,7 @@ jobs:
                       self.results['direct'] = result
                   
                   # Save results to file for parent process
-                  with open('/tmp/test_results.json', 'w') as f:
+                  with open('./test_results.json', 'w') as f:
                       json.dump(self.results, f)
 
           tester = StreamTester()
@@ -406,7 +406,7 @@ jobs:
           vpn_results = None
           
           try:
-              with open('/tmp/test_results.json', 'r') as f:
+              with open('./test_results.json', 'r') as f:
                   results = json.load(f)
                   direct_results = results.get('direct')
                   vpn_results = results.get('vpn')

@@ -1,17 +1,17 @@
 # Stream Test Report
 
-**Last update:** 2025-09-30 18:01 UTC
+**Last update:** 2025-09-30 18:25 UTC
 **Test method:** ffprobe
-**Test scope:** vpn_only
-**Test location:** UK VPN
+**Test scope:** direct_and_vpn
+**Test location:** US VPN
 
 ## Development Status & Key Findings
 
-**Report Generated:** 2025-09-30 18:01 UTC
+**Report Generated:** 2025-09-30 18:25 UTC
 **Workflow Version:** 2.0 (Optimized FFprobe)
 
 ### Current Performance:
-- **VPN Test (UK)**: 53/75 working (70.7%)
+- **VPN Test (US)**: 54/75 working (72.0%)
 
 ### What We Know Works:
 - **FFprobe method**: 58% success rate on direct connection (validated 2025-09-30)
@@ -49,11 +49,11 @@
 - **Python:** 3.x
 - **FFmpeg/FFprobe:** Latest (apt-get)
 - **VPN Provider:** ProtonVPN via Gluetun
-- **VPN Country:** UK
-- **VPN City:** London
-- **Connected IP:** 149.40.48.91
-- **Verified Location:** London
-- **ISP:** AS212238 Datacamp Limited
+- **VPN Country:** US
+- **VPN City:** Los Angeles
+- **Connected IP:** 84.17.45.159
+- **Verified Location:** Los Angeles
+- **ISP:** AS60068 Datacamp Limited
 - **Container:** python:3.11-slim (Docker)
 - **Network:** Shared namespace with Gluetun container
 
@@ -117,7 +117,7 @@ Based on historical testing:
 
 | Location | Working | Geo-blocked | Failed | Total | Success Rate |
 |----------|---------|-------------|--------|-------|--------------|
-| UK VPN | 53 | 3 | 19 | 75 | **70.7%** |
+| US VPN | 54 | 2 | 19 | 75 | **72.0%** |
 
 ## Error Analysis
 
@@ -125,22 +125,22 @@ Based on historical testing:
 
 ### Error Categories
 
-- **Authentication/Permission:** 3 (13.6%)
-- **Not Found (404):** 2 (9.1%)
-- **SSL/Certificate Errors:** 16 (72.7%)
+- **Authentication/Permission:** 2 (9.5%)
+- **Not Found (404):** 2 (9.5%)
+- **SSL/Certificate Errors:** 16 (76.2%)
 
 ### Top 10 Error Messages
 
-1. **HTTP 403 Forbidden** - 3 occurrences (13.6%)
-2. **HTTP 404 Not Found** - 2 occurrences (9.1%)
-3. **[tls @ 0x5652c345ea00] error in the pull function.** - 1 occurrences (4.5%)
-4. **[tls @ 0x55bd60500a00] error in the pull function.** - 1 occurrences (4.5%)
-5. **[tls @ 0x561d798e2a00] error in the pull function.** - 1 occurrences (4.5%)
-6. **[tls @ 0x55f3a80c7a00] error in the pull function.** - 1 occurrences (4.5%)
-7. **[tls @ 0x55789f6c3a00] error in the pull function.** - 1 occurrences (4.5%)
-8. **[tls @ 0x5640aa0b2a00] error in the pull function.** - 1 occurrences (4.5%)
-9. **[tls @ 0x557d6a5c7a00] error in the pull function.** - 1 occurrences (4.5%)
-10. **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0cdovlzg0lje3lju1** - 1 occurrences (4.5%)
+1. **HTTP 403 Forbidden** - 2 occurrences (9.5%)
+2. **HTTP 404 Not Found** - 2 occurrences (9.5%)
+3. **[tls @ 0x55f29c2b5a00] error in the pull function.** - 1 occurrences (4.8%)
+4. **[tls @ 0x558addd37a00] error in the pull function.** - 1 occurrences (4.8%)
+5. **[tls @ 0x559f11674a00] error in the pull function.** - 1 occurrences (4.8%)
+6. **[tls @ 0x5611052eca00] error in the pull function.** - 1 occurrences (4.8%)
+7. **[tls @ 0x55a744c2fa00] error in the pull function.** - 1 occurrences (4.8%)
+8. **[tls @ 0x56475d603a00] error in the pull function.** - 1 occurrences (4.8%)
+9. **[tls @ 0x55fd42dbca00] error in the pull function.** - 1 occurrences (4.8%)
+10. **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0cdovlzg0lje3lju1** - 1 occurrences (4.8%)
 
 ## Failed Streams Details
 
@@ -187,10 +187,9 @@ Streams that failed testing (for investigation):
 
 ## Geo-blocked Streams (Sample)
 
-Total geo-blocked: 3
+Total geo-blocked: 2
 
 - ALARABIYA (Group: AE)
-- HLN (Group: USA)
 - MBC PERSIA (Group: AE)
 
 ## Testing Methodology
@@ -215,6 +214,7 @@ Total geo-blocked: 3
 | 2025-09-30 16:40 UTC | ffprobe | Direct | 0 | 0 | 50 | 50 | 0.0% | Too aggressive settings |
 | 2025-09-30 16:59 UTC | ffprobe | Direct | 29 | 1 | 20 | 50 | 58.0% | Balanced config working |
 | 2025-09-30 18:01 UTC | ffprobe | UK VPN | 53 | 3 | 19 | 75 | 70.7% | Balanced config working |
+| 2025-09-30 18:25 UTC | ffprobe | US VPN | 54 | 2 | 19 | 75 | 72.0% | Balanced config working |
 
 **Performance Insights:**
 - FFprobe with balanced settings consistently outperforms browser (58% vs 14%)
@@ -226,7 +226,7 @@ Total geo-blocked: 3
 
 
 ---
-*Generated at 2025-09-30 18:01 UTC*
+*Generated at 2025-09-30 18:25 UTC*
 
 <!-- HISTORY
 {
@@ -345,6 +345,18 @@ Total geo-blocked: 3
         "geoblocked": 3,
         "failed": 19,
         "rate": 70.66666666666667
+      }
+    },
+    {
+      "date": "2025-09-30 18:25 UTC",
+      "country": "US",
+      "method": "ffprobe",
+      "scope": "direct_and_vpn",
+      "vpn": {
+        "working": 54,
+        "geoblocked": 2,
+        "failed": 19,
+        "rate": 72.0
       }
     }
   ]

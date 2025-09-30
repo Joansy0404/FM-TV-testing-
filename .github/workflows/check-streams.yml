@@ -147,11 +147,17 @@ jobs:
                 echo "  ✅ Gluetun connected and exited (expected for some configs) - proceeding to verification."
               else
                 echo "  ❌ Gluetun container exited unexpectedly!"
+                echo "=== Gluetun Status ==="
+                docker ps -a | grep gluetun
+                echo "=== Gluetun Logs (last 100 lines) ==="
+                docker logs gluetun --tail 100
+                echo "======================================"
                 # This breaks the loop, triggering the final failure block which prints the logs
                 break
               fi
             fi
             
+            # Container is running, try to verify SOCKS5 connection
             if curl --socks5-hostname localhost:1080 -s --connect-timeout 15 --max-time 20 https://ipinfo.io/json > /tmp/vpn.json 2>/dev/null; then
               COUNTRY=$(jq -r '.country' /tmp/vpn.json 2>/dev/null || echo "Unknown")
               IP=$(jq -r '.ip' /tmp/vpn.json 2>/dev/null || echo "Unknown")
@@ -174,15 +180,19 @@ jobs:
                 VPN_SUCCESS=true
                 break
               fi
+            else
+              echo "  ⏳ SOCKS5 proxy not responding yet (attempt $i/30)..."
             fi
           done
           
           if [[ "$VPN_SUCCESS" != "true" ]]; then
             echo "❌ VPN connection failed after 30 attempts"
+            echo "=== Final Gluetun Status ==="
+            docker ps -a | grep gluetun || echo "No gluetun container found"
             echo "=== Gluetun Logs (last 100 lines) ==="
-            docker logs gluetun --tail 100
-            echo "=== Container Status ==="
-            docker ps -a | grep gluetun
+            docker logs gluetun --tail 100 || echo "Cannot retrieve logs"
+            echo "=== Network Info ==="
+            netstat -tlnp | grep 1080 || echo "Nothing listening on port 1080"
             exit 1
           fi
 

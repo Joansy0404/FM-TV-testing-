@@ -258,6 +258,10 @@ jobs:
                       probe_size = '10000000'
                       subprocess_timeout = 45
                   
+                  # Geo-bypass headers
+                  USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
+                  HEADERS = 'Referer: https://www.google.com/\r\n'
+                  
                   cmd = ['ffprobe', '-v', 'error', 
                          '-select_streams', 'v:0',
                          '-show_entries', 'format=duration', 
@@ -265,6 +269,9 @@ jobs:
                          '-timeout', timeout_ms, 
                          '-analyzeduration', analyze_duration, 
                          '-probesize', probe_size,
+                         '-tls_verify', '0',
+                         '-user_agent', USER_AGENT,
+                         '-headers', HEADERS,
                          url]
                   
                   try:

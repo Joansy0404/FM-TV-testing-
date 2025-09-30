@@ -1,9 +1,13 @@
 # Stream Test Report
 
-**Last update:** 2025-09-30 04:38 UTC
+**Last update:** 2025-09-30 05:03 UTC
+**Test location:** UK VPN
 
 ## Latest Test Results
 
 | Location | Working | Geo-blocked | Failed | Total | Success Rate |
 |----------|---------|-------------|--------|-------|--------------|
-| UK VPN | 127 | 376 | 106 | 609 | **20.9%** |
+
+
+---
+*Generated at 2025-09-30 05:03 UTC*

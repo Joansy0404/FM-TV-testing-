@@ -127,7 +127,7 @@ jobs:
             qmcgaw/gluetun:latest
           
           echo "Waiting for VPN initialization..."
-          sleep 20
+          sleep 60
 
       - name: Verify VPN Connection
         if: github.event.inputs.test_scope == 'vpn_only' || github.event.inputs.test_scope == 'direct_and_vpn' || github.event_name == 'schedule'
@@ -140,9 +140,16 @@ jobs:
             echo "Verification attempt $i/30..."
             sleep 10
             
+            # Check if the container is running
             if ! docker ps | grep -q gluetun; then
-              echo "  ❌ Gluetun container not running!"
-              continue
+              # If not running, check if it has successfully connected and exited, or just failed
+              if docker ps -a | grep gluetun | grep -q 'Exited (0)'; then
+                echo "  ✅ Gluetun connected and exited (expected for some configs) - proceeding to verification."
+              else
+                echo "  ❌ Gluetun container exited unexpectedly!"
+                # This breaks the loop, triggering the final failure block which prints the logs
+                break
+              fi
             fi
             
             if curl -x socks5://localhost:1080 -s --connect-timeout 15 --max-time 20 https://ipinfo.io/json > /tmp/vpn.json 2>/dev/null; then

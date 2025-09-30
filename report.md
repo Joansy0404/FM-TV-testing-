@@ -1,14 +1,73 @@
 # Stream Test Report
 
-**Last update:** 2025-09-30 16:37 UTC
+**Last update:** 2025-09-30 16:40 UTC
 **Test method:** ffprobe
-**Test scope:** vpn_only
+**Test scope:** direct_only
 **Test location:** Direct Connection
 
 ## Latest Test Results
 
 | Location | Working | Geo-blocked | Failed | Total | Success Rate |
 |----------|---------|-------------|--------|-------|--------------|
+| Direct | 0 | 0 | 50 | 50 | **0.0%** |
+
+## Error Analysis
+
+**Total failed streams:** 50
+
+### Error Categories
+
+
+### Top 10 Error Messages
+
+1. **failed to set value 'ext' for option 'sync': option not found** - 50 occurrences (100.0%)
+
+## Failed Streams Details
+
+Streams that failed testing (for investigation):
+
+- **NBA TV** (Group: USA)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9kYnJiNDlwam95bWc0LmNsb3VkZnJv...`
+- **CBS SPORTS NETWORK** (Group: USA)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9DQlNf...`
+- **TNT SPORTS 4** (Group: UK)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9hMXhzLnZpcC8yMDAwMDI0IiwgImlk...`
+- **SKY CINEMA SCI-FI HORROR** (Group: UK)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cDovLzE0OS4yMDIuNzQuMTM2OjgwODAvNDA3...`
+- **NOW 90'S & 00'S** (Group: UK)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9qbXAyLnVrL3N0dnAtR0IzMDAwMzNI...`
+- **SHOWTIME NEXT** (Group: USA)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9TSE9X...`
+- **MGM+ MARQUEE** (Group: USA)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9FUElY...`
+- **BOKTV** (Group: ZA)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9saXZlc3RyZWFtMi5ib2tyYWRpby5j...`
+- **KQFXFOX** (Group: USA)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9jdnR2LmN2YWxsZXkubmV0L2hscy9L...`
+- **BEIN SPORTS 3** (Group: FR)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cDovLzE0NS4yMzkuNS4xNzc6ODAvNTU5L2lu...`
+- **ABC KIDS** (Group: AUS)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9jLm1qaC5uei9hYmMta2lkcy5tM3U4...`
+- **CMT** (Group: USA)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9DTVQv...`
+- **CINEMAX HITS** (Group: USA)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cDovLzIzLjIzNy4xMDQuMTA2OjgwODAvVVNB...`
+- **KYOUFOX** (Group: USA)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9jdnR2LmN2YWxsZXkubmV0L2hscy9L...`
+- **NATIONAL GEOGRAPHIC** (Group: UK)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cDovL2ltZWRpYXR2NjY2LnN0b3JlOjc3Nzcv...`
+- **QVC STYLE** (Group: UK)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9xdmN1ay1saXZlLmFrYW1haXplZC5u...`
+- **SKY SPORT 9** (Group: NZ)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cDovL2ltZWRpYXR2NjY2LnN0b3JlOjc3Nzcv...`
+- **CHEDDAR NEWS** (Group: USA)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9jaGVkZGFyLXVzLnNhbXN1bmcud3Vy...`
+- **YADAH TV** (Group: ZW)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly92aWV3bWVkaWE3MjE5LmJvenp0di5j...`
+- **E4** (Group: UK)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cDovL2ltZWRpYXR2NjY2LnN0b3JlOjc3Nzcv...`
+
+*...and 30 more failed streams*
 
 ## Testing Methodology
 
@@ -20,7 +79,7 @@
 
 
 ---
-*Generated at 2025-09-30 16:37 UTC*
+*Generated at 2025-09-30 16:40 UTC*
 
 <!-- HISTORY
 {
@@ -104,6 +163,18 @@
       "country": "US",
       "method": "ffprobe",
       "scope": "vpn_only"
+    },
+    {
+      "date": "2025-09-30 16:40 UTC",
+      "country": "UK",
+      "method": "ffprobe",
+      "scope": "direct_only",
+      "direct": {
+        "working": 0,
+        "geoblocked": 0,
+        "failed": 50,
+        "rate": 0.0
+      }
     }
   ]
 }

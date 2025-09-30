@@ -15,7 +15,7 @@ on:
       test_scope:
         description: 'Test scope'
         required: true
-        default: 'direct_only'
+        default: 'vpn_only'
         type: choice
         options:
           - direct_only
@@ -74,6 +74,23 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install requests pysocks
+
+      - name: Print Test Configuration
+        run: |
+          echo "=========================================="
+          echo "       STREAM TEST CONFIGURATION"
+          echo "=========================================="
+          echo "Test Method:    ${{ github.event.inputs.test_method || 'hybrid' }}"
+          echo "Test Scope:     ${{ github.event.inputs.test_scope || 'vpn_only' }}"
+          echo "VPN Country:    ${{ github.event.inputs.vpn_country || 'auto' }}"
+          echo "Sample Size:    ${{ github.event.inputs.sample_size || '0 (all streams)' }}"
+          echo "Check VODs:     ${{ github.event.inputs.check_vods || 'false' }}"
+          echo "Check PPV:      ${{ github.event.inputs.check_ppv || 'false' }}"
+          echo "Check FAST:     ${{ github.event.inputs.check_fast || 'false' }}"
+          echo "Triggered by:   ${{ github.event_name }}"
+          echo "Runner OS:      ubuntu-latest"
+          echo "Python Version: 3.x"
+          echo "=========================================="
 
       - name: Determine VPN country
         run: |
@@ -137,17 +154,14 @@ jobs:
         run: |
           echo "=== VPN Connection Verification ==="
           
-          # Check container status
           echo "--- Container Status ---"
           docker ps -a | grep gluetun || echo "No container found"
           echo ""
           
-          # Check logs
           echo "--- Gluetun Logs (last 50 lines) ---"
           docker logs gluetun --tail 50
           echo ""
           
-          # Test connectivity from within the VPN container
           echo "--- Testing VPN IP ---"
           VPN_IP=$(docker exec gluetun wget -qO- https://ipinfo.io/ip 2>/dev/null || echo "")
           
@@ -155,7 +169,6 @@ jobs:
             echo "✅ VPN connected successfully"
             echo "VPN IP: $VPN_IP"
             
-            # Get full info
             VPN_INFO=$(docker exec gluetun wget -qO- https://ipinfo.io/json 2>/dev/null)
             echo "$VPN_INFO"
             
@@ -187,7 +200,6 @@ jobs:
           TEST_METHOD = os.getenv('TEST_METHOD', 'ffprobe')
           TEST_SCOPE = os.getenv('TEST_SCOPE', 'direct_only')
           
-          # Import Playwright only if needed
           if TEST_METHOD in ['browser', 'hybrid']:
               try:
                   from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
@@ -198,12 +210,27 @@ jobs:
                   PLAYWRIGHT_AVAILABLE = False
           else:
               PLAYWRIGHT_AVAILABLE = False
+
           SAMPLE_SIZE = int(os.getenv('SAMPLE_SIZE', '0'))
           CHECK_VODS = os.getenv('CHECK_VODS', 'false').lower() == 'true'
           CHECK_PPV = os.getenv('CHECK_PPV', 'false').lower() == 'true'
           CHECK_FAST = os.getenv('CHECK_FAST', 'false').lower() == 'true'
           COUNTRY = os.getenv('COUNTRY_CODE', 'uk').upper()
           USE_VPN = os.getenv('USE_VPN', 'false').lower() == 'true'
+
+          print("=" * 60)
+          print("STREAM TESTER CONFIGURATION")
+          print("=" * 60)
+          print(f"Test Method:      {TEST_METHOD}")
+          print(f"Test Scope:       {TEST_SCOPE}")
+          print(f"Using VPN:        {USE_VPN}")
+          print(f"Country:          {COUNTRY}")
+          print(f"Sample Size:      {SAMPLE_SIZE if SAMPLE_SIZE > 0 else 'All streams'}")
+          print(f"Check VODs:       {CHECK_VODS}")
+          print(f"Check PPV:        {CHECK_PPV}")
+          print(f"Check FAST:       {CHECK_FAST}")
+          print(f"Playwright:       {PLAYWRIGHT_AVAILABLE}")
+          print("=" * 60)
 
           class StreamTester:
               def __init__(self):
@@ -281,19 +308,17 @@ jobs:
                   return filtered
 
               def test_ffprobe(self, url):
-                  # More lenient timeouts for VPN environments
                   if USE_VPN:
-                      timeout_ms = '45000000'  # 45s connection timeout
-                      analyze_duration = '12000000'  # 12s analyze
-                      probe_size = '15000000'  # 15MB
-                      subprocess_timeout = 60  # 60s max
+                      timeout_ms = '45000000'
+                      analyze_duration = '12000000'
+                      probe_size = '15000000'
+                      subprocess_timeout = 60
                   else:
                       timeout_ms = '30000000'
                       analyze_duration = '10000000'
                       probe_size = '10000000'
                       subprocess_timeout = 45
                   
-                  # Geo-bypass headers
                   USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
                   HEADERS = 'Referer: https://www.google.com/\r\n'
                   
@@ -330,7 +355,6 @@ jobs:
                       return 'failed', first_error
                   
                   except subprocess.TimeoutExpired as e:
-                      # Force kill the process if it's still running
                       try:
                           if e.process and e.process.poll() is None:
                               e.process.kill()
@@ -342,7 +366,6 @@ jobs:
                       return 'error', str(e)[:100]
 
               def test_browser(self, url):
-                  """Test stream using headless browser with HLS.js"""
                   if not PLAYWRIGHT_AVAILABLE:
                       return 'error', 'Playwright not available'
                   
@@ -350,11 +373,11 @@ jobs:
                       with sync_playwright() as p:
                           browser = p.chromium.launch(headless=True)
                           context = browser.new_context(
-                              user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                              user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+                              ignore_https_errors=True
                           )
                           page = context.new_page()
                           
-                          # Create simple HLS test page
                           html_content = f'''
                           <!DOCTYPE html>
                           <html>
@@ -409,7 +432,6 @@ jobs:
                           
                           page.set_content(html_content)
                           
-                          # Wait for test result (max 15 seconds)
                           for i in range(30):
                               time.sleep(0.5)
                               result = page.evaluate('() => window.testResult')
@@ -449,7 +471,15 @@ jobs:
                   for i, stream in enumerate(streams):
                       print(f"[{i+1}/{len(streams)}] {stream['name'][:45]}... ", end='', flush=True)
                       
-                      result, error_msg = self.test_ffprobe(stream['url'])
+                      if TEST_METHOD == 'ffprobe':
+                          result, error_msg = self.test_ffprobe(stream['url'])
+                      elif TEST_METHOD == 'browser':
+                          result, error_msg = self.test_browser(stream['url'])
+                      elif TEST_METHOD == 'hybrid':
+                          result, error_msg = self.test_ffprobe(stream['url'])
+                          if result != 'working':
+                              print("(retry browser)... ", end='', flush=True)
+                              result, error_msg = self.test_browser(stream['url'])
                       
                       if result == 'working':
                           working.append(stream)
@@ -496,7 +526,6 @@ jobs:
                       result = self.test_location("Direct Connection")
                       self.results['direct'] = result
                   
-                  # Save results to file for parent process
                   with open('./test_results.json', 'w') as f:
                       json.dump(self.results, f)
 
@@ -512,7 +541,7 @@ jobs:
       - name: Run Direct Connection Test
         if: github.event.inputs.test_scope == 'direct_only' || github.event.inputs.test_scope == 'direct_and_vpn'
         env:
-          TEST_METHOD: ${{ github.event.inputs.test_method || 'ffprobe' }}
+          TEST_METHOD: ${{ github.event.inputs.test_method || 'hybrid' }}
           TEST_SCOPE: direct_only
           SAMPLE_SIZE: ${{ github.event.inputs.sample_size || '0' }}
           CHECK_VODS: ${{ github.event.inputs.check_vods || 'false' }}
@@ -527,9 +556,8 @@ jobs:
         run: |
           echo "Running tests through VPN container network namespace..."
           
-          METHOD="${{ github.event.inputs.test_method || 'ffprobe' }}"
+          METHOD="${{ github.event.inputs.test_method || 'hybrid' }}"
           
-          # Build installation command based on method
           INSTALL_CMD="apt-get update && apt-get install -y ffmpeg"
           
           if [ "$METHOD" = "browser" ] || [ "$METHOD" = "hybrid" ]; then
@@ -537,7 +565,6 @@ jobs:
             INSTALL_CMD="$INSTALL_CMD && pip install playwright && playwright install --with-deps chromium"
           fi
           
-          # Run Python in a container sharing gluetun's network
           docker run --rm \
             --network container:gluetun \
             -v $(pwd):/workspace \
@@ -561,12 +588,10 @@ jobs:
           import os
           from datetime import datetime, timezone
 
-          # Load results
           direct_results = None
           vpn_results = None
           history = {'tests': []}
           
-          # Load existing history if available
           try:
               if os.path.exists('report.md'):
                   with open('report.md', 'r', encoding='utf-8') as f:
@@ -588,11 +613,12 @@ jobs:
 
           now = datetime.now(timezone.utc)
           country = os.getenv('COUNTRY_CODE', 'UK').upper()
+          test_method = os.getenv('TEST_METHOD', 'unknown')
           
-          # Add current test to history
           test_entry = {
               'date': now.strftime('%Y-%m-%d %H:%M UTC'),
               'country': country,
+              'method': test_method,
               'scope': os.getenv('TEST_SCOPE', 'unknown')
           }
           
@@ -618,9 +644,9 @@ jobs:
           
           report = "# Stream Test Report\n\n"
           report += f"**Last update:** {now.strftime('%Y-%m-%d %H:%M UTC')}\n"
+          report += f"**Test method:** {test_method}\n"
           report += f"**Test location:** {country} VPN\n\n"
           
-          # Summary table
           report += "## Latest Test Results\n\n"
           report += "| Location | Working | Geo-blocked | Failed | Total | Success Rate |\n"
           report += "|----------|---------|-------------|--------|-------|--------------|\n"
@@ -643,7 +669,6 @@ jobs:
           
           report += "\n"
           
-          # Detailed error analysis
           results_to_analyze = vpn_results or direct_results
           if results_to_analyze and results_to_analyze.get('error_samples'):
               report += "## Error Analysis\n\n"
@@ -653,7 +678,6 @@ jobs:
               
               report += f"**Total failed streams:** {len(results_to_analyze['failed'])}\n\n"
               
-              # Group errors by type
               timeouts = sum(count for err, count in errors.items() if 'timeout' in err.lower())
               geo_errors = sum(count for err, count in errors.items() if any(x in err.lower() for x in ['403', '401', '451', 'forbidden', 'unauthorized']))
               not_found = sum(count for err, count in errors.items() if '404' in err.lower())
@@ -680,12 +704,11 @@ jobs:
               
               report += "\n"
           
-          # Failed stream details
           if results_to_analyze and results_to_analyze.get('failed'):
               report += "## Failed Streams Details\n\n"
               report += "Streams that failed testing (for investigation):\n\n"
               
-              failed_streams = results_to_analyze['failed'][:20]  # First 20 only
+              failed_streams = results_to_analyze['failed'][:20]
               for stream in failed_streams:
                   report += f"- **{stream['name']}** (Group: {stream['group']})\n"
                   report += f"  - URL: `{stream['url'][:100]}...`\n"
@@ -695,7 +718,6 @@ jobs:
               
               report += "\n"
           
-          # Geo-blocked stream sample
           if results_to_analyze and results_to_analyze.get('geoblocked'):
               report += "## Geo-blocked Streams (Sample)\n\n"
               report += f"Total geo-blocked: {len(results_to_analyze['geoblocked'])}\n\n"
@@ -709,7 +731,6 @@ jobs:
               
               report += "\n"
           
-          # Recommendations
           if vpn_results:
               success_rate = vpn_results['rate']
               failed_count = len(vpn_results['failed'])
@@ -719,7 +740,7 @@ jobs:
               if success_rate < 25:
                   report += "⚠️ **Low success rate detected**\n\n"
                   if timeouts > failed_count * 0.5:
-                      report += "- High timeout rate suggests network latency issues or aggressive ffprobe timeouts\n"
+                      report += "- High timeout rate suggests network latency issues or aggressive timeouts\n"
                       report += "- Consider increasing timeout values in workflow configuration\n"
                   if connection > 0:
                       report += "- Connection errors present - may indicate server-side rate limiting\n"
@@ -732,7 +753,6 @@ jobs:
           report += "\n---\n"
           report += f"*Generated at {now.strftime('%Y-%m-%d %H:%M UTC')}*\n\n"
           
-          # Add history block for alternation tracking
           report += "<!-- HISTORY\n"
           report += json.dumps(history, indent=2)
           report += "\n-->\n"
@@ -764,8 +784,8 @@ jobs:
             
             if ! git diff --staged --quiet; then
               RATE=$(grep -oE "\*\*[0-9.]+%" report.md | grep -oE "[0-9.]+" | head -1 || echo "0")
-              METHOD="${{ github.event.inputs.test_method || 'ffprobe' }}"
-              SCOPE="${{ github.event.inputs.test_scope || 'direct_only' }}"
+              METHOD="${{ github.event.inputs.test_method || 'hybrid' }}"
+              SCOPE="${{ github.event.inputs.test_scope || 'vpn_only' }}"
               
               if [ "$SCOPE" = "direct_only" ]; then
                 git commit -m "Direct test ($METHOD): ${RATE}% - $(date -u '+%m/%d %H:%M')"
@@ -775,4 +795,6 @@ jobs:
               
               git push origin "$BRANCH"
             fi
-          fi
+          fif}%)\n"
+              if geo_errors > 0:
+                  report += f"- **Authentication/Permission:** {geo_errors} ({geo_errors/total_errors*100:.1

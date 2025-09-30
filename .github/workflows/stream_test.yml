@@ -108,42 +108,49 @@ jobs:
             
             if [ "$LAST" = "UK" ]; then
               echo "COUNTRY_CODE=us" >> $GITHUB_ENV
-              echo "SERVER_CITIES=Los Angeles" >> $GITHUB_ENV
+              echo "SERVER_CITIES=New York" >> $GITHUB_ENV
               echo "COUNTRY_NAME=United States" >> $GITHUB_ENV
-              echo "✅ Next test: US Los Angeles (alternating from UK)"
+              echo "✅ Next test: US New York (alternating from UK)"
             else
               echo "COUNTRY_CODE=uk" >> $GITHUB_ENV
-              echo "SERVER_CITIES=London" >> $GITHUB_ENV
+              echo "SERVER_CITIES=Edinburgh" >> $GITHUB_ENV
               echo "COUNTRY_NAME=United Kingdom" >> $GITHUB_ENV
-              echo "✅ Next test: UK London (alternating from US)"
+              echo "✅ Next test: UK Edinburgh (alternating from US)"
             fi
           elif [ "$VPN_CHOICE" = "us" ]; then
             echo "COUNTRY_CODE=us" >> $GITHUB_ENV
-            echo "SERVER_CITIES=Los Angeles" >> $GITHUB_ENV
+            echo "SERVER_CITIES=New York" >> $GITHUB_ENV
             echo "COUNTRY_NAME=United States" >> $GITHUB_ENV
-            echo "✅ Manual selection: US Los Angeles"
+            echo "✅ Manual selection: US New York"
           elif [ "$VPN_CHOICE" = "uk" ]; then
             echo "COUNTRY_CODE=uk" >> $GITHUB_ENV
-            echo "SERVER_CITIES=London" >> $GITHUB_ENV
+            echo "SERVER_CITIES=Edinburgh" >> $GITHUB_ENV
             echo "COUNTRY_NAME=United Kingdom" >> $GITHUB_ENV
-            echo "✅ Manual selection: UK London"
+            echo "✅ Manual selection: UK Edinburgh"
           fi
 
       - name: Start ProtonVPN via Gluetun
         if: github.event.inputs.test_scope == 'vpn_only' || github.event.inputs.test_scope == 'direct_and_vpn' || github.event_name == 'schedule'
         run: |
-          echo "Starting Gluetun with ProtonVPN (${{ env.COUNTRY_NAME }} - ${{ env.SERVER_CITIES }})..."
+          if [ "${{ env.COUNTRY_CODE }}" = "uk" ]; then
+            WG_KEY="${{ secrets.WIREGUARD_PRIVATE_KEY_UK }}"
+            CITIES="Edinburgh"
+          else
+            WG_KEY="${{ secrets.WIREGUARD_PRIVATE_KEY_US }}"
+            CITIES="New York"
+          fi
+          
+          echo "Starting Gluetun with ProtonVPN WireGuard (${{ env.COUNTRY_NAME }} - $CITIES)..."
           docker run -d \
             --name gluetun \
             --cap-add=NET_ADMIN \
             --device /dev/net/tun \
             -e VPN_SERVICE_PROVIDER=protonvpn \
-            -e OPENVPN_USER="${{ secrets.VPN_USER }}" \
-            -e OPENVPN_PASSWORD="${{ secrets.VPN_PASSWORD }}" \
-            -e SERVER_CITIES="${{ env.SERVER_CITIES }}" \
+            -e VPN_TYPE=wireguard \
+            -e WIREGUARD_PRIVATE_KEY="$WG_KEY" \
+            -e SERVER_CITIES="$CITIES" \
             -e FREE_ONLY=off \
             -e LOG_LEVEL=info \
-            -e DOT=off \
             qmcgaw/gluetun:latest
           
           echo "Container started, waiting for initialization..."

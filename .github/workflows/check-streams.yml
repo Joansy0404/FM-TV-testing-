@@ -432,7 +432,7 @@ jobs:
                           
                           page.set_content(html_content)
                           
-                          for i in range(30):
+                          for i in range(60):
                               time.sleep(0.5)
                               result = page.evaluate('() => window.testResult')
                               
@@ -450,7 +450,7 @@ jobs:
                                   return 'failed', error[:100]
                           
                           browser.close()
-                          return 'timeout', 'Browser test timeout (15s)'
+                          return 'timeout', 'Browser test timeout (30s)'
                   
                   except PlaywrightTimeout:
                       return 'timeout', 'Browser timeout'
@@ -496,7 +496,7 @@ jobs:
                               error_samples[error_msg] = 0
                           error_samples[error_msg] += 1
                       
-                      time.sleep(0.8)
+                      time.sleep(1.5)
                       
                       if (i+1) % 20 == 0:
                           rate = (len(working)/(i+1)*100)
@@ -558,7 +558,7 @@ jobs:
           
           METHOD="${{ github.event.inputs.test_method || 'hybrid' }}"
           
-          INSTALL_CMD="apt-get update && apt-get install -y ffmpeg"
+          INSTALL_CMD="apt-get update && apt-get install -y ffmpeg libgstreamer1.0-0 libgstreamer-plugins-base1.0-0 libgstreamer-plugins-bad1.0-0 gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-libav"
           
           if [ "$METHOD" = "browser" ] || [ "$METHOD" = "hybrid" ]; then
             echo "Installing Playwright for browser testing..."
@@ -582,6 +582,11 @@ jobs:
 
       - name: Generate Report
         if: always()
+        env:
+          TEST_METHOD: ${{ github.event.inputs.test_method || 'hybrid' }}
+          TEST_SCOPE: ${{ github.event.inputs.test_scope || 'vpn_only' }}
+          COUNTRY_CODE: ${{ env.COUNTRY_CODE }}
+          SAMPLE_SIZE: ${{ github.event.inputs.sample_size || '0' }}
         run: |
           python << 'ENDPYTHON'
           import json
@@ -613,13 +618,14 @@ jobs:
 
           now = datetime.now(timezone.utc)
           country = os.getenv('COUNTRY_CODE', 'UK').upper()
-          test_method = os.getenv('TEST_METHOD', 'unknown')
+          test_method = os.getenv('TEST_METHOD', 'hybrid')
+          test_scope = os.getenv('TEST_SCOPE', 'vpn_only')
           
           test_entry = {
               'date': now.strftime('%Y-%m-%d %H:%M UTC'),
               'country': country,
               'method': test_method,
-              'scope': os.getenv('TEST_SCOPE', 'unknown')
+              'scope': test_scope
           }
           
           if vpn_results:
@@ -645,7 +651,12 @@ jobs:
           report = "# Stream Test Report\n\n"
           report += f"**Last update:** {now.strftime('%Y-%m-%d %H:%M UTC')}\n"
           report += f"**Test method:** {test_method}\n"
-          report += f"**Test location:** {country} VPN\n\n"
+          report += f"**Test scope:** {test_scope}\n"
+          
+          if vpn_results:
+              report += f"**Test location:** {country} VPN\n\n"
+          else:
+              report += f"**Test location:** Direct Connection\n\n"
           
           report += "## Latest Test Results\n\n"
           report += "| Location | Working | Geo-blocked | Failed | Total | Success Rate |\n"

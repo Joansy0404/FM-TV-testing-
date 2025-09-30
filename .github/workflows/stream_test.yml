@@ -134,13 +134,15 @@ jobs:
         run: |
           if [ "${{ env.COUNTRY_CODE }}" = "uk" ]; then
             WG_KEY="${{ secrets.WIREGUARD_PRIVATE_KEY_UK }}"
-            CITIES="Edinburgh"
+            SERVER_HOSTNAME="uk-654.protonvpn.net"
+            COUNTRY_NAME="United Kingdom (UK#654)"
           else
             WG_KEY="${{ secrets.WIREGUARD_PRIVATE_KEY_US }}"
-            CITIES="New York"
+            SERVER_HOSTNAME="us-ca-848.protonvpn.net"
+            COUNTRY_NAME="United States (US-CA#848)"
           fi
           
-          echo "Starting Gluetun with ProtonVPN WireGuard (${{ env.COUNTRY_NAME }} - $CITIES)..."
+          echo "Starting Gluetun with ProtonVPN WireGuard ($COUNTRY_NAME)..."
           docker run -d \
             --name gluetun \
             --cap-add=NET_ADMIN \
@@ -148,7 +150,7 @@ jobs:
             -e VPN_SERVICE_PROVIDER=protonvpn \
             -e VPN_TYPE=wireguard \
             -e WIREGUARD_PRIVATE_KEY="$WG_KEY" \
-            -e SERVER_CITIES="$CITIES" \
+            -e SERVER_HOSTNAMES="$SERVER_HOSTNAME" \
             -e FREE_ONLY=off \
             -e LOG_LEVEL=info \
             qmcgaw/gluetun:latest

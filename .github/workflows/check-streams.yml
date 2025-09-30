@@ -795,6 +795,4 @@ jobs:
               
               git push origin "$BRANCH"
             fi
-          fif}%)\n"
-              if geo_errors > 0:
-                  report += f"- **Authentication/Permission:** {geo_errors} ({geo_errors/total_errors*100:.1
+          fi

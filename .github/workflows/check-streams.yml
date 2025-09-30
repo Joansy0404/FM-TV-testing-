@@ -108,8 +108,6 @@ jobs:
       - name: Start ProtonVPN via Gluetun
         if: github.event.inputs.test_scope == 'vpn_only' || github.event.inputs.test_scope == 'direct_and_vpn' || github.event_name == 'schedule'
         run: |
-          docker network create vpn-network || true
-          
           echo "Starting Gluetun with ProtonVPN (${{ env.COUNTRY_NAME }} - ${{ env.SERVER_CITIES }})..."
           docker run -d \
             --name gluetun \
@@ -122,11 +120,12 @@ jobs:
             -e SERVER_CITIES="${{ env.SERVER_CITIES }}" \
             -e FREE_ONLY=off \
             -e LOG_LEVEL=info \
+            -e FIREWALL_OUTBOUND_SUBNETS=0.0.0.0/0 \
             -e SOCKS5=on \
-            -e SOCKS5_LISTENING_ADDRESS=:1080 \
+            -e SOCKS5_LISTENING_ADDRESS=0.0.0.0:1080 \
             qmcgaw/gluetun:latest
           
-          echo "Waiting for VPN initialization..."
+          echo "Container started, waiting for initialization..."
           sleep 10
 
       - name: Install Diagnostic Tools

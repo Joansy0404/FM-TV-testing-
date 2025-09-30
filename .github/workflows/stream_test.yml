@@ -315,73 +315,123 @@ jobs:
                   return filtered
 
               def test_ffprobe(self, url):
-                  # FFprobe configuration - balanced settings
-                  # Validated 2025-09-30: 58% success rate
+                  # Multiple user agents to try in order
+                  USER_AGENTS = [
+                      # TiviMate exact match
+                      'TiviMate/5.1.6 (Android 12)',
+                      # Other IPTV player agents
+                      'ExoPlayer/2.18.1',
+                      'VLC/3.0.18 LibVLC/3.0.18',
+                      'Lavf/58.76.100',
+                      # Generic media player
+                      'Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 IPTV',
+                      # Original browser agent (fallback)
+                      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                  ]
                   
-                  USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-                  HEADERS = 'Referer: https://www.google.com/\r\n'
+                  # Headers that IPTV services expect
+                  def build_headers(user_agent):
+                      headers = []
+                      headers.append(f'User-Agent: {user_agent}')
+                      headers.append('Accept: */*')
+                      headers.append('Connection: keep-alive')
+                      # Only add referer for browser-like agents
+                      if 'Mozilla' in user_agent:
+                          headers.append('Referer: https://www.google.com/')
+                      return '\r\n'.join(headers) + '\r\n'
                   
                   if USE_VPN:
-                      timeout_ms = '45000000'       # 45 seconds
-                      analyze_duration = '5000000'   # 5 seconds
-                      probe_size = '5000000'         # 5MB
+                      timeout_ms = '45000000'
+                      analyze_duration = '5000000'
+                      probe_size = '5000000'
                       subprocess_timeout = 60
                   else:
-                      timeout_ms = '30000000'       # 30 seconds  
-                      analyze_duration = '3000000'   # 3 seconds
-                      probe_size = '3000000'         # 3MB
+                      timeout_ms = '30000000'
+                      analyze_duration = '3000000'
+                      probe_size = '3000000'
                       subprocess_timeout = 45
                   
-                  cmd = ['ffprobe',
-                         '-v', 'error',
-                         '-select_streams', 'v:0',
-                         '-show_entries', 'stream=codec_name:format=format_name',
-                         '-of', 'json',
-                         '-timeout', timeout_ms,
-                         '-analyzeduration', analyze_duration,
-                         '-probesize', probe_size,
-                         '-user_agent', USER_AGENT,
-                         '-headers', HEADERS,
-                         url]
+                  last_error = None
                   
-                  try:
-                      result = subprocess.run(cmd, capture_output=True, text=True, timeout=subprocess_timeout)
+                  # Try each user agent in sequence
+                  for i, user_agent in enumerate(USER_AGENTS):
+                      headers = build_headers(user_agent)
                       
-                      if result.returncode == 0:
-                          try:
-                              output = json.loads(result.stdout)
-                              if 'streams' in output and len(output['streams']) > 0:
-                                  return 'working', None
-                              elif 'format' in output and output['format'].get('format_name'):
-                                  return 'working', None
+                      cmd = ['ffprobe',
+                             '-v', 'error',
+                             '-select_streams', 'v:0',
+                             '-show_entries', 'stream=codec_name:format=format_name',
+                             '-of', 'json',
+                             '-timeout', timeout_ms,
+                             '-analyzeduration', analyze_duration,
+                             '-probesize', probe_size,
+                             '-user_agent', user_agent,
+                             '-headers', headers,
+                             '-reconnect', '1',
+                             '-reconnect_streamed', '1',
+                             '-reconnect_delay_max', '5',
+                             url]
+                      
+                      try:
+                          result = subprocess.run(cmd, capture_output=True, text=True, timeout=subprocess_timeout)
+                          
+                          if result.returncode == 0:
+                              try:
+                                  output = json.loads(result.stdout)
+                                  if 'streams' in output and len(output['streams']) > 0:
+                                      ua_note = f' (UA{i+1}: {user_agent.split("/")[0]})' if i > 0 else None
+                                      return 'working', ua_note
+                                  elif 'format' in output and output['format'].get('format_name'):
+                                      ua_note = f' (UA{i+1}: {user_agent.split("/")[0]})' if i > 0 else None
+                                      return 'working', ua_note
+                              except json.JSONDecodeError:
+                                  ua_note = f' (UA{i+1}: {user_agent.split("/")[0]})' if i > 0 else None
+                                  return 'working', ua_note
+                          
+                          err = result.stderr.lower()
+                          last_error = err
+                          
+                          # If it's a geo-block or auth error, try next user agent
+                          if '403' in err or 'forbidden' in err or '401' in err or 'unauthorized' in err:
+                              if i < len(USER_AGENTS) - 1:
+                                  time.sleep(0.1)  # Brief delay before retry
+                                  continue
                               else:
-                                  return 'failed', 'No valid stream data returned'
-                          except json.JSONDecodeError:
-                              return 'working', None
+                                  return 'geoblocked', 'HTTP 403/401 (all UAs failed)'
+                          
+                          # For other errors, try next agent but don't wait as long
+                          if '404' in err:
+                              return 'notfound', 'HTTP 404 Not Found'
+                          if 'timeout' in err or 'timed out' in err:
+                              if i < len(USER_AGENTS) - 1:
+                                  continue
+                              return 'timeout', 'Connection timeout (all UAs)'
+                          if 'connection refused' in err:
+                              if i < len(USER_AGENTS) - 1:
+                                  continue
+                              return 'failed', 'Connection refused (all UAs)'
+                          if 'invalid data' in err or 'invalid' in err:
+                              if i < len(USER_AGENTS) - 1:
+                                  continue
+                              return 'failed', 'Invalid stream data (all UAs)'
+                          
+                          # Generic error - try next agent
+                          if i < len(USER_AGENTS) - 1:
+                              continue
+                          
+                          first_error = err.split('\n')[0][:100] if err else 'Unknown error'
+                          return 'failed', first_error
                       
-                      err = result.stderr.lower()
-                      
-                      if '403' in err or 'forbidden' in err:
-                          return 'geoblocked', 'HTTP 403 Forbidden'
-                      if '401' in err or 'unauthorized' in err:
-                          return 'geoblocked', 'HTTP 401 Unauthorized'
-                      if '404' in err:
-                          return 'notfound', 'HTTP 404 Not Found'
-                      if 'timeout' in err or 'timed out' in err:
-                          return 'timeout', 'Connection timeout'
-                      if 'connection refused' in err:
-                          return 'failed', 'Connection refused'
-                      if 'invalid data' in err or 'invalid' in err:
-                          return 'failed', 'Invalid stream data'
-                      
-                      first_error = err.split('\n')[0][:100] if err else 'Unknown error'
-                      return 'failed', first_error
+                      except subprocess.TimeoutExpired:
+                          if i < len(USER_AGENTS) - 1:
+                              continue
+                          return 'timeout', f'FFprobe timeout ({subprocess_timeout}s, all UAs)'
+                      except Exception as e:
+                          if i < len(USER_AGENTS) - 1:
+                              continue
+                          return 'error', str(e)[:100]
                   
-                  except subprocess.TimeoutExpired:
-                      return 'timeout', f'FFprobe timeout ({subprocess_timeout}s)'
-                  except Exception as e:
-                      return 'error', str(e)[:100]
-
+                  return 'failed', 'All user agents exhausted'
               def test_browser(self, url):
                   if not PLAYWRIGHT_AVAILABLE:
                       return 'error', 'Playwright not available'

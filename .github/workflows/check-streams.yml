@@ -308,23 +308,32 @@ jobs:
                   return filtered
 
               def test_ffprobe(self, url):
-                  # Optimized FFprobe flags based on Layer 1 architecture
-                  # Reference: Industry best practices for CI/CD live stream validation
+                  # FFprobe configuration - balancing speed vs compatibility
+                  # Note: Too aggressive optimization can cause 100% failure
                   
                   USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
                   HEADERS = 'Referer: https://www.google.com/\r\n'
                   
-                  # Layer 1 optimization: Aggressive settings for rapid availability checks
-                  # Trade analytical accuracy for speed - this is intentional for CI
+                  # Balanced settings: not too aggressive, not too slow
+                  if USE_VPN:
+                      timeout_ms = '45000000'       # 45 seconds
+                      analyze_duration = '5000000'   # 5 seconds (was 0 - too aggressive)
+                      probe_size = '5000000'         # 5MB (was 32K - too small)
+                      subprocess_timeout = 60
+                  else:
+                      timeout_ms = '30000000'       # 30 seconds  
+                      analyze_duration = '3000000'   # 3 seconds (was 0)
+                      probe_size = '3000000'         # 3MB (was 32K)
+                      subprocess_timeout = 45
+                  
                   cmd = ['ffprobe',
-                         '-v', 'error',                    # Only show errors
-                         '-fflags', 'nobuffer',            # Disable buffering (critical for live)
-                         '-probesize', '32768',            # 32K - minimal data analysis
-                         '-analyzeduration', '0',          # Force immediate recognition
-                         '-sync', 'ext',                   # External clock sync
-                         '-select_streams', 'v:0',         # First video stream only
+                         '-v', 'error',
+                         '-select_streams', 'v:0',
                          '-show_entries', 'stream=codec_name:format=format_name',
-                         '-of', 'json',                    # Structured output for CI
+                         '-of', 'json',
+                         '-timeout', timeout_ms,
+                         '-analyzeduration', analyze_duration,
+                         '-probesize', probe_size,
                          '-user_agent', USER_AGENT,
                          '-headers', HEADERS,
                          url]
@@ -688,6 +697,25 @@ jobs:
           else:
               report += f"**Test location:** Direct Connection\n\n"
           
+          # Add configuration diagnostics
+          report += "## Configuration Details\n\n"
+          report += f"- **Sample size:** {os.getenv('SAMPLE_SIZE', 'All streams')}\n"
+          report += f"- **VODs enabled:** {os.getenv('CHECK_VODS', 'false')}\n"
+          report += f"- **PPV enabled:** {os.getenv('CHECK_PPV', 'false')}\n"
+          report += f"- **FAST enabled:** {os.getenv('CHECK_FAST', 'false')}\n"
+          
+          if test_method == 'ffprobe':
+              if vpn_results:
+                  report += "- **FFprobe timeout:** 45s\n"
+                  report += "- **Probe size:** 5MB\n"
+                  report += "- **Analyze duration:** 5s\n"
+              else:
+                  report += "- **FFprobe timeout:** 45s\n"
+                  report += "- **Probe size:** 3MB\n"
+                  report += "- **Analyze duration:** 3s\n"
+          
+          report += "\n"
+          
           report += "## Latest Test Results\n\n"
           report += "| Location | Working | Geo-blocked | Failed | Total | Success Rate |\n"
           report += "|----------|---------|-------------|--------|-------|--------------|\n"
@@ -774,11 +802,35 @@ jobs:
           
           if test_method == 'ffprobe':
               report += "## Testing Methodology\n\n"
-              report += "**Layer 1 Validation (FFprobe):**\n"
-              report += "- Optimized for rapid availability checks in CI/CD\n"
-              report += "- Flags: `-fflags nobuffer -probesize 32K -analyzeduration 0`\n"
-              report += "- Timeout: 15 seconds per stream\n"
-              report += "- Validates: Stream accessibility and basic format detection\n\n"
+              report += "**FFprobe Configuration:**\n"
+              if vpn_results:
+                  report += "- Timeout: 45 seconds, Probe: 5MB, Analyze: 5s (VPN optimized)\n"
+              else:
+                  report += "- Timeout: 45 seconds, Probe: 3MB, Analyze: 3s (Direct optimized)\n"
+              report += "- Validates: Stream accessibility and codec detection\n"
+              report += "- Trade-off: Balanced between speed and compatibility\n\n"
+              
+              # Add historical comparison
+              report += "### Historical Performance\n\n"
+              if len(history['tests']) > 1:
+                  report += "Recent test results for comparison:\n\n"
+                  for test in history['tests'][-5:]:
+                      date = test.get('date', 'Unknown')
+                      method = test.get('method', 'unknown')
+                      
+                      if 'vpn' in test:
+                          rate = test['vpn'].get('rate', 0)
+                          working = test['vpn'].get('working', 0)
+                          total = working + test['vpn'].get('geoblocked', 0) + test['vpn'].get('failed', 0)
+                          report += f"- {date} | {method} | VPN | {working}/{total} ({rate:.1f}%)\n"
+                      
+                      if 'direct' in test:
+                          rate = test['direct'].get('rate', 0)
+                          working = test['direct'].get('working', 0)
+                          total = working + test['direct'].get('geoblocked', 0) + test['direct'].get('failed', 0)
+                          report += f"- {date} | {method} | Direct | {working}/{total} ({rate:.1f}%)\n"
+                  
+                  report += "\n"
           
           if vpn_results:
               success_rate = vpn_results['rate']

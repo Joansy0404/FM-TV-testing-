@@ -248,15 +248,15 @@ jobs:
               def test_ffprobe(self, url):
                   # More lenient timeouts for VPN environments
                   if USE_VPN:
-                      timeout_ms = '90000000'  # 90s connection timeout
-                      analyze_duration = '15000000'  # 15s analyze
-                      probe_size = '20000000'  # 20MB
-                      subprocess_timeout = 120  # 120s max
+                      timeout_ms = '45000000'  # 45s connection timeout
+                      analyze_duration = '12000000'  # 12s analyze
+                      probe_size = '15000000'  # 15MB
+                      subprocess_timeout = 60  # 60s max
                   else:
                       timeout_ms = '30000000'
                       analyze_duration = '10000000'
                       probe_size = '10000000'
-                      subprocess_timeout = 60
+                      subprocess_timeout = 45
                   
                   cmd = ['ffprobe', '-v', 'error', 
                          '-select_streams', 'v:0',

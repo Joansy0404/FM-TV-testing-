@@ -1,48 +1,146 @@
 # Stream Test Report
 
-**Last update:** 2025-09-30 16:59 UTC
+**Last update:** 2025-09-30 18:01 UTC
 **Test method:** ffprobe
-**Test scope:** direct_only
-**Test location:** Direct Connection
+**Test scope:** vpn_only
+**Test location:** UK VPN
 
-## Configuration Details
+## Development Status & Key Findings
 
-- **Sample size:** 50
+**Report Generated:** 2025-09-30 18:01 UTC
+**Workflow Version:** 2.0 (Optimized FFprobe)
+
+### Current Performance:
+- **VPN Test (UK)**: 53/75 working (70.7%)
+
+### What We Know Works:
+- **FFprobe method**: 58% success rate on direct connection (validated 2025-09-30)
+- **Optimal Configuration**: 3MB probe (direct) / 5MB probe (VPN), 3-5s analyze, 30-45s timeout
+- **Test delay**: 0.3s between streams (fast without overwhelming servers)
+- **Browser method**: Only 14% success - NOT suitable for these streams
+- **Root cause**: Browser gets `manifestIncompatibleCodecsError` (48.8%) - HLS.js cannot transmux stream codecs
+
+### Critical Lessons Learned:
+1. **Too aggressive FFprobe settings FAIL**: 32K probe + 0s analyze = 0% success
+2. **Balanced settings WORK**: 3-5MB probe + 3-5s analyze = 58% success
+3. **Browser testing is wrong tool**: Streams use MPEG-TS or codecs HLS.js can't handle
+4. **Main failure patterns**: Connection refused (33%), timeouts (5%), geo-blocking (2%)
+5. **Speed vs accuracy**: Balanced settings complete 50 streams in ~1.5 minutes
+
+### Known Issues & Next Steps:
+- [ ] **Connection Refused (33% of failures)**: Servers offline, blocking, or rate-limiting
+- [ ] **Test VPN performance**: Compare geo-blocking patterns US vs UK
+- [ ] **Layer 2 validation**: Consider adding manifest parser (hls-monitor/pyhls)
+- [ ] **Retry strategy**: Test failed streams with higher timeouts (60s)
+- [ ] **Hybrid mode**: Test if browser can rescue specific FFprobe failure types
+- [ ] **Expand testing**: Move from 50-stream sample to full 600+ playlist
+
+## Technical Configuration
+
+### Test Parameters
+- **Sample size:** 75
 - **VODs enabled:** false
 - **PPV enabled:** false
 - **FAST enabled:** false
-- **FFprobe timeout:** 45s
-- **Probe size:** 3MB
-- **Analyze duration:** 3s
+- **Test delay:** 0.3 seconds between streams
+
+### Environment
+- **Runner:** ubuntu-latest (GitHub Actions)
+- **Python:** 3.x
+- **FFmpeg/FFprobe:** Latest (apt-get)
+- **VPN Provider:** ProtonVPN via Gluetun
+- **VPN Country:** UK
+- **VPN City:** London
+- **Connected IP:** 149.40.48.91
+- **Verified Location:** London
+- **ISP:** AS212238 Datacamp Limited
+- **Container:** python:3.11-slim (Docker)
+- **Network:** Shared namespace with Gluetun container
+
+### FFprobe Settings
+**VPN Configuration:**
+- Connection timeout: 45 seconds (`-timeout 45000000`)
+- Probe size: 5MB (`-probesize 5000000`)
+- Analyze duration: 5 seconds (`-analyzeduration 5000000`)
+- Subprocess timeout: 60 seconds (Python wrapper)
+- Stream selection: Video stream 0 only (`-select_streams v:0`)
+- Output format: JSON (`-of json`)
+- Verbosity: Errors only (`-v error`)
+- User-Agent: Chrome 131 on Windows
+- Headers: Referer set to google.com
+
+**Rationale:**
+- Balanced settings proven to work (58% success rate)
+- VPN gets higher timeouts/probe due to latency
+- Avoids aggressive optimization that caused 0% success
+
+## Playlist & Stream Information
+
+### Source File
+- **Filename:** `channel playlist.m3u`
+- **Format:** Extended M3U with metadata
+- **Total streams:** ~1776 (before filtering)
+- **Location:** Repository root
+
+### Stream Composition
+- **Live TV Channels:** Majority of content
+- **VOD Files:** URLs ending with `#.mkv`
+- **PPV Events:** Boxing, UFC, WWE, special events
+- **FAST Channels:** Free Ad-Supported TV
+
+### Geographic Distribution
+Streams from 20+ countries including:
+- **North America:** USA (largest), CA
+- **Europe:** UK, FR, DE, NL, IT, ES
+- **Oceania:** AUS, NZ
+- **Middle East:** AE, SA, YE
+- **Africa:** ZA
+- **South America:** BR, AR
+- **Asia:** AL
+
+### Common Stream Characteristics
+- **Protocol:** HLS (HTTP Live Streaming)
+- **Container:** Mix of MPEG-TS and fMP4
+- **Codecs:** H.264, H.265, various audio codecs
+- **URL Pattern:** Proxy URLs to alt.xtream-ie.org
+- **Authentication:** Some require tokens/headers
+
+### Typical Failure Patterns
+Based on historical testing:
+1. **Connection Refused (30-35%)**: Servers offline, blocking automation, or overloaded
+2. **Geo-blocking (2-5%)**: HTTP 403/401, varies by test location
+3. **Not Found (5-10%)**: HTTP 404, moved or deleted content
+4. **Timeouts (5-15%)**: Slow/unresponsive servers, network issues
+5. **Invalid Data**: Malformed streams, codec issues
 
 ## Latest Test Results
 
 | Location | Working | Geo-blocked | Failed | Total | Success Rate |
 |----------|---------|-------------|--------|-------|--------------|
-| Direct | 29 | 1 | 20 | 50 | **58.0%** |
+| UK VPN | 53 | 3 | 19 | 75 | **70.7%** |
 
 ## Error Analysis
 
-**Total failed streams:** 20
+**Total failed streams:** 19
 
 ### Error Categories
 
-- **Timeouts:** 1 (4.8%)
-- **Authentication/Permission:** 1 (4.8%)
-- **Connection Errors:** 7 (33.3%)
+- **Authentication/Permission:** 3 (13.6%)
+- **Not Found (404):** 2 (9.1%)
+- **SSL/Certificate Errors:** 16 (72.7%)
 
 ### Top 10 Error Messages
 
-1. **Connection refused** - 7 occurrences (33.3%)
-2. **FFprobe timeout (15s)** - 1 occurrences (4.8%)
-3. **HTTP 403 Forbidden** - 1 occurrences (4.8%)
-4. **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0cdovlzg0lje3lju1** - 1 occurrences (4.8%)
-5. **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly9zdgfybwvu** - 1 occurrences (4.8%)
-6. **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly9mbdcubw92** - 1 occurrences (4.8%)
-7. **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly90di5iywxr** - 1 occurrences (4.8%)
-8. **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly9mbdcubw92** - 1 occurrences (4.8%)
-9. **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly9zywjjb25l** - 1 occurrences (4.8%)
-10. **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0cdovlze3oc4zmy4y** - 1 occurrences (4.8%)
+1. **HTTP 403 Forbidden** - 3 occurrences (13.6%)
+2. **HTTP 404 Not Found** - 2 occurrences (9.1%)
+3. **[tls @ 0x5652c345ea00] error in the pull function.** - 1 occurrences (4.5%)
+4. **[tls @ 0x55bd60500a00] error in the pull function.** - 1 occurrences (4.5%)
+5. **[tls @ 0x561d798e2a00] error in the pull function.** - 1 occurrences (4.5%)
+6. **[tls @ 0x55f3a80c7a00] error in the pull function.** - 1 occurrences (4.5%)
+7. **[tls @ 0x55789f6c3a00] error in the pull function.** - 1 occurrences (4.5%)
+8. **[tls @ 0x5640aa0b2a00] error in the pull function.** - 1 occurrences (4.5%)
+9. **[tls @ 0x557d6a5c7a00] error in the pull function.** - 1 occurrences (4.5%)
+10. **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0cdovlzg0lje3lju1** - 1 occurrences (4.5%)
 
 ## Failed Streams Details
 
@@ -54,8 +152,6 @@ Streams that failed testing (for investigation):
   - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9TSE9X...`
 - **MGM+ MARQUEE** (Group: USA)
   - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9FUElY...`
-- **BOKTV** (Group: ZA)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9saXZlc3RyZWFtMi5ib2tyYWRpby5j...`
 - **CMT** (Group: USA)
   - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9DTVQv...`
 - **TRAVEL CHANNEL** (Group: USA)
@@ -66,53 +162,71 @@ Streams that failed testing (for investigation):
   - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9ESVND...`
 - **SONY CHANNEL** (Group: BR)
   - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cDovLzg0LjE3LjU1LjE4NToxNDA3Mi8iLCAi...`
-- **YEMEN SHABAB CHANNEL** (Group: YE)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9zdGFybWVuYWpvLmNvbS9obHMveWVt...`
 - **OVATION** (Group: USA)
   - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9PdmF0...`
-- **NEWS 24** (Group: AL)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly90di5iYWxrYW53ZWIuY29tL25ld3My...`
 - **HGTV** (Group: USA)
   - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9IR1RW...`
-- **SABC NEWS** (Group: ZA)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9zYWJjb25ldGFudy5jZG4ubWFuZ29t...`
-- **BOOMERANG** (Group: UK)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cDovLzE3OC4zMy4yMzkuNTQ6ODA4MC83MTIv...`
-- **PEACE TV URDU** (Group: AE)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9kemt5dmxmeWdlLmVyYnZyLmNvbS9Q...`
-- **TV5 MONDE** (Group: FR)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cDovLzE3OC4zMy4yMzkuNTQ6ODA4MC8yMjUv...`
-- **CNBC UK** (Group: UK)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly92aWFtb3Rpb25oc2kubmV0cGx1cy5j...`
 - **GRIT TV** (Group: USA)
   - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9HUklU...`
 - **DISCOVERY SCIENCE** (Group: USA)
   - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9EaXNj...`
+- **QUEST RED** (Group: UK)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cDovLzE4NS45OS4xMzYuNTA6OTk4MS9zdHJl...`
+- **MGM+** (Group: USA)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9FUElY...`
+- **TV ONE** (Group: USA)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9UVl9P...`
+- **HALLMARK DRAMA** (Group: USA)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9IQUxM...`
+- **UP TV** (Group: USA)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9VcF9U...`
+- **TV3 SPORT** (Group: DK)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly93b3JsZC1wcm94aWZpZXIueHl6L2Rh...`
+- **FOX NEWS CHANNEL** (Group: USA)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9GT1hf...`
 
 ## Geo-blocked Streams (Sample)
 
-Total geo-blocked: 1
+Total geo-blocked: 3
 
 - ALARABIYA (Group: AE)
+- HLN (Group: USA)
+- MBC PERSIA (Group: AE)
 
 ## Testing Methodology
 
 **FFprobe Configuration:**
-- Timeout: 45 seconds, Probe: 3MB, Analyze: 3s (Direct optimized)
+- Timeout: 45 seconds, Probe: 5MB, Analyze: 5s (VPN optimized)
 - Validates: Stream accessibility and codec detection
 - Trade-off: Balanced between speed and compatibility
 
-### Historical Performance
+**Why These Settings:**
+- Too aggressive (32K probe, 0s analyze) = 0% success (tested 2025-09-30 16:40 UTC)
+- Balanced (3-5MB probe, 3-5s analyze) = 58% success (tested 2025-09-30 16:59 UTC)
+- Streams need analysis time to recognize MPEG-TS format and extract codecs
+- Browser method averages 14% due to HLS.js codec transmuxing limitations
 
-Recent test results for comparison:
+### Historical Performance Analysis
 
-- 2025-09-30 16:08 UTC | browser | Direct | 7/50 (14.0%)
-- 2025-09-30 16:40 UTC | ffprobe | Direct | 0/50 (0.0%)
-- 2025-09-30 16:59 UTC | ffprobe | Direct | 29/50 (58.0%)
+| Date & Time | Method | Location | Working | Geo-blocked | Failed | Total | Rate | Configuration Notes |
+|-------------|--------|----------|---------|-------------|--------|-------|------|---------------------|
+| 2025-09-30 15:08 UTC | unknown | UK VPN | 21 | 0 | 129 | 150 | 14.0% | Config not documented |
+| 2025-09-30 16:08 UTC | browser | Direct | 7 | 0 | 43 | 50 | 14.0% | HLS.js codec errors (48%) |
+| 2025-09-30 16:40 UTC | ffprobe | Direct | 0 | 0 | 50 | 50 | 0.0% | Too aggressive settings |
+| 2025-09-30 16:59 UTC | ffprobe | Direct | 29 | 1 | 20 | 50 | 58.0% | Balanced config working |
+| 2025-09-30 18:01 UTC | ffprobe | UK VPN | 53 | 3 | 19 | 75 | 70.7% | Balanced config working |
+
+**Performance Insights:**
+- FFprobe with balanced settings consistently outperforms browser (58% vs 14%)
+- Overly aggressive optimization causes complete failure (0% success rate)
+- Browser method limited by JavaScript codec support in HLS.js library
+- Connection refused is dominant error (33% of failures) regardless of method
+
+## Recommendations
 
 
 ---
-*Generated at 2025-09-30 16:59 UTC*
+*Generated at 2025-09-30 18:01 UTC*
 
 <!-- HISTORY
 {
@@ -219,6 +333,18 @@ Recent test results for comparison:
         "geoblocked": 1,
         "failed": 20,
         "rate": 57.99999999999999
+      }
+    },
+    {
+      "date": "2025-09-30 18:01 UTC",
+      "country": "UK",
+      "method": "ffprobe",
+      "scope": "vpn_only",
+      "vpn": {
+        "working": 53,
+        "geoblocked": 3,
+        "failed": 19,
+        "rate": 70.66666666666667
       }
     }
   ]

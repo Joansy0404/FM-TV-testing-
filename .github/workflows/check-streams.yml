@@ -127,72 +127,77 @@ jobs:
             qmcgaw/gluetun:latest
           
           echo "Waiting for VPN initialization..."
-          sleep 60
+          sleep 10
+
+      - name: Install Diagnostic Tools
+        if: github.event.inputs.test_scope != 'direct_only' || github.event_name == 'schedule'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq net-tools
 
       - name: Verify VPN Connection
+        id: verify_vpn
         if: github.event.inputs.test_scope == 'vpn_only' || github.event.inputs.test_scope == 'direct_and_vpn' || github.event_name == 'schedule'
         run: |
           echo "=== VPN Connection Verification ==="
           
-          VPN_SUCCESS=false
+          # Wait for initial startup
+          echo "Waiting 60 seconds for Gluetun initialization..."
+          sleep 60
           
-          for i in {1..30}; do
-            echo "Verification attempt $i/30..."
-            sleep 10
-            
-            # Check if the container is running
-            if ! docker ps | grep -q gluetun; then
-              # If not running, check if it has successfully connected and exited, or just failed
-              if docker ps -a | grep gluetun | grep -q 'Exited (0)'; then
-                echo "  ✅ Gluetun connected and exited (expected for some configs) - proceeding to verification."
-              else
-                echo "  ❌ Gluetun container exited unexpectedly!"
-                echo "=== Gluetun Status ==="
-                docker ps -a | grep gluetun
-                echo "=== Gluetun Logs (last 100 lines) ==="
-                docker logs gluetun --tail 100
-                echo "======================================"
-                # This breaks the loop, triggering the final failure block which prints the logs
-                break
-              fi
-            fi
-            
-            # Container is running, try to verify SOCKS5 connection
-            if curl --socks5-hostname localhost:1080 -s --connect-timeout 15 --max-time 20 https://ipinfo.io/json > /tmp/vpn.json 2>/dev/null; then
-              COUNTRY=$(jq -r '.country' /tmp/vpn.json 2>/dev/null || echo "Unknown")
-              IP=$(jq -r '.ip' /tmp/vpn.json 2>/dev/null || echo "Unknown")
-              ORG=$(jq -r '.org' /tmp/vpn.json 2>/dev/null || echo "Unknown")
-              CITY=$(jq -r '.city' /tmp/vpn.json 2>/dev/null || echo "Unknown")
-              
-              echo "  IP: $IP"
-              echo "  Country: $COUNTRY"
-              echo "  City: $CITY"
-              echo "  ISP: $ORG"
-              
-              if [[ "$COUNTRY" != "null" && "$COUNTRY" != "Unknown" && "$IP" != "Unknown" ]]; then
-                echo "✅ SOCKS5 proxy working successfully!"
-                echo "VPN_READY=true" >> $GITHUB_ENV
-                echo "CONNECTED_IP=$IP" >> $GITHUB_ENV
-                echo "CONNECTED_ORG=$ORG" >> $GITHUB_ENV
-                echo "CONNECTED_CITY=$CITY" >> $GITHUB_ENV
-                echo "CONNECTED_COUNTRY=$COUNTRY" >> $GITHUB_ENV
-                
-                VPN_SUCCESS=true
-                break
-              fi
-            else
-              echo "  ⏳ SOCKS5 proxy not responding yet (attempt $i/30)..."
-            fi
-          done
+          # --- Always Print Logs for Diagnosis ---
+          echo ""
+          echo "--- Gluetun Logs (Full Output) ---"
+          docker logs gluetun 2>&1 || echo "⚠️  Cannot retrieve logs (container may not exist)"
+          echo ""
           
-          if [[ "$VPN_SUCCESS" != "true" ]]; then
-            echo "❌ VPN connection failed after 30 attempts"
-            echo "=== Final Gluetun Status ==="
-            docker ps -a | grep gluetun || echo "No gluetun container found"
-            echo "=== Gluetun Logs (last 100 lines) ==="
-            docker logs gluetun --tail 100 || echo "Cannot retrieve logs"
-            echo "=== Network Info ==="
-            netstat -tlnp | grep 1080 || echo "Nothing listening on port 1080"
+          # Check if container is running at all and show status
+          echo "--- Container Status ---"
+          if docker ps -a | grep gluetun; then
+            echo "Container found in docker ps"
+          else
+            echo "⚠️  No gluetun container found in docker ps -a"
+          fi
+          echo ""
+          
+          # --- Verify SOCKS5 Proxy Functionality ---
+          echo "--- Testing SOCKS5 Proxy (localhost:1080) ---"
+          if curl --socks5-hostname localhost:1080 -s --connect-timeout 10 --max-time 15 https://ipinfo.io/json > /tmp/vpn_check.json 2>&1; then
+            echo "✅ SOCKS5 proxy responded successfully!"
+            echo ""
+            echo "VPN Connection Details:"
+            cat /tmp/vpn_check.json | jq '.' || cat /tmp/vpn_check.json
+            echo ""
+            
+            # Set environment variables for later steps
+            COUNTRY=$(jq -r '.country' /tmp/vpn_check.json 2>/dev/null || echo "Unknown")
+            IP=$(jq -r '.ip' /tmp/vpn_check.json 2>/dev/null || echo "Unknown")
+            CITY=$(jq -r '.city' /tmp/vpn_check.json 2>/dev/null || echo "Unknown")
+            ORG=$(jq -r '.org' /tmp/vpn_check.json 2>/dev/null || echo "Unknown")
+            
+            echo "VPN_READY=true" >> $GITHUB_ENV
+            echo "CONNECTED_IP=$IP" >> $GITHUB_ENV
+            echo "CONNECTED_COUNTRY=$COUNTRY" >> $GITHUB_ENV
+            echo "CONNECTED_CITY=$CITY" >> $GITHUB_ENV
+            echo "CONNECTED_ORG=$ORG" >> $GITHUB_ENV
+            
+            echo "✅ VPN verification complete: $IP ($COUNTRY)"
+          else
+            echo "❌ SOCKS5 proxy not accessible (curl failed)"
+            echo ""
+            echo "--- Curl Error Output ---"
+            cat /tmp/vpn_check.json 2>&1 || echo "(no output captured)"
+            echo ""
+            echo "--- Final Container Status ---"
+            docker ps -a | grep gluetun || echo "No container found"
+            echo ""
+            echo "--- Network Port Check ---"
+            netstat -tlnp | grep 1080 || echo "⚠️  Nothing listening on port 1080"
+            echo ""
+            echo "--- Docker Network Info ---"
+            docker network ls
+            echo ""
+            echo "::error::VPN connection failed - SOCKS5 proxy not accessible after 60s wait"
             exit 1
           fi
 

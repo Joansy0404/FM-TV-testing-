@@ -1,4 +1,4 @@
-name: VPN Stream Test (HTTP Proxy with SSL Fix)
+name: VPN Stream Test (Network Namespace)
 
 on:
   workflow_dispatch:
@@ -65,22 +65,6 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install requests pysocks
-          
-          METHOD="${{ github.event.inputs.test_method || 'ffprobe' }}"
-          
-          if [ "$METHOD" = "browser" ] || [ "$METHOD" = "hybrid" ]; then
-            echo "Installing Playwright for browser testing..."
-            pip install playwright
-            playwright install chromium
-            playwright install-deps
-          fi
-          
-          if [ "$METHOD" = "ffprobe" ] || [ "$METHOD" = "hybrid" ]; then
-            echo "Installing ffmpeg for ffprobe testing..."
-            sudo apt-get update
-            sudo apt-get install -y ffmpeg
-            ffprobe -version
-          fi
 
       - name: Determine next VPN country (auto-alternating)
         run: |
@@ -113,115 +97,62 @@ jobs:
             --name gluetun \
             --cap-add=NET_ADMIN \
             --device /dev/net/tun \
-            -p 1080:1080 \
             -e VPN_SERVICE_PROVIDER=protonvpn \
             -e OPENVPN_USER="${{ secrets.VPN_USER }}" \
             -e OPENVPN_PASSWORD="${{ secrets.VPN_PASSWORD }}" \
             -e SERVER_CITIES="${{ env.SERVER_CITIES }}" \
             -e FREE_ONLY=off \
             -e LOG_LEVEL=info \
-            -e FIREWALL_OUTBOUND_SUBNETS=172.17.0.0/16 \
-            -e SOCKS5=on \
-            -e SOCKS5_LISTENING_ADDRESS=:1080 \
+            -e DOT=off \
             qmcgaw/gluetun:latest
           
           echo "Container started, waiting for initialization..."
-          sleep 10
-
-      - name: Debug Docker Environment
-        if: github.event.inputs.test_scope == 'vpn_only' || github.event.inputs.test_scope == 'direct_and_vpn' || github.event_name == 'schedule'
-        run: |
-          echo "=== Container Environment Variables ==="
-          docker inspect gluetun | grep -A 30 '"Env"'
-
-      - name: Install Diagnostic Tools
-        if: github.event.inputs.test_scope != 'direct_only' || github.event_name == 'schedule'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y jq net-tools
+          sleep 60
 
       - name: Verify VPN Connection
-        id: verify_vpn
         if: github.event.inputs.test_scope == 'vpn_only' || github.event.inputs.test_scope == 'direct_and_vpn' || github.event_name == 'schedule'
         run: |
           echo "=== VPN Connection Verification ==="
           
-          # Wait for initial startup
-          echo "Waiting 60 seconds for Gluetun initialization..."
-          sleep 60
-          
-          # --- Always Print Logs for Diagnosis ---
-          echo ""
-          echo "--- Gluetun Logs (Full Output) ---"
-          docker logs gluetun 2>&1 || echo "⚠️  Cannot retrieve logs (container may not exist)"
-          echo ""
-          
-          # Check if container is running at all and show status
+          # Check container status
           echo "--- Container Status ---"
-          if docker ps -a | grep gluetun; then
-            echo "Container found in docker ps"
-          else
-            echo "⚠️  No gluetun container found in docker ps -a"
-          fi
+          docker ps -a | grep gluetun || echo "No container found"
           echo ""
           
-          # --- Verify SOCKS5 Proxy Functionality ---
-          echo "--- Testing SOCKS5 Proxy (localhost:1080) ---"
-          if curl --socks5-hostname localhost:1080 -s --connect-timeout 10 --max-time 15 https://ipinfo.io/json > /tmp/vpn_check.json 2>&1; then
-            echo "✅ SOCKS5 proxy responded successfully!"
-            echo ""
-            echo "VPN Connection Details:"
-            cat /tmp/vpn_check.json | jq '.' || cat /tmp/vpn_check.json
-            echo ""
+          # Check logs
+          echo "--- Gluetun Logs (last 50 lines) ---"
+          docker logs gluetun --tail 50
+          echo ""
+          
+          # Test connectivity from within the VPN container
+          echo "--- Testing VPN IP ---"
+          VPN_IP=$(docker exec gluetun wget -qO- https://ipinfo.io/ip 2>/dev/null || echo "")
+          
+          if [[ "$VPN_IP" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
+            echo "✅ VPN connected successfully"
+            echo "VPN IP: $VPN_IP"
             
-            # Set environment variables for later steps
-            COUNTRY=$(jq -r '.country' /tmp/vpn_check.json 2>/dev/null || echo "Unknown")
-            IP=$(jq -r '.ip' /tmp/vpn_check.json 2>/dev/null || echo "Unknown")
-            CITY=$(jq -r '.city' /tmp/vpn_check.json 2>/dev/null || echo "Unknown")
-            ORG=$(jq -r '.org' /tmp/vpn_check.json 2>/dev/null || echo "Unknown")
+            # Get full info
+            VPN_INFO=$(docker exec gluetun wget -qO- https://ipinfo.io/json 2>/dev/null)
+            echo "$VPN_INFO"
             
-            echo "VPN_READY=true" >> $GITHUB_ENV
-            echo "CONNECTED_IP=$IP" >> $GITHUB_ENV
+            COUNTRY=$(echo "$VPN_INFO" | grep -oP '"country":\s*"\K[^"]+' || echo "Unknown")
+            CITY=$(echo "$VPN_INFO" | grep -oP '"city":\s*"\K[^"]+' || echo "Unknown")
+            ORG=$(echo "$VPN_INFO" | grep -oP '"org":\s*"\K[^"]+' || echo "Unknown")
+            
+            echo "CONNECTED_IP=$VPN_IP" >> $GITHUB_ENV
             echo "CONNECTED_COUNTRY=$COUNTRY" >> $GITHUB_ENV
             echo "CONNECTED_CITY=$CITY" >> $GITHUB_ENV
             echo "CONNECTED_ORG=$ORG" >> $GITHUB_ENV
-            
-            echo "✅ VPN verification complete: $IP ($COUNTRY)"
           else
-            echo "❌ SOCKS5 proxy not accessible (curl failed)"
-            echo ""
-            echo "--- Curl Error Output ---"
-            cat /tmp/vpn_check.json 2>&1 || echo "(no output captured)"
-            echo ""
-            echo "--- Final Container Status ---"
-            docker ps -a | grep gluetun || echo "No container found"
-            echo ""
-            echo "--- Network Port Check ---"
-            netstat -tlnp | grep 1080 || echo "⚠️  Nothing listening on port 1080"
-            echo ""
-            echo "--- Docker Network Info ---"
-            docker network ls
-            echo ""
-            echo "::error::VPN connection failed - SOCKS5 proxy not accessible after 60s wait"
+            echo "❌ VPN connection failed"
+            echo "Could not retrieve valid IP from container"
             exit 1
           fi
 
-      - name: Run Unified Stream Tests
-        env:
-          TEST_METHOD: ${{ github.event.inputs.test_method || 'ffprobe' }}
-          TEST_SCOPE: ${{ github.event.inputs.test_scope || 'direct_only' }}
-          SAMPLE_SIZE: ${{ github.event.inputs.sample_size || '0' }}
-          CHECK_VODS: ${{ github.event.inputs.check_vods || 'false' }}
-          CHECK_PPV: ${{ github.event.inputs.check_ppv || 'false' }}
-          CHECK_FAST: ${{ github.event.inputs.check_fast || 'false' }}
-          COUNTRY_CODE: ${{ env.COUNTRY_CODE }}
-          CONNECTED_IP: ${{ env.CONNECTED_IP }}
-          CONNECTED_ORG: ${{ env.CONNECTED_ORG }}
-          CONNECTED_CITY: ${{ env.CONNECTED_CITY }}
-          CONNECTED_COUNTRY: ${{ env.CONNECTED_COUNTRY }}
+      - name: Create test script
         run: |
-          python << 'ENDPYTHON'
-          import requests
+          cat > test_streams.py << 'ENDPYTHON'
           import os
           import re
           import time
@@ -232,40 +163,17 @@ jobs:
 
           TEST_METHOD = os.getenv('TEST_METHOD', 'ffprobe')
           TEST_SCOPE = os.getenv('TEST_SCOPE', 'direct_only')
-          
-          if TEST_METHOD in ['browser', 'hybrid']:
-              from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
-
           SAMPLE_SIZE = int(os.getenv('SAMPLE_SIZE', '0'))
           CHECK_VODS = os.getenv('CHECK_VODS', 'false').lower() == 'true'
           CHECK_PPV = os.getenv('CHECK_PPV', 'false').lower() == 'true'
           CHECK_FAST = os.getenv('CHECK_FAST', 'false').lower() == 'true'
           COUNTRY = os.getenv('COUNTRY_CODE', 'uk').upper()
-          CONNECTED_IP = os.getenv('CONNECTED_IP', 'Unknown')
-          CONNECTED_ORG = os.getenv('CONNECTED_ORG', 'Unknown')
-          CONNECTED_CITY = os.getenv('CONNECTED_CITY', 'Unknown')
-          CONNECTED_COUNTRY = os.getenv('CONNECTED_COUNTRY', 'Unknown')
+          USE_VPN = os.getenv('USE_VPN', 'false').lower() == 'true'
 
-          class UnifiedVPNTester:
+          class StreamTester:
               def __init__(self):
                   self.start_time = time.time()
                   self.results = {}
-                  self.history = self.load_history()
-                  self.test_method = TEST_METHOD
-                  self.test_scope = TEST_SCOPE
-
-              def load_history(self):
-                  history = {'tests': []}
-                  try:
-                      if os.path.exists('report.md'):
-                          with open('report.md', 'r', encoding='utf-8') as f:
-                              content = f.read()
-                              match = re.search(r'<!-- HISTORY\n(.*?)\n-->', content, re.DOTALL)
-                              if match:
-                                  history = json.loads(match.group(1))
-                  except Exception as e:
-                      print(f"Could not load history: {e}")
-                  return history
 
               def parse_m3u(self, path):
                   streams = []
@@ -337,18 +245,11 @@ jobs:
                   
                   return filtered
 
-              def test_ffprobe(self, url, use_proxy=False):
-                  if use_proxy:
-                      # More lenient timeouts for VPN but faster probing
-                      timeout_ms = '60000000'  # 60s connection timeout
-                      analyze_duration = '8000000'  # 8s analyze
-                      probe_size = '8000000'  # 8MB
-                      subprocess_timeout = 90  # 90s max
-                  else:
-                      timeout_ms = '30000000'
-                      analyze_duration = '10000000'
-                      probe_size = '10000000'
-                      subprocess_timeout = 60
+              def test_ffprobe(self, url):
+                  timeout_ms = '30000000'
+                  analyze_duration = '10000000'
+                  probe_size = '10000000'
+                  subprocess_timeout = 60
                   
                   cmd = ['ffprobe', '-v', 'error', 
                          '-select_streams', 'v:0',
@@ -356,20 +257,11 @@ jobs:
                          '-of', 'default=noprint_wrappers=1:nokey=1', 
                          '-timeout', timeout_ms, 
                          '-analyzeduration', analyze_duration, 
-                         '-probesize', probe_size]
-                  
-                  # Set up environment (needed for subprocess)
-                  env = os.environ.copy()
-                  
-                  if use_proxy:
-                      # SOCKS5 proxy - raw tunneling bypasses SSL certificate issues
-                      cmd.extend(['-proxy', 'socks5://localhost:1080'])
-                  
-                  cmd.append(url)
+                         '-probesize', probe_size,
+                         url]
                   
                   try:
-                      result = subprocess.run(cmd, capture_output=True, text=True, 
-                                            timeout=subprocess_timeout, env=env)
+                      result = subprocess.run(cmd, capture_output=True, text=True, timeout=subprocess_timeout)
                       
                       if result.returncode == 0:
                           return 'working', None
@@ -380,28 +272,10 @@ jobs:
                           return 'geoblocked', 'HTTP 403 Forbidden'
                       if '401' in err or 'unauthorized' in err:
                           return 'geoblocked', 'HTTP 401 Unauthorized'
-                      if '451' in err:
-                          return 'geoblocked', 'HTTP 451 Legal/Geo Restriction'
-                      if '404' in err or 'not found' in err:
+                      if '404' in err:
                           return 'notfound', 'HTTP 404 Not Found'
-                      if '400' in err or 'bad request' in err:
-                          return 'failed', 'HTTP 400 Bad Request'
-                      if '406' in err or 'not acceptable' in err:
-                          return 'failed', 'HTTP 406 Not Acceptable'
-                      if '410' in err or 'gone' in err:
-                          return 'failed', 'HTTP 410 Gone'
-                      if 'connection refused' in err or 'could not connect' in err:
-                          return 'connection_error', 'Connection refused'
-                      if 'proxy' in err and 'connect' in err:
-                          return 'proxy_error', 'HTTP proxy error'
-                      if 'timed out' in err or 'timeout' in err:
+                      if 'timeout' in err:
                           return 'timeout', 'Connection timeout'
-                      if 'ssl' in err or 'certificate' in err or 'tls' in err:
-                          return 'failed', 'SSL/TLS error'
-                      if 'invalid data' in err or 'invalid' in err:
-                          return 'failed', 'Invalid stream data'
-                      if 'server returned' in err and '5' in err:
-                          return 'failed', 'Server error (5xx)'
                       
                       first_error = err.split('\n')[0][:100] if err else 'Unknown error'
                       return 'failed', first_error
@@ -411,84 +285,42 @@ jobs:
                   except Exception as e:
                       return 'error', str(e)[:100]
 
-              def test_location(self, location_name, use_vpn=False):
+              def test_location(self, location_name):
                   print(f"\n{'='*60}")
                   print(f"Testing: {location_name}")
-                  print(f"Method: {self.test_method.upper()}")
-                  if use_vpn:
-                      print("Proxy: SOCKS5 on localhost:1080")
                   print('='*60)
-                  
-                  print("\nVerifying connection...")
-                  sess = requests.Session()
-                  if use_vpn:
-                      sess.proxies = {
-                          'http': 'socks5://localhost:1080',
-                          'https': 'socks5://localhost:1080'
-                      }
-                  
-                  try:
-                      info = sess.get('https://ipinfo.io/json', timeout=15).json()
-                      print(f"  IP: {info.get('ip')}")
-                      print(f"  Country: {info.get('country')}")
-                      print(f"  City: {info.get('city')}")
-                      print(f"  ISP: {info.get('org')}")
-                  except Exception as e:
-                      print(f"  Connection check failed: {e}")
-                      if use_vpn:
-                          print("  ❌ Cannot proceed with VPN test")
-                          return None
-                      else:
-                          print("  ⚠️  Continuing with direct test")
-                      info = {}
                   
                   streams = self.get_filtered_streams()
                   working, geoblocked, failed = [], [], []
-                  connection_errors = 0
-                  timeouts = 0
-                  proxy_errors = 0
                   error_samples = {}
                   
                   print(f"\nTesting {len(streams)} streams...\n")
                   
-                  if self.test_method == 'ffprobe':
-                      for i, stream in enumerate(streams):
-                          print(f"[{i+1}/{len(streams)}] {stream['name'][:45]}... ", end='', flush=True)
-                          
-                          result, error_msg = self.test_ffprobe(stream['url'], use_vpn)
-                          
-                          if result == 'working':
-                              working.append(stream)
-                              print("✅ OK")
-                          elif result == 'geoblocked':
-                              geoblocked.append(stream)
-                              print("🔒 GEO")
-                          elif result == 'timeout':
-                              failed.append(stream)
-                              timeouts += 1
-                              print("⏱️  TIMEOUT")
-                          elif result == 'connection_error':
-                              failed.append(stream)
-                              connection_errors += 1
-                              print("🔌 CONN_ERR")
-                          elif result == 'proxy_error':
-                              failed.append(stream)
-                              proxy_errors += 1
-                              print("🔧 PROXY_ERR")
-                          else:
-                              failed.append(stream)
-                              print(f"❌ {result.upper()}")
-                          
-                          if error_msg:
-                              if error_msg not in error_samples:
-                                  error_samples[error_msg] = 0
-                              error_samples[error_msg] += 1
-                          
-                          time.sleep(0.3)
-                          
-                          if (i+1) % 20 == 0:
-                              rate = (len(working)/(i+1)*100)
-                              print(f"  Progress: {len(working)}/{i+1} ({rate:.1f}%)")
+                  for i, stream in enumerate(streams):
+                      print(f"[{i+1}/{len(streams)}] {stream['name'][:45]}... ", end='', flush=True)
+                      
+                      result, error_msg = self.test_ffprobe(stream['url'])
+                      
+                      if result == 'working':
+                          working.append(stream)
+                          print("✅ OK")
+                      elif result == 'geoblocked':
+                          geoblocked.append(stream)
+                          print("🔒 GEO")
+                      else:
+                          failed.append(stream)
+                          print(f"❌ {result.upper()}")
+                      
+                      if error_msg:
+                          if error_msg not in error_samples:
+                              error_samples[error_msg] = 0
+                          error_samples[error_msg] += 1
+                      
+                      time.sleep(0.3)
+                      
+                      if (i+1) % 20 == 0:
+                          rate = (len(working)/(i+1)*100)
+                          print(f"  Progress: {len(working)}/{i+1} ({rate:.1f}%)")
                   
                   total = len(streams)
                   success_rate = (len(working)/total*100) if total > 0 else 0
@@ -498,116 +330,117 @@ jobs:
                   print(f"  Geo-blocked: {len(geoblocked)}")
                   print(f"  Failed: {len(failed)}")
                   
-                  if error_samples:
-                      print("\n  Top Errors:")
-                      for err_type, count in sorted(error_samples.items(), key=lambda x: x[1], reverse=True)[:5]:
-                          print(f"    - {err_type[:60]}: {count}x")
-                  
                   return {
                       'working': working,
                       'geoblocked': geoblocked,
                       'failed': failed,
                       'rate': success_rate,
-                      'location_info': info,
-                      'timeouts': timeouts,
-                      'connection_errors': connection_errors,
-                      'proxy_errors': proxy_errors,
                       'error_samples': error_samples
                   }
 
-              def generate_report(self):
-                  duration = (time.time() - self.start_time) / 60
-                  now = datetime.now(timezone.utc)
-                  
-                  entry = {
-                      'date': now.strftime('%Y-%m-%d %H:%M UTC'),
-                      'country': COUNTRY,
-                      'method': self.test_method,
-                      'scope': self.test_scope,
-                      'duration_min': round(duration, 1),
-                      'results': {}
-                  }
-                  
-                  for location, data in self.results.items():
-                      total = len(data['working']) + len(data['geoblocked']) + len(data['failed'])
-                      entry['results'][location] = {
-                          'working': len(data['working']),
-                          'geoblocked': len(data['geoblocked']),
-                          'failed': len(data['failed']),
-                          'total': total,
-                          'rate': data['rate']
-                      }
-                  
-                  self.history['tests'].append(entry)
-                  if len(self.history['tests']) > 100:
-                      self.history['tests'] = self.history['tests'][-100:]
-                  
-                  report = "# Stream Test Report\n\n"
-                  report += f"**Test method:** {self.test_method}\n"
-                  report += f"**Test scope:** {self.test_scope}\n"
-                  report += f"**Last update:** {now.strftime('%Y-%m-%d %H:%M UTC')}\n"
-                  report += f"**Test duration:** {duration:.1f} minutes\n\n"
-                  
-                  report += "## Latest Test Results\n\n"
-                  report += "| Location | Working | Geo-blocked | Failed | Total | Success Rate |\n"
-                  report += "|----------|---------|-------------|--------|-------|--------------|\n"
-                  
-                  for location, data in self.results.items():
-                      loc_name = f"{COUNTRY} VPN" if location == 'vpn' else "Direct"
-                      w = len(data['working'])
-                      g = len(data['geoblocked'])
-                      f = len(data['failed'])
-                      total = w + g + f
-                      report += f"| {loc_name} | {w} | {g} | {f} | {total} | **{data['rate']:.1f}%** |\n"
-                  
-                  report += "\n"
-                  
-                  test_type = 'vpn' if 'vpn' in self.results else 'direct'
-                  if test_type in self.results and self.results[test_type].get('error_samples'):
-                      report += "## Error Analysis\n\n"
-                      for err, count in sorted(self.results[test_type]['error_samples'].items(), 
-                                             key=lambda x: x[1], reverse=True)[:10]:
-                          report += f"- **{err}**: {count} occurrences\n"
-                      report += "\n"
-                  
-                  report += "---\n"
-                  report += f"*Generated at {now.strftime('%Y-%m-%d %H:%M UTC')}*\n\n"
-                  
-                  report += "<!-- HISTORY\n"
-                  report += json.dumps(self.history, indent=2)
-                  report += "\n-->\n"
-                  
-                  return report
-
               def run(self):
-                  print(f"{'='*60}")
-                  print(f"Stream Test - Scope: {self.test_scope}")
-                  print(f"Method: {self.test_method}")
-                  print(f"{'='*60}\n")
+                  if USE_VPN:
+                      result = self.test_location(f"{COUNTRY} ProtonVPN")
+                      self.results['vpn'] = result
+                  else:
+                      result = self.test_location("Direct Connection")
+                      self.results['direct'] = result
                   
-                  if self.test_scope in ['direct_only', 'direct_and_vpn']:
-                      direct = self.test_location("Direct Connection", use_vpn=False)
-                      if direct:
-                          self.results['direct'] = direct
-                  
-                  if self.test_scope in ['vpn_only', 'direct_and_vpn']:
-                      vpn = self.test_location(f"{COUNTRY} ProtonVPN", use_vpn=True)
-                      if vpn:
-                          self.results['vpn'] = vpn
-                      else:
-                          print("\n⚠️  VPN test failed - check logs above")
-                  
-                  print("\nGenerating report...")
-                  report = self.generate_report()
-                  
-                  with open('report.md', 'w', encoding='utf-8') as f:
-                      f.write(report)
-                  
-                  duration = (time.time() - self.start_time) / 60
-                  print(f"\nTest Complete - {duration:.1f} minutes")
+                  # Save results to file for parent process
+                  with open('/tmp/test_results.json', 'w') as f:
+                      json.dump(self.results, f)
 
-          tester = UnifiedVPNTester()
+          tester = StreamTester()
           tester.run()
+          ENDPYTHON
+
+      - name: Install ffmpeg in runner
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Run Direct Connection Test
+        if: github.event.inputs.test_scope == 'direct_only' || github.event.inputs.test_scope == 'direct_and_vpn'
+        env:
+          TEST_METHOD: ${{ github.event.inputs.test_method || 'ffprobe' }}
+          TEST_SCOPE: direct_only
+          SAMPLE_SIZE: ${{ github.event.inputs.sample_size || '0' }}
+          CHECK_VODS: ${{ github.event.inputs.check_vods || 'false' }}
+          CHECK_PPV: ${{ github.event.inputs.check_ppv || 'false' }}
+          CHECK_FAST: ${{ github.event.inputs.check_fast || 'false' }}
+          COUNTRY_CODE: ${{ env.COUNTRY_CODE }}
+          USE_VPN: 'false'
+        run: python test_streams.py
+
+      - name: Run VPN Test via Network Namespace
+        if: github.event.inputs.test_scope == 'vpn_only' || github.event.inputs.test_scope == 'direct_and_vpn' || github.event_name == 'schedule'
+        run: |
+          echo "Running tests through VPN container network namespace..."
+          
+          # Run Python in a container sharing gluetun's network
+          docker run --rm \
+            --network container:gluetun \
+            -v $(pwd):/workspace \
+            -w /workspace \
+            -e TEST_METHOD="${{ github.event.inputs.test_method || 'ffprobe' }}" \
+            -e TEST_SCOPE="vpn_only" \
+            -e SAMPLE_SIZE="${{ github.event.inputs.sample_size || '0' }}" \
+            -e CHECK_VODS="${{ github.event.inputs.check_vods || 'false' }}" \
+            -e CHECK_PPV="${{ github.event.inputs.check_ppv || 'false' }}" \
+            -e CHECK_FAST="${{ github.event.inputs.check_fast || 'false' }}" \
+            -e COUNTRY_CODE="${{ env.COUNTRY_CODE }}" \
+            -e USE_VPN="true" \
+            python:3.11-slim \
+            bash -c "apt-get update && apt-get install -y ffmpeg && python test_streams.py"
+
+      - name: Generate Report
+        if: always()
+        run: |
+          python << 'ENDPYTHON'
+          import json
+          import os
+          from datetime import datetime, timezone
+
+          # Load results
+          direct_results = None
+          vpn_results = None
+          
+          try:
+              with open('/tmp/test_results.json', 'r') as f:
+                  results = json.load(f)
+                  direct_results = results.get('direct')
+                  vpn_results = results.get('vpn')
+          except:
+              pass
+
+          now = datetime.now(timezone.utc)
+          report = "# Stream Test Report\n\n"
+          report += f"**Last update:** {now.strftime('%Y-%m-%d %H:%M UTC')}\n\n"
+          report += "## Latest Test Results\n\n"
+          report += "| Location | Working | Geo-blocked | Failed | Total | Success Rate |\n"
+          report += "|----------|---------|-------------|--------|-------|--------------|\n"
+          
+          if direct_results:
+              w = len(direct_results['working'])
+              g = len(direct_results['geoblocked'])
+              f = len(direct_results['failed'])
+              total = w + g + f
+              rate = direct_results['rate']
+              report += f"| Direct | {w} | {g} | {f} | {total} | **{rate:.1f}%** |\n"
+          
+          if vpn_results:
+              w = len(vpn_results['working'])
+              g = len(vpn_results['geoblocked'])
+              f = len(vpn_results['failed'])
+              total = w + g + f
+              rate = vpn_results['rate']
+              country = os.getenv('COUNTRY_CODE', 'UK').upper()
+              report += f"| {country} VPN | {w} | {g} | {f} | {total} | **{rate:.1f}%** |\n"
+          
+          with open('report.md', 'w') as f:
+              f.write(report)
+          
+          print("Report generated successfully")
           ENDPYTHON
 
       - name: Cleanup
@@ -615,9 +448,9 @@ jobs:
         run: |
           docker stop gluetun || true
           docker rm gluetun || true
-          docker network rm vpn-network || true
 
       - name: Commit Report
+        if: always()
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "github-actions[bot]"

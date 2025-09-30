@@ -134,11 +134,13 @@ jobs:
         run: |
           if [ "${{ env.COUNTRY_CODE }}" = "uk" ]; then
             WG_KEY="${{ secrets.WIREGUARD_PRIVATE_KEY_UK }}"
-            SERVER_HOSTNAME="uk-654.protonvpn.net"
+            WG_ENDPOINT_IP="188.240.57.226"
+            WG_PUBLIC_KEY="HX/4IL6C4iz2i2NGLb6OeOb+qYJHFejbYn7/oTmHDmg="
             COUNTRY_NAME="United Kingdom (UK#654)"
           else
             WG_KEY="${{ secrets.WIREGUARD_PRIVATE_KEY_US }}"
-            SERVER_HOSTNAME="us-ca-848.protonvpn.net"
+            WG_ENDPOINT_IP="79.127.185.161"
+            WG_PUBLIC_KEY="qzDCNJysy5P/6pETF2eKQqrNpS8abP+uxKV/5BlBdiE="
             COUNTRY_NAME="United States (US-CA#848)"
           fi
           
@@ -147,11 +149,14 @@ jobs:
             --name gluetun \
             --cap-add=NET_ADMIN \
             --device /dev/net/tun \
-            -e VPN_SERVICE_PROVIDER=protonvpn \
+            -e VPN_SERVICE_PROVIDER=custom \
             -e VPN_TYPE=wireguard \
+            -e VPN_ENDPOINT_IP="$WG_ENDPOINT_IP" \
+            -e VPN_ENDPOINT_PORT=51820 \
             -e WIREGUARD_PRIVATE_KEY="$WG_KEY" \
-            -e SERVER_HOSTNAMES="$SERVER_HOSTNAME" \
-            -e FREE_ONLY=off \
+            -e WIREGUARD_PUBLIC_KEY="$WG_PUBLIC_KEY" \
+            -e WIREGUARD_ADDRESSES="10.2.0.2/32" \
+            -e DNS_ADDRESS="10.2.0.1" \
             -e LOG_LEVEL=info \
             qmcgaw/gluetun:latest
           

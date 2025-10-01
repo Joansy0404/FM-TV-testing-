@@ -1,17 +1,17 @@
 # Stream Test Report
 
-**Last update:** 2025-09-30 22:58 UTC
+**Last update:** 2025-10-01 03:48 UTC
 **Test method:** ffprobe
 **Test scope:** vpn_only
-**Test location:** US VPN
+**Test location:** UK VPN
 
 ## Development Status & Key Findings
 
-**Report Generated:** 2025-09-30 22:58 UTC
+**Report Generated:** 2025-10-01 03:48 UTC
 **Workflow Version:** 2.0 (Optimized FFprobe)
 
 ### Current Performance:
-- **VPN Test (US)**: 130/609 working (21.3%)
+- **VPN Test (UK)**: 137/609 working (22.5%)
 
 ### What We Know Works:
 - **FFprobe method**: 58% success rate on direct connection (validated 2025-09-30)
@@ -49,11 +49,11 @@
 - **Python:** 3.x
 - **FFmpeg/FFprobe:** Latest (apt-get)
 - **VPN Provider:** ProtonVPN via Gluetun
-- **VPN Country:** US
-- **VPN City:** New York
-- **Connected IP:** 185.98.169.37
-- **Verified Location:** San Jose
-- **ISP:** AS212238 Datacamp Limited
+- **VPN Country:** UK
+- **VPN City:** Edinburgh
+- **Connected IP:** 188.240.57.244
+- **Verified Location:** Edinburgh
+- **ISP:** AS25369 Hydra Communications Ltd
 - **Container:** python:3.11-slim (Docker)
 - **Network:** Shared namespace with Gluetun container
 
@@ -117,30 +117,31 @@ Based on historical testing:
 
 | Location | Working | Geo-blocked | Failed | Total | Success Rate |
 |----------|---------|-------------|--------|-------|--------------|
-| US VPN | 130 | 377 | 102 | 609 | **21.3%** |
+| UK VPN | 137 | 376 | 96 | 609 | **22.5%** |
 
 ## Error Analysis
 
-**Total failed streams:** 102
+**Total failed streams:** 96
 
 ### Error Categories
 
-- **Authentication/Permission:** 377 (77.4%)
-- **Not Found (404):** 10 (2.1%)
-- **Connection Errors:** 57 (11.7%)
+- **Timeouts:** 1 (0.2%)
+- **Authentication/Permission:** 376 (78.7%)
+- **Not Found (404):** 11 (2.3%)
+- **Connection Errors:** 60 (12.6%)
 
 ### Top 10 Error Messages
 
-1. **HTTP 403/401 (all UAs failed)** - 377 occurrences (77.4%)
-2. **Connection refused (all UAs)** - 57 occurrences (11.7%)
-3. **HTTP 404 Not Found** - 10 occurrences (2.1%)
-4. **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0cdovlzizljizny4x** - 6 occurrences (1.2%)
+1. **HTTP 403/401 (all UAs failed)** - 376 occurrences (78.7%)
+2. **Connection refused (all UAs)** - 60 occurrences (12.6%)
+3. **HTTP 404 Not Found** - 11 occurrences (2.3%)
+4. **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0cdovlzizljizny4x** - 3 occurrences (0.6%)
 5. **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly9mbdcubw92** - 3 occurrences (0.6%)
-6. ** (UA4: Lavf)** - 3 occurrences (0.6%)
-7. ** (UA5: Mozilla)** - 2 occurrences (0.4%)
-8. **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly9mbdcubw92** - 2 occurrences (0.4%)
-9. ** (UA2: ExoPlayer)** - 2 occurrences (0.4%)
-10. **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly9jdnr2lmn2** - 1 occurrences (0.2%)
+6. **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly9mbdcubw92** - 2 occurrences (0.4%)
+7. **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly9mbdcubw92** - 2 occurrences (0.4%)
+8. ** (UA4: Lavf)** - 2 occurrences (0.4%)
+9. ** (UA6: Mozilla)** - 2 occurrences (0.4%)
+10. **FFprobe timeout (60s, all UAs)** - 1 occurrences (0.2%)
 
 ## Failed Streams Details
 
@@ -164,12 +165,10 @@ Streams that failed testing (for investigation):
   - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9CRVRf...`
 - **BRAVO (EAST)** (Group: USA)
   - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9CUkFW...`
+- **CBS SPORTS GOLAZO NETWORK** (Group: USA)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9hbWQtbWVkaWF0b3ItZW9scTN0azRs...`
 - **CBS SPORTS NETWORK** (Group: USA)
   - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9DQlNf...`
-- **CHARGE!** (Group: USA)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9jdnR2LmN2YWxsZXkubmV0L2hscy9L...`
-- **CHEDDAR NEWS** (Group: USA)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9jaGVkZGFyLXVzLnNhbXN1bmcud3Vy...`
 - **CLEO TV** (Group: USA)
   - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9DbGVv...`
 - **CMT** (Group: USA)
@@ -186,14 +185,15 @@ Streams that failed testing (for investigation):
   - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9DT1pJ...`
 - **C•SPAN** (Group: USA)
   - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9DLVNQ...`
+- **DISCOVERY FAMILY** (Group: USA)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9ESVND...`
 
-*...and 82 more failed streams*
+*...and 76 more failed streams*
 
 ## Geo-blocked Streams (Sample)
 
-Total geo-blocked: 377
+Total geo-blocked: 376
 
-- BLAZE (Group: UK)
 - QUEST RED (Group: UK)
 - QUEST+1 (Group: UK)
 - QVC (Group: UK)
@@ -203,8 +203,9 @@ Total geo-blocked: 377
 - RACING TV (Group: UK)
 - REALLY (Group: UK)
 - S4C (Group: UK)
+- SKY ARTS (Group: UK)
 
-*...and 367 more*
+*...and 366 more*
 
 ## Testing Methodology
 
@@ -223,13 +224,13 @@ Total geo-blocked: 377
 
 | Date & Time | Method | Location | Working | Geo-blocked | Failed | Total | Rate | Configuration Notes |
 |-------------|--------|----------|---------|-------------|--------|-------|------|---------------------|
-| 2025-09-30 16:40 UTC | ffprobe | Direct | 0 | 0 | 50 | 50 | 0.0% | Too aggressive settings |
 | 2025-09-30 16:59 UTC | ffprobe | Direct | 29 | 1 | 20 | 50 | 58.0% | Balanced config working |
 | 2025-09-30 18:01 UTC | ffprobe | UK VPN | 53 | 3 | 19 | 75 | 70.7% | Balanced config working |
 | 2025-09-30 18:25 UTC | ffprobe | US VPN | 54 | 2 | 19 | 75 | 72.0% | Balanced config working |
 | 2025-09-30 20:02 UTC | ffprobe | UK VPN | 136 | 378 | 95 | 609 | 22.3% |  |
 | 2025-09-30 21:20 UTC | ffprobe | US VPN | 130 | 377 | 102 | 609 | 21.3% |  |
 | 2025-09-30 22:58 UTC | ffprobe | US VPN | 130 | 377 | 102 | 609 | 21.3% |  |
+| 2025-10-01 03:48 UTC | ffprobe | UK VPN | 137 | 376 | 96 | 609 | 22.5% |  |
 
 **Performance Insights:**
 - FFprobe with balanced settings consistently outperforms browser (58% vs 14%)
@@ -246,7 +247,7 @@ Total geo-blocked: 377
 - Consider testing from alternative VPN regions
 
 ---
-*Generated at 2025-09-30 22:58 UTC*
+*Generated at 2025-10-01 03:48 UTC*
 
 <!-- HISTORY
 {
@@ -431,6 +432,18 @@ Total geo-blocked: 377
         "geoblocked": 377,
         "failed": 102,
         "rate": 21.34646962233169
+      }
+    },
+    {
+      "date": "2025-10-01 03:48 UTC",
+      "country": "UK",
+      "method": "ffprobe",
+      "scope": "vpn_only",
+      "vpn": {
+        "working": 137,
+        "geoblocked": 376,
+        "failed": 96,
+        "rate": 22.495894909688012
       }
     }
   ]

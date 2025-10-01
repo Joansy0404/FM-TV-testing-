@@ -1,17 +1,17 @@
 # Stream Test Report
 
-**Last update:** 2025-10-01 14:47 UTC
+**Last update:** 2025-10-01 20:30 UTC
 **Test method:** ffprobe
 **Test scope:** vpn_only
-**Test location:** UK VPN
+**Test location:** US VPN
 
 ## Development Status & Key Findings
 
-**Report Generated:** 2025-10-01 14:47 UTC
+**Report Generated:** 2025-10-01 20:30 UTC
 **Workflow Version:** 2.0 (Optimized FFprobe)
 
 ### Current Performance:
-- **VPN Test (UK)**: 137/609 working (22.5%)
+- **VPN Test (US)**: 223/609 working (36.6%)
 
 ### What We Know Works:
 - **FFprobe method**: 58% success rate on direct connection (validated 2025-09-30)
@@ -49,11 +49,11 @@
 - **Python:** 3.x
 - **FFmpeg/FFprobe:** Latest (apt-get)
 - **VPN Provider:** ProtonVPN via Gluetun
-- **VPN Country:** UK
-- **VPN City:** Edinburgh
-- **Connected IP:** 188.240.57.244
-- **Verified Location:** Edinburgh
-- **ISP:** AS25369 Hydra Communications Ltd
+- **VPN Country:** US
+- **VPN City:** New York
+- **Connected IP:** 185.98.169.37
+- **Verified Location:** San Jose
+- **ISP:** AS212238 Datacamp Limited
 - **Container:** python:3.11-slim (Docker)
 - **Network:** Shared namespace with Gluetun container
 
@@ -117,83 +117,84 @@ Based on historical testing:
 
 | Location | Working | Geo-blocked | Failed | Total | Success Rate |
 |----------|---------|-------------|--------|-------|--------------|
-| UK VPN | 137 | 377 | 95 | 609 | **22.5%** |
+| US VPN | 223 | 356 | 30 | 609 | **36.6%** |
 
 ## Error Analysis
 
-**Total failed streams:** 95
+**Total failed streams:** 30
 
 ### Error Categories
 
-- **Authentication/Permission:** 377 (78.7%)
-- **Not Found (404):** 11 (2.3%)
-- **Connection Errors:** 63 (13.2%)
+- **Timeouts:** 1 (0.3%)
+- **Authentication/Permission:** 356 (91.8%)
+- **Not Found (404):** 26 (6.7%)
+- **Connection Errors:** 1 (0.3%)
 
 ### Top 10 Error Messages
 
-1. **HTTP 403/401 (all UAs failed)** - 377 occurrences (78.7%)
-2. **Connection refused (all UAs)** - 63 occurrences (13.2%)
-3. **HTTP 404 Not Found** - 11 occurrences (2.3%)
-4. **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0cdovlzizljizny4x** - 3 occurrences (0.6%)
-5. **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly9mbdcubw92** - 2 occurrences (0.4%)
-6. ** (UA3: VLC)** - 2 occurrences (0.4%)
-7. **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly9mbdcubw92** - 2 occurrences (0.4%)
-8. ** (UA5: Mozilla)** - 2 occurrences (0.4%)
-9. **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly9mbdcubw92** - 2 occurrences (0.4%)
-10. **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly9zmmhvc3q1** - 1 occurrences (0.2%)
+1. **HTTP 403/401 (all UAs failed)** - 356 occurrences (91.8%)
+2. **HTTP 404 Not Found** - 26 occurrences (6.7%)
+3. **FFprobe timeout (60s, all UAs)** - 1 occurrences (0.3%)
+4. **Connection refused (all UAs)** - 1 occurrences (0.3%)
+5. ** (UA2: ExoPlayer)** - 1 occurrences (0.3%)
+6. ** (UA5: Mozilla)** - 1 occurrences (0.3%)
+7. **Invalid stream data (all UAs)** - 1 occurrences (0.3%)
+8. **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly9ha216zwqu** - 1 occurrences (0.3%)
 
 ## Failed Streams Details
 
 Streams that failed testing (for investigation):
 
-- **AXS TV** (Group: USA)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9BeHNf...`
-- **BBC NEWS** (Group: USA)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9CQkNf...`
-- **BEIN SPORTS** (Group: USA)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9CRUlO...`
-- **BET (EAST)** (Group: USA)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9CRVRf...`
-- **BET GOSPEL** (Group: USA)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9CRVRf...`
-- **BET HER (EAST)** (Group: USA)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9CRVRf...`
-- **BET JAMS** (Group: USA)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9CRVRf...`
 - **BET SOUL** (Group: USA)
   - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9CRVRf...`
-- **BRAVO (EAST)** (Group: USA)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9CUkFW...`
-- **CBS SPORTS NETWORK** (Group: USA)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9DQlNf...`
-- **CLEO TV** (Group: USA)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9DbGVv...`
-- **CMT** (Group: USA)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9DTVQv...`
-- **CNBC WORLD** (Group: USA)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9DTkJD...`
-- **COMEDY CENTRAL (EAST)** (Group: USA)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cDovLzIzLjIzNy4xMDQuMTA2OjgwODAvVVNB...`
-- **COMET** (Group: USA)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9DT01F...`
-- **COOKING CHANNEL** (Group: USA)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cDovLzIzLjIzNy4xMDQuMTA2OjgwODAvVVNB...`
-- **COURT TV** (Group: USA)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9zMmhvc3Q1LmxvY2Fsbm93LmFwaS5j...`
-- **COZI TV** (Group: USA)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9DT1pJ...`
-- **C•SPAN** (Group: USA)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9DLVNQ...`
-- **DISCOVERY FAMILY** (Group: USA)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9ESVND...`
+- **CNBC** (Group: USA)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9hMXhzLnZpcC8zMDAwMDkiLCAiaWQi...`
+- **DISNEY JR.** (Group: USA)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9ESVNO...`
+- **ESPN** (Group: USA)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9hMXhzLnZpcC80MDAwMDAxMSIsICJp...`
+- **ESPN 2** (Group: USA)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly93b3JsZC1wcm94aWZpZXIueHl6L2Rh...`
+- **ESPNEWS** (Group: USA)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9hMXhzLnZpcC80MDAwMDAxNCIsICJp...`
+- **FOX SOUL** (Group: USA)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9GT1hf...`
+- **FS2** (Group: USA)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9hMXhzLnZpcC80MDAwMDAyMiIsICJp...`
+- **HALLMARK MOVIES & MYSTERY** (Group: USA)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9IQUxM...`
+- **HGTV** (Group: USA)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9IR1RW...`
+- **MSNBC** (Group: USA)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9hMXhzLnZpcC8zMDAwMDgiLCAiaWQi...`
+- **SHOWTIME NEXT** (Group: USA)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9TSE9X...`
+- **SHOWTIME WOMEN** (Group: USA)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9TSE9X...`
+- **START TV** (Group: USA)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9TdGFy...`
+- **STARZ ENCORE CLASSIC** (Group: USA)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9TVEFS...`
+- **TLC** (Group: USA)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9UTEMv...`
+- **WILLOW 2** (Group: USA)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9hMXhzLnZpcC80MDAwMDA0MyIsICJp...`
+- **THE MOVIE CHANNEL** (Group: USA)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9lMi50aGV0dmFwcC50by9obHMvVGhl...`
+- **AL JAZEERA ENGLISH** (Group: UK)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cDovLzE4NS45OS4xMzYuNTA6OTk4MS9zdHJl...`
+- **BBC SCOTLAND** (Group: UK)
+  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cDovLzE4NS45OS4xMzYuNTA6OTk4MS9zdHJl...`
 
-*...and 75 more failed streams*
+*...and 10 more failed streams*
 
 ## Geo-blocked Streams (Sample)
 
-Total geo-blocked: 377
+Total geo-blocked: 356
 
-- GRIT TV (Group: USA)
+- ESPN U (Group: USA)
+- NESN UHD (Group: USA)
+- BLAZE (Group: UK)
 - QUEST RED (Group: UK)
 - QUEST+1 (Group: UK)
 - QVC (Group: UK)
@@ -201,10 +202,8 @@ Total geo-blocked: 377
 - QVC EXTRA (Group: UK)
 - QVC STYLE (Group: UK)
 - RACING TV (Group: UK)
-- REALLY (Group: UK)
-- S4C (Group: UK)
 
-*...and 367 more*
+*...and 346 more*
 
 ## Testing Methodology
 
@@ -223,13 +222,13 @@ Total geo-blocked: 377
 
 | Date & Time | Method | Location | Working | Geo-blocked | Failed | Total | Rate | Configuration Notes |
 |-------------|--------|----------|---------|-------------|--------|-------|------|---------------------|
-| 2025-09-30 18:25 UTC | ffprobe | US VPN | 54 | 2 | 19 | 75 | 72.0% | Balanced config working |
 | 2025-09-30 20:02 UTC | ffprobe | UK VPN | 136 | 378 | 95 | 609 | 22.3% |  |
 | 2025-09-30 21:20 UTC | ffprobe | US VPN | 130 | 377 | 102 | 609 | 21.3% |  |
 | 2025-09-30 22:58 UTC | ffprobe | US VPN | 130 | 377 | 102 | 609 | 21.3% |  |
 | 2025-10-01 03:48 UTC | ffprobe | UK VPN | 137 | 376 | 96 | 609 | 22.5% |  |
 | 2025-10-01 08:41 UTC | ffprobe | US VPN | 167 | 338 | 104 | 609 | 27.4% |  |
 | 2025-10-01 14:47 UTC | ffprobe | UK VPN | 137 | 377 | 95 | 609 | 22.5% |  |
+| 2025-10-01 20:30 UTC | ffprobe | US VPN | 223 | 356 | 30 | 609 | 36.6% |  |
 
 **Performance Insights:**
 - FFprobe with balanced settings consistently outperforms browser (58% vs 14%)
@@ -239,14 +238,11 @@ Total geo-blocked: 377
 
 ## Recommendations
 
-**Low success rate detected**
-
-- Connection errors may indicate server issues or rate limiting
 - High geo-blocking rate from this location
 - Consider testing from alternative VPN regions
 
 ---
-*Generated at 2025-10-01 14:47 UTC*
+*Generated at 2025-10-01 20:30 UTC*
 
 <!-- HISTORY
 {
@@ -467,6 +463,18 @@ Total geo-blocked: 377
         "geoblocked": 377,
         "failed": 95,
         "rate": 22.495894909688012
+      }
+    },
+    {
+      "date": "2025-10-01 20:30 UTC",
+      "country": "US",
+      "method": "ffprobe",
+      "scope": "vpn_only",
+      "vpn": {
+        "working": 223,
+        "geoblocked": 356,
+        "failed": 30,
+        "rate": 36.61740558292282
       }
     }
   ]

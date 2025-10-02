@@ -1,17 +1,16 @@
 # Stream Test Report
 
-**Last update:** 2025-10-01 20:30 UTC
+**Last update:** 2025-10-02 05:35 UTC
 **Test method:** ffprobe
 **Test scope:** vpn_only
-**Test location:** US VPN
+**Test location:** Direct Connection
 
 ## Development Status & Key Findings
 
-**Report Generated:** 2025-10-01 20:30 UTC
+**Report Generated:** 2025-10-02 05:35 UTC
 **Workflow Version:** 2.0 (Optimized FFprobe)
 
 ### Current Performance:
-- **VPN Test (US)**: 223/609 working (36.6%)
 
 ### What We Know Works:
 - **FFprobe method**: 58% success rate on direct connection (validated 2025-09-30)
@@ -48,21 +47,15 @@
 - **Runner:** ubuntu-latest (GitHub Actions)
 - **Python:** 3.x
 - **FFmpeg/FFprobe:** Latest (apt-get)
-- **VPN Provider:** ProtonVPN via Gluetun
-- **VPN Country:** US
-- **VPN City:** New York
-- **Connected IP:** 185.98.169.37
-- **Verified Location:** San Jose
-- **ISP:** AS212238 Datacamp Limited
-- **Container:** python:3.11-slim (Docker)
-- **Network:** Shared namespace with Gluetun container
+- **Connection:** Direct (no VPN)
+- **Location:** GitHub Actions datacenter
 
 ### FFprobe Settings
-**VPN Configuration:**
-- Connection timeout: 45 seconds (`-timeout 45000000`)
-- Probe size: 5MB (`-probesize 5000000`)
-- Analyze duration: 5 seconds (`-analyzeduration 5000000`)
-- Subprocess timeout: 60 seconds (Python wrapper)
+**Direct Connection Configuration:**
+- Connection timeout: 30 seconds (`-timeout 30000000`)
+- Probe size: 3MB (`-probesize 3000000`)
+- Analyze duration: 3 seconds (`-analyzeduration 3000000`)
+- Subprocess timeout: 45 seconds (Python wrapper)
 - Stream selection: Video stream 0 only (`-select_streams v:0`)
 - Output format: JSON (`-of json`)
 - Verbosity: Errors only (`-v error`)
@@ -117,98 +110,11 @@ Based on historical testing:
 
 | Location | Working | Geo-blocked | Failed | Total | Success Rate |
 |----------|---------|-------------|--------|-------|--------------|
-| US VPN | 223 | 356 | 30 | 609 | **36.6%** |
-
-## Error Analysis
-
-**Total failed streams:** 30
-
-### Error Categories
-
-- **Timeouts:** 1 (0.3%)
-- **Authentication/Permission:** 356 (91.8%)
-- **Not Found (404):** 26 (6.7%)
-- **Connection Errors:** 1 (0.3%)
-
-### Top 10 Error Messages
-
-1. **HTTP 403/401 (all UAs failed)** - 356 occurrences (91.8%)
-2. **HTTP 404 Not Found** - 26 occurrences (6.7%)
-3. **FFprobe timeout (60s, all UAs)** - 1 occurrences (0.3%)
-4. **Connection refused (all UAs)** - 1 occurrences (0.3%)
-5. ** (UA2: ExoPlayer)** - 1 occurrences (0.3%)
-6. ** (UA5: Mozilla)** - 1 occurrences (0.3%)
-7. **Invalid stream data (all UAs)** - 1 occurrences (0.3%)
-8. **http://alt.xtream-ie.org/abn1j1otrse/vvtbgggms/1eyj1cmwioiaiahr0chm6ly9ha216zwqu** - 1 occurrences (0.3%)
-
-## Failed Streams Details
-
-Streams that failed testing (for investigation):
-
-- **BET SOUL** (Group: USA)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9CRVRf...`
-- **CNBC** (Group: USA)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9hMXhzLnZpcC8zMDAwMDkiLCAiaWQi...`
-- **DISNEY JR.** (Group: USA)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9ESVNO...`
-- **ESPN** (Group: USA)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9hMXhzLnZpcC80MDAwMDAxMSIsICJp...`
-- **ESPN 2** (Group: USA)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly93b3JsZC1wcm94aWZpZXIueHl6L2Rh...`
-- **ESPNEWS** (Group: USA)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9hMXhzLnZpcC80MDAwMDAxNCIsICJp...`
-- **FOX SOUL** (Group: USA)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9GT1hf...`
-- **FS2** (Group: USA)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9hMXhzLnZpcC80MDAwMDAyMiIsICJp...`
-- **HALLMARK MOVIES & MYSTERY** (Group: USA)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9IQUxM...`
-- **HGTV** (Group: USA)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9IR1RW...`
-- **MSNBC** (Group: USA)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9hMXhzLnZpcC8zMDAwMDgiLCAiaWQi...`
-- **SHOWTIME NEXT** (Group: USA)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9TSE9X...`
-- **SHOWTIME WOMEN** (Group: USA)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9TSE9X...`
-- **START TV** (Group: USA)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9TdGFy...`
-- **STARZ ENCORE CLASSIC** (Group: USA)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9TVEFS...`
-- **TLC** (Group: USA)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9mbDcubW92ZW9uam95LmNvbS9UTEMv...`
-- **WILLOW 2** (Group: USA)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9hMXhzLnZpcC80MDAwMDA0MyIsICJp...`
-- **THE MOVIE CHANNEL** (Group: USA)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9lMi50aGV0dmFwcC50by9obHMvVGhl...`
-- **AL JAZEERA ENGLISH** (Group: UK)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cDovLzE4NS45OS4xMzYuNTA6OTk4MS9zdHJl...`
-- **BBC SCOTLAND** (Group: UK)
-  - URL: `http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cDovLzE4NS45OS4xMzYuNTA6OTk4MS9zdHJl...`
-
-*...and 10 more failed streams*
-
-## Geo-blocked Streams (Sample)
-
-Total geo-blocked: 356
-
-- ESPN U (Group: USA)
-- NESN UHD (Group: USA)
-- BLAZE (Group: UK)
-- QUEST RED (Group: UK)
-- QUEST+1 (Group: UK)
-- QVC (Group: UK)
-- QVC BEAUTY (Group: UK)
-- QVC EXTRA (Group: UK)
-- QVC STYLE (Group: UK)
-- RACING TV (Group: UK)
-
-*...and 346 more*
 
 ## Testing Methodology
 
 **FFprobe Configuration:**
-- Timeout: 45 seconds, Probe: 5MB, Analyze: 5s (VPN optimized)
+- Timeout: 30 seconds, Probe: 3MB, Analyze: 3s (Direct optimized)
 - Validates: Stream accessibility and codec detection
 - Trade-off: Balanced between speed and compatibility
 
@@ -222,7 +128,6 @@ Total geo-blocked: 356
 
 | Date & Time | Method | Location | Working | Geo-blocked | Failed | Total | Rate | Configuration Notes |
 |-------------|--------|----------|---------|-------------|--------|-------|------|---------------------|
-| 2025-09-30 20:02 UTC | ffprobe | UK VPN | 136 | 378 | 95 | 609 | 22.3% |  |
 | 2025-09-30 21:20 UTC | ffprobe | US VPN | 130 | 377 | 102 | 609 | 21.3% |  |
 | 2025-09-30 22:58 UTC | ffprobe | US VPN | 130 | 377 | 102 | 609 | 21.3% |  |
 | 2025-10-01 03:48 UTC | ffprobe | UK VPN | 137 | 376 | 96 | 609 | 22.5% |  |
@@ -236,13 +141,9 @@ Total geo-blocked: 356
 - Browser method limited by JavaScript codec support in HLS.js library
 - Connection refused is dominant error (33% of failures) regardless of method
 
-## Recommendations
-
-- High geo-blocking rate from this location
-- Consider testing from alternative VPN regions
 
 ---
-*Generated at 2025-10-01 20:30 UTC*
+*Generated at 2025-10-02 05:35 UTC*
 
 <!-- HISTORY
 {
@@ -476,6 +377,12 @@ Total geo-blocked: 356
         "failed": 30,
         "rate": 36.61740558292282
       }
+    },
+    {
+      "date": "2025-10-02 05:35 UTC",
+      "country": "UK",
+      "method": "ffprobe",
+      "scope": "vpn_only"
     }
   ]
 }

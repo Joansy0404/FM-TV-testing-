@@ -1,6 +1,12 @@
 #EXTM3U url-tvg="https://tinyurl.com/FMTV-L1VE-EPG-XML"
 #EXTINF:0 CUID="991" tvg-name="Jio Events HD • IN" group-title="Events",Jio Events HD • IN
 http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9saXZlLmRpbmVzaDI5LmNvbS5ucC9zdHJlYW0vamlvdHZwbHVzL2ppb2V2ZW50c2hkL21hc3Rlci5tM3U4IiwgImlkIjogOTkxfQ%3D%3D/fast
+#EXTINF:0 CUID="795" tvg-name="SKY SPORTS CRICKET • UK" tvg-logo="https://logo.m3uassets.com/skysportscricket.png" group-title="United Kingdom ",SKY SPORTS CRICKET • UK
+http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cDovLzEwMy4xNDAuMy4yMDo2ODc4L2FjZS9tYW5pZmVzdC5tM3U4P2lkPTZkOTVlNGIwODkzZTE1NWNjNjc0Yjg0ZTA3NjMxNTBjNDQ1ZDNkZGQmcGlkPTUzNiIsICJpZCI6IDc5NX0%3D/fast
+#EXTINF:0 CUID="821" tvg-name="SKY SPORTS FOOTBALL • UK" tvg-logo="https://logo.m3uassets.com/skysportsfootball.png" group-title="United Kingdom ",SKY SPORTS FOOTBALL • UK
+http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cDovLzEwMy4xNDAuMy4yMDo2ODc4L2FjZS9tYW5pZmVzdC5tM3U4P2lkPThkYmUyZDUxNWU5MTMxZmEzMTEzNTM1Mzc3MzZmOGM5NGJlOWIyNmQmcGlkPTY1NyIsICJpZCI6IDgyMX0%3D/fast
+#EXTINF:0 CUID="1072" tvg-chno="null" tvg-name="Sky Sports Mix • UK" tvg-logo="https://logo.m3uassets.com/skysportsmix.png" group-title="United Kingdom ",Sky Sports Mix • UK
+http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cDovLzE0MS45NC4xOTIuNTg6ODA4MC9wbGF5LzBSeU00dXVyalVYLVRMX2hMSkFlYWluYmFQMWx6aFh5WmlxX1NBM2gxNjgvdHMiLCAiaWQiOiAxMDcyfQ%3D%3D/fast
 #EXTINF:0 CUID="1076" tvg-chno="null" tvg-name="Sky Sports News • UK" tvg-logo="https://logo.m3uassets.com/skysportsnews.png" group-title="United Kingdom ",Sky Sports News • UK
 http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cDovLzE0MS45NC4xOTIuNTg6ODA4MC9wbGF5LzZfb2g0Vnp4MUtCSy1EOWhBbklfaWZFV1ZhTGRuek1iWS1pOHhsMjBra0UvdHMiLCAiaWQiOiAxMDc2fQ%3D%3D/fast
 #EXTINF:0 CUID="1075" tvg-chno="null" tvg-name="Sky Sports Tennis • UK" tvg-logo="https://logo.m3uassets.com/skysportstennis.png" group-title="United Kingdom ",Sky Sports Tennis • UK
@@ -9,24 +15,18 @@ http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cDovLzE0MS45NC4x
 http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cDovL2NvcmQtY3V0dGVyLm5ldDo4MDgwL2hxM3k0Ry8yMzQyNDcvNzY4NDIiLCAiaWQiOiAxMDc0fQ%3D%3D/fast
 #EXTINF:0 CUID="1073" tvg-chno="null" tvg-name="Sky Sports NFL • UK" tvg-logo="https://logo.m3uassets.com/skysportsnfl.png" group-title="United Kingdom ",Sky Sports NFL • UK
 http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cDovLzE0MS45NC4xOTIuNTg6ODA4MC9wbGF5L0ZIanNjZTNfMG94SFRqYnZKeWRLTW5hVkNHckZvaVJQemFCbnhnX214OEkvdHMiLCAiaWQiOiAxMDczfQ%3D%3D/fast
-#EXTINF:0 CUID="1072" tvg-chno="null" tvg-name="Sky Sports Mix • UK" tvg-logo="https://logo.m3uassets.com/skysportsmix.png" group-title="United Kingdom ",Sky Sports Mix • UK
-http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cDovLzE0MS45NC4xOTIuNTg6ODA4MC9wbGF5LzBSeU00dXVyalVYLVRMX2hMSkFlYWluYmFQMWx6aFh5WmlxX1NBM2gxNjgvdHMiLCAiaWQiOiAxMDcyfQ%3D%3D/fast
 #EXTINF:0 CUID="1071" tvg-chno="null" tvg-name="Sky Sports Golf • UK" tvg-logo="https://logo.m3uassets.com/skysportsgolf.png" group-title="United Kingdom ",Sky Sports Golf • UK
 http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cDovLzE0MS45NC4xOTIuNTg6ODA4MC9wbGF5L09nb0tQQ0JwRkMyQXdZVWw0WUNVbmJmT3lpcGVsOVR1WnV1SlRzRXRaT1UvdHMiLCAiaWQiOiAxMDcxfQ%3D%3D/fast
 #EXTINF:0 CUID="1070" tvg-chno="null" tvg-name="Sky Sports F1 • UK" tvg-logo="https://logo.m3uassets.com/skysportsf1.png" group-title="United Kingdom ",Sky Sports F1 • UK
 http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cDovLzE0MS45NC4xOTIuNTg6ODA4MC9wbGF5L2xDQUROdHUxd1JVbm1FcUZDNnJFV2ZOWm9yNE14N2tWWmFxTWtjUW5xZzAvdHMiLCAiaWQiOiAxMDcwfQ%3D%3D/fast
-#EXTINF:0 CUID="821" tvg-name="SKY SPORTS FOOTBALL • UK" tvg-logo="https://logo.m3uassets.com/skysportsfootball.png" group-title="United Kingdom ",SKY SPORTS FOOTBALL • UK
-http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cDovLzEwMy4xNDAuMy4yMDo2ODc4L2FjZS9tYW5pZmVzdC5tM3U4P2lkPThkYmUyZDUxNWU5MTMxZmEzMTEzNTM1Mzc3MzZmOGM5NGJlOWIyNmQmcGlkPTY1NyIsICJpZCI6IDgyMX0%3D/fast
-#EXTINF:0 CUID="1035" tvg-name="talkSPORT • UK" tvg-logo="https://logo.m3uassets.com/talksport.png" group-title="United Kingdom ",talkSPORT • UK
-http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9hZjdhOGI0ZS53dXJsLmNvbS9tYXN0ZXIvZjM2ZDI1ZTdlNTJmMWJhOGQ3ZTU2ZWI4NTljNjM2NTYzMjE0ZjU0MS9URWN0WjJKZmRHRnNhMU5RVDFKVVgwaE1Vdy9wbGF5bGlzdC5tM3U4IiwgImlkIjogMTAzNX0%3D/fast
 #EXTINF:0 CUID="820" tvg-name="SKY SPORTS PREMIER LEAGUE • UK" tvg-logo="https://logo.m3uassets.com/skysportspremierleague.png" group-title="United Kingdom ",SKY SPORTS PREMIER LEAGUE • UK
 http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cDovLzEwMy4xNDAuMy4yMDo2ODc4L2FjZS9tYW5pZmVzdC5tM3U4P2lkPWVjNWVhYmUwMTQ0Y2NmZmZjMzM3ZTFkNjcwOGUyYWZiODFkMDYzOGUmcGlkPTY1NSIsICJpZCI6IDgyMH0%3D/fast
 #EXTINF:0 CUID="794" tvg-name="SKY SPORTS MAIN EVENT • UK" tvg-logo="https://logo.m3uassets.com/skysportsmainevent.png" group-title="United Kingdom ",SKY SPORTS MAIN EVENT • UK
 http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cDovLzEwMy4xNDAuMy4yMDo2ODc4L2FjZS9tYW5pZmVzdC5tM3U4P2lkPWVhYjdhZWVmMDIxOGNlOGIwNzUyZTU5NmU0NzkyYjY5ZWRhNGRmNWUmcGlkPTUzNSIsICJpZCI6IDc5NH0%3D/fast
-#EXTINF:0 CUID="795" tvg-name="SKY SPORTS CRICKET • UK" tvg-logo="https://logo.m3uassets.com/skysportscricket.png" group-title="United Kingdom ",SKY SPORTS CRICKET • UK
-http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cDovLzEwMy4xNDAuMy4yMDo2ODc4L2FjZS9tYW5pZmVzdC5tM3U4P2lkPTZkOTVlNGIwODkzZTE1NWNjNjc0Yjg0ZTA3NjMxNTBjNDQ1ZDNkZGQmcGlkPTUzNiIsICJpZCI6IDc5NX0%3D/fast
 #EXTINF:0 CUID="796" tvg-name="SKY SPORTS+ • UK" group-title="United Kingdom ",SKY SPORTS+ • UK
 http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cDovLzEwMy4xNDAuMy4yMDo2ODc4L2FjZS9tYW5pZmVzdC5tM3U4P2lkPWQzMTdhMDAzZTgwNDdkYTJjMzZhMmEyYmIyMjg5NTc4YzlhM2I3OWMmcGlkPTUzNyIsICJpZCI6IDc5Nn0%3D/fast
+#EXTINF:0 CUID="1035" tvg-name="talkSPORT • UK" tvg-logo="https://logo.m3uassets.com/talksport.png" group-title="United Kingdom ",talkSPORT • UK
+http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cHM6Ly9hZjdhOGI0ZS53dXJsLmNvbS9tYXN0ZXIvZjM2ZDI1ZTdlNTJmMWJhOGQ3ZTU2ZWI4NTljNjM2NTYzMjE0ZjU0MS9URWN0WjJKZmRHRnNhMU5RVDFKVVgwaE1Vdy9wbGF5bGlzdC5tM3U4IiwgImlkIjogMTAzNX0%3D/fast
 #EXTINF:0 CUID="797" tvg-name="TNT SPORTS 1 • UK" tvg-logo="https://logo.m3uassets.com/tntsports1.png" group-title="United Kingdom ",TNT SPORTS 1 • UK
 http://alt.xtream-ie.org/aBn1J1oTRSe/VVtbggGMS/1eyJ1cmwiOiAiaHR0cDovLzEwMy4xNDAuMy4yMDo2ODc4L2FjZS9tYW5pZmVzdC5tM3U4P2lkPWVmYzYwY2ZlNWUzYTM0OWJhYTAyYmNjNDlmNjY0N2MyMWE5YzNjNWImcGlkPTEiLCAiaWQiOiA3OTd9/fast
 #EXTINF:0 CUID="1049" tvg-chno="null" tvg-name="TNT SPORTS 2 • UK" tvg-logo="https://logo.m3uassets.com/tntsports2.png" group-title="United Kingdom ",TNT SPORTS 2 • UK
